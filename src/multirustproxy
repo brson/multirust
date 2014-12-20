@@ -1,0 +1,119 @@
+#!/bin/sh
+
+say() {
+    echo "multirustproxy: $1"
+}
+
+err() {
+    say "$1" >&2
+    exit 1
+}
+
+need_cmd() {
+    if ! command -v $1 > /dev/null 2>&1
+    then err "need $1"
+    fi
+}
+
+need_ok() {
+    if [ $? != 0 ]; then err "$1"; fi
+}
+
+assert_nz() {
+    if [ -z "$1" ]; then err "assert_nz $2"; fi
+}
+
+multirust() {
+    if [ -z "$multirust" ]; then err "\$multirust undefined"; fi
+    "$multirust" "$@"
+}
+
+need_cmd dirname
+need_cmd basename
+
+# Environment sanity checks
+if [ -z "$0" ]; then err "arg 0 is undefined"; fi
+
+cmd_dirname=$(dirname "$0")
+cmd_basename=$(basename "$0")
+multirust="$cmd_dirname/multirust"
+
+push_sysroot_ldpath() {
+    _sysroot="$1"
+    assert_nz "$_sysroot" "sysroot"
+
+    _new_path="$_sysroot/lib"
+
+    OLD_LD_LIBRARY_PATH="$LD_LIBRARY_PATH"
+    LD_LIBRARY_PATH="$_new_path:$LD_LIBRARY_PATH"
+    export LD_LIBRARY_PATH
+
+    OLD_DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH"
+    DYLD_LIBRARY_PATH="$_new_path:$DYLD_LIBRARY_PATH"
+    export DYLD_LIBRARY_PATH
+}
+
+pop_sysroot_ldpath() {
+    LD_LIBRARY_PATH="$OLD_LD_LIBRARY_PATH"
+    export LD_LIBRARY_PATH
+    DYLD_LIBRARY_PATH="$OLD_DYLD_LIBRARY_PATH"
+    export DYLD_LIBRARY_PATH
+}
+
+# Check if multirust exists
+if [ ! -e "$multirust" ]; then
+    err "can't find multirust"
+fi
+
+# Figure out what mode we're in
+case "$cmd_basename" in
+    rustc | rustdoc | cargo )
+	mode=override
+	rust_cmd="$cmd_basename"
+	;;
+    rustc-* | rustdoc-* | cargo-* )
+	err "multirustproxy aliases not implemented"
+	;;
+    multirustproxy)
+	err "I should not be run manually"
+	;;
+    *)
+	err "unable to interpret command name"
+	;;
+esac
+
+extra_flags=
+case "$rust_cmd" in
+    rustc )
+	# Sneak rpaths into all compilation so dylibs work
+	extra_flags="-C rpath"
+	;;
+esac
+
+case "$mode" in
+    override)
+	# Get the sysroot for the override toolchain
+	sysroot=$(multirust ctl override-sysroot)
+	need_ok '`multirust ctl override-sysroot` failed'
+	assert_nz "$sysroot" "sysroot is empty"
+	lib_path="$sysroot/lib"
+	LD_LIBRARY_PATH="$lib_path:$LD_LIBRARY_PATH"
+	DYLD_LIBRARY_PATH="$lib_path:$DYLD_LIBRARY_PATH"
+	CARGO_HOME="$sysroot"
+	RUSTC="$sysroot/bin/rustc"
+	RUSTDOC="$sysroot/bin/rustdoc"
+	CARGO="$sysroot/bin/cargo"
+	export LD_LIBRARY_PATH
+	export DYLD_LIBRARY_PATH
+	export CARGO_HOME
+	export RUSTC
+	export RUSTDOC
+	export CARGO
+	"$sysroot/bin/$rust_cmd" "$@" $extra_flags
+	exit_code=$?
+	exit $exit_code
+	;;
+
+    *)
+	;;
+esac
