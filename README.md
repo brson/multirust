@@ -128,7 +128,7 @@ environment variable.
 * Doesn't actually check for channel updates yet.
 * Paths with tabs in their names will cause breakage when configured
   with overrides.
-* Other unusual characters in paths make break overrides.
+* Other unusual characters in paths may break overrides.
 * Overrides at the filesystem root probably don't work.
 * Nightly archives only work from 2014-12-16 forward.
 
