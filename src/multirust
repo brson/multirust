@@ -497,7 +497,7 @@ determine_remote_rust_installer_location() {
 	    ;;
 
 	* )
-	    verbose_say "interpreting toolchain spec as explicit version"
+	    say "interpreting toolchain spec as explicit version"
 	    get_architecture
 	    _arch="$RETVAL"
 	    assert_nz "$_arch" "arch"
