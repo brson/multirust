@@ -170,26 +170,37 @@ temp_dir="$multirust_dir/tmp"
 flag_verbose=false
 flag_yes=false
 
+make_temp_name() {
+    _pid="$$"
+    assert_nz "$_pid" "pid"
+
+    _tmp_number="${NEXT_TMP_NUMBER-0}"
+    _tmp_name="tmp-$_pid-$_tmp_number"
+    NEXT_TMP_NUMBER=$(expr "$_tmp_number" + 1)
+    assert_nz "$NEXT_TMP_NUMBER" "NEXT_TMP_NUMBER"
+    RETVAL="$_tmp_name"
+}
+
 make_temp() {
-    _old_tmpdir="$TMPDIR"
-    TMPDIR="$temp_dir"
-    export TMPDIR
-    mktemp tmp.XXXXXXXXXX
-    _retval=$?
-    TMPDIR="$_old_tmpdir"
-    export TMPDIR
-    return $_retval
+    mkdir -p "$temp_dir"
+    need_ok "failed to make temp dir '$temp_dir'"
+
+    make_temp_name
+    _tmp_name="$temp_dir/$RETVAL"
+    touch "$_tmp_name"
+    need_ok "couldn't make temp file '$_tmp_name'"
+    RETVAL="$_tmp_name"
 }
 
 make_temp_dir() {
-    _old_tmpdir="$TMPDIR"
-    TMPDIR="$temp_dir"
-    export TMPDIR
-    mktemp -d tmp.XXXXXXXXXX
-    _retval=$?
-    TMPDIR="$_old_tmpdir"
-    export TMPDIR
-    return $_retval
+    mkdir -p "$temp_dir"
+    need_ok "failed to make temp dir '$temp_dir'"
+
+    make_temp_name
+    _tmp_name="$temp_dir/$RETVAL"
+    mkdir -p "$_tmp_name"
+    need_ok "couldn't make temp dir '$_tmp_name'"
+    RETVAL="$_tmp_name"
 }
 
 # Verifies that ~/.multirust exists and uses the correct format
@@ -327,11 +338,8 @@ download_manifest()  {
     mkdir -p "$manifests_dir"
     need_ok "couldn't create manifests dir"
 
-    verbose_say "creating temp dir: '$temp_dir'"
-    mkdir -p "$temp_dir"
-    need_ok "couldn't make temp dir"
-    _workdir=$(make_temp_dir)
-    need_ok "culdn't make work dir"
+    make_temp_dir
+    _workdir="$RETVAL"
     assert_nz "$_workdir" "workdir"
     verbose_say "manifest work dir: $_workdir"
 
@@ -566,10 +574,8 @@ install_toolchain() {
     need_ok "failed to make toolchain dir"
 
     # Create a temp directory to put the downloaded toolchain
-    verbose_say "creating temp dir: '$_temp_dir'"
-    mkdir -p "$temp_dir"
-    need_ok "couldn't make temp dir"
-    _workdir=$(make_temp_dir)
+    make_temp_dir
+    _workdir="$RETVAL"
     assert_nz "$_workdir" "workdir"
     verbose_say "download work dir: $_workdir"
 
@@ -761,8 +767,10 @@ set_default() {
     _toolchain="$1"
     assert_nz "$_toolchain" "toolchain"
 
-    _workfile=$(make_temp)
-    need_ok "couldn't create temp file"
+    make_temp
+    _workfile="$RETVAL"
+    assert_nz "$_workfile" "workfile"
+
     echo "$_toolchain" > "$_workfile"
     if [ $? != 0 ]; then
 	rm -R "$_workfile"
@@ -788,8 +796,9 @@ set_override() {
     # Escape forward-slashes
     _escaped_override_dir=`echo "$_override_dir" | sed s/\\\//\\\\\\\\\\\//g`
 
-    _workfile=$(make_temp)
-    need_ok "failed to create temp file"
+    make_temp
+    _workfile="$RETVAL"
+    assert_nz "$_workfile" "workfile"
 
     # Copy the current db to a new file, removing any existing override
     if [ -e "$override_db" ]; then
@@ -823,8 +832,9 @@ remove_override() {
     # Escape forward-slashes
     _escaped_override_dir=`echo "$_override_dir" | sed s/\\\//\\\\\\\\\\\//g`
 
-    _workfile=$(make_temp)
-    need_ok "failed to create temp file"
+    make_temp
+    _workfile="$RETVAL"
+    assert_nz "$_workfile" "workfile"
 
     # Check if the override exists
     _have_override=false
