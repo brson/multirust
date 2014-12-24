@@ -142,6 +142,7 @@ environment variable.
 * Check checksums.
 * Check sigs.
 * Cache installers to avoid redownloads? Maybe only useful for testing.
+* Resume downloads.
 * override, show-override, remove-override could take an optional path.
 
 # License
