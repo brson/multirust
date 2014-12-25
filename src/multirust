@@ -143,6 +143,7 @@ need_cmd mv
 need_cmd awk
 need_cmd cut
 need_cmd sort
+need_cmd shasum
 
 # Environment sanity checks
 assert_nz "$HOME" "\$HOME is undefined"
@@ -209,12 +210,6 @@ check_sums() {
     local _sumfile="$1"
     assert_nz "$_sumfile" "sumfile"
 
-    # OS X doesn't commonly have sha256sum, so checksum verification is optional
-    if ! command -v sha256sum > /dev/null 2>&1; then
-	say "\`sha256sum\` not available. not verifying checksums"
-	return
-    fi
-
     # Hackily edit the sha256 file to workaround a bug in the bots' generation of sums
     make_temp_dir
     local _workdir="$RETVAL"
@@ -225,7 +220,7 @@ check_sums() {
 
     local _sumfile_dirname=$(dirname "$_sumfile")
     assert_nz "$_sumfile_dirname" "sumfile_dirname"
-    (cd "$_sumfile_dirname" && sha256sum "$_workdir/tmpsums" > /dev/null)
+    (cd "$_sumfile_dirname" && shasum -a 256 "$_workdir/tmpsums" > /dev/null)
     local _sum_retval=$?
 
     rm -R "$_workdir"
