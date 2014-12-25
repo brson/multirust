@@ -162,8 +162,9 @@ multirust_dir="$HOME/.multirust"
 version_file="$multirust_dir/version"
 override_db="$multirust_dir/overrides"
 default_file="$multirust_dir/default"
-toolchains_dir="$multirust_dir/tcs"
+toolchains_dir="$multirust_dir/toolchains"
 manifests_dir="$multirust_dir/manifests"
+installer_dir="$multirust_dir/installers"
 temp_dir="$multirust_dir/tmp"
 
 # Some globals
@@ -201,6 +202,36 @@ make_temp_dir() {
     mkdir -p "$_tmp_name"
     need_ok "couldn't make temp dir '$_tmp_name'"
     RETVAL="$_tmp_name"
+}
+
+# Returns 0 on success, like sha256sum
+check_sums() {
+    _sumfile="$1"
+    assert_nz "$_sumfile" "sumfile"
+
+    # OS X doesn't commonly have sha256sum, so checksum verification is optional
+    if ! command -v sha256sum > /dev/null 2>&1; then
+	say "\`sha256sum\` not available. not verifying checksums"
+	return
+    fi
+
+    # Hackily edit the sha256 file to workaround a bug in the bots' generation of sums
+    make_temp_dir
+    local _workdir="$RETVAL"
+    assert_nz "$_workdir" "workdir"
+
+    sed s/tmp\\/dist\\/.*\\/final\\/// "$_sumfile" > "$_workdir/tmpsums"
+    need_ok "failed to generate temporary checksums"
+
+    _sumfile_dirname=$(dirname "$_sumfile")
+    assert_nz "$_sumfile_dirname" "sumfile_dirname"
+    (cd "$_sumfile_dirname" && sha256sum "$_workdir/tmpsums" > /dev/null)
+    _sum_retval=$?
+
+    rm -R "$_workdir"
+    need_ok "couldn't delete workdir '$_workdir'"
+
+    return $_sum_retval
 }
 
 # Verifies that ~/.multirust exists and uses the correct format
@@ -308,6 +339,83 @@ get_architecture() {
     RETVAL="$_arch"
 }
 
+check_future_rust() {
+    make_temp_dir
+    _workdir="$RETVAL"
+    assert_nz "$_workdir" "workdir"
+    verbose_say "future manifest work dir: $_workdir"
+
+    # Check for future rust installer changes
+    _future_manifest="$dist_server/$rust_dist_dir/channel-rust-nightly"
+    say "checking for future manifest version incompatibility"
+    (cd "$_workdir" && curl -f -O "$_future_manifest" > /dev/null 2>&1)
+    if [ $? = 0 ]; then
+	err "remote channel manifest uses future format. upgrade multirust"
+    fi
+
+    rm -R "$_workdir"
+    need_ok "couldn't delete workdir"
+}
+
+# Downloads a remote file and its checksum and checks it
+download_and_check() {
+    _remote_name="$1"
+    _local_name="$2"
+    assert_nz "$_remote_name" "remote name"
+    assert_nz "$_local_name" "local name"
+
+    _remote_sums="$_remote_name.sha256"
+    _local_sums="$_local_name.sha256"
+
+    _remote_basename=$(basename "$_remote_name")
+    _remote_sums_basename="$_remote_basename.sha256"
+    assert_nz "$_remote_basename" "remote basename"
+
+    make_temp_dir
+    local _workdir="$RETVAL"
+    assert_nz "$_workdir" "workdir"
+    verbose_say "download work dir: $_workdir"
+
+    verbose_say "downloading '$_remote_name' to '$_workdir'"
+    (cd "$_workdir" && curl -f -O "$_remote_name")
+    if [ $? != 0 ]; then
+	rm -R "$_workdir"
+	err "couldn't download '$_remote_name'"
+    fi
+
+    verbose_say "downloading '$_remote_sums' to '$_workdir'"
+    (cd "$_workdir" && curl -f -O "$_remote_sums")
+    if [ $? != 0 ]; then
+	rm -R "$_workdir"
+	err "couldn't download checksum file '$_remote_sums'"
+    fi
+
+    say "verifying checksums for '$_remote_basename'"
+    check_sums "$_workdir/$_remote_sums_basename"
+    if [ $? != 0 ]; then
+	rm -R "$_workdir"
+	err "checksum failed for '$_remote_name'"
+    fi
+
+    verbose_say "moving '$_workdir/$_remote_basename' to '$_local_name'"
+    mv -f "$_workdir/$_remote_basename" "$_local_name"
+    if [ $? != 0 ]; then
+	rm -R "$_workdir"
+	err "couldn't move '$_workdir/$_remote_basename' to '$_local_name'"
+    fi
+
+    verbose_say "moving '$_workdir/$_remote_sums_basename' to '$_local_sums'"
+    mv -f "$_workdir/$_remote_sums_basename" "$_local_sums"
+    if [ $? != 0 ]; then
+	rm "$_local_name"
+	rm -R "$_workdir"
+	err "couldn't move '$_workdir/$_remote_sums_basename' to '$_local_sums'"
+    fi
+
+    rm -R "$_workdir"
+    need_ok "couldn't delete workdir '$_workdir'"
+}
+
 get_local_cargo_manifest_name() {
     RETVAL="$manifests_dir/channel-cargo-nightly"
 }
@@ -322,12 +430,10 @@ get_local_rust_manifest_name() {
 download_manifest()  {
     _toolchain="$1"
     _name="$2"
-    _remote_manifest_basename="$3"
-    _remote_manifest="$4"
-    _local_manifest="$5"
+    _remote_manifest="$3"
+    _local_manifest="$4"
     assert_nz "$_toolchain" "toolchain"
     assert_nz "$_name" "name"
-    assert_nz "$_remote_manifest_basename" "remote basename"
     assert_nz "$_remote_manifest" "remote manifest"
     assert_nz "$_local_manifest" "local manifest"
 
@@ -338,34 +444,8 @@ download_manifest()  {
     mkdir -p "$manifests_dir"
     need_ok "couldn't create manifests dir"
 
-    make_temp_dir
-    _workdir="$RETVAL"
-    assert_nz "$_workdir" "workdir"
-    verbose_say "manifest work dir: $_workdir"
-
-    # Check for future rust installer changes
-    _future_manifest="$dist_server/$rust_dist_dir/channel-rust-nightly"
-    say "checking for future manifest"
-    (cd "$_workdir" && curl -f -O "$_future_manifest" > /dev/null 2>&1)
-    if [ $? = 0 ]; then
-	err "remote channel manifest uses future format. upgrade multirust"
-    fi
-
     say "downloading $_name manifest for '$_toolchain'"
-    (cd "$_workdir" && curl -f -O "$_remote_manifest")
-    if [ $? != 0 ]; then
-	rm -R "$_workdir"
-	err "couldn't download manifest"
-    fi
-
-    mv -f "$_workdir/$_remote_manifest_basename" "$_local_manifest"
-    if [ $? != 0 ]; then
-	rm -R "$_workdir"
-	err "couldn't copy manifest"
-    fi
-
-    rm -R "$_workdir"
-    need_ok "couldn't delete workdir"
+    download_and_check "$_remote_manifest" "$_local_manifest"
 }
 
 extract_channel_and_date_from_toolchain() {
@@ -395,8 +475,7 @@ download_rust_manifest() {
 
     case "$_toolchain" in
 	nightly | beta | stable )
-	    _remote_rust_basename="channel-rustc-$_toolchain"
-	    _remote_rust_manifest="$dist_server/$rust_dist_dir/$_remote_rust_basename"
+	    _remote_rust_manifest="$dist_server/$rust_dist_dir/channel-rustc-$_toolchain"
 	    ;;
 
 	nightly-* | beta-* | stable-* )
@@ -405,8 +484,7 @@ download_rust_manifest() {
 	    _date="$RETVAL_DATE"
 	    assert_nz "$_channel" "channel"
 	    assert_nz "$_date" "date"
-	    _remote_rust_basename="channel-rustc-$_channel"
-	    _remote_rust_manifest="$dist_server/$rust_dist_dir/$_date/$_remote_rust_basename"
+	    _remote_rust_manifest="$dist_server/$rust_dist_dir/$_date/channel-rustc-$_channel"
 	    ;;
 
 	*)
@@ -419,20 +497,17 @@ download_rust_manifest() {
     _local_rust_manifest="$RETVAL"
     assert_nz "$_local_rust_manifest" "local rust manifest"
 
-    download_manifest "$_toolchain" "rust" "$_remote_rust_basename" \
-	"$_remote_rust_manifest" "$_local_rust_manifest"
+    download_manifest "$_toolchain" "rust" "$_remote_rust_manifest" "$_local_rust_manifest"
 }
 
 download_cargo_manifest() {
-    _remote_cargo_basename="channel-cargo-nightly"
-    _remote_cargo_manifest="$dist_server/$cargo_dist_dir/$_remote_cargo_basename"
+    _remote_cargo_manifest="$dist_server/$cargo_dist_dir/channel-cargo-nightly"
 
     get_local_cargo_manifest_name
     _local_cargo_manifest="$RETVAL"
     assert_nz "$_local_cargo_manifest" "local cargo manifest"
 
-    download_manifest "$_toolchain" "cargo" "$_remote_cargo_basename" \
-	"$_remote_cargo_manifest" "$_local_cargo_manifest"
+    download_manifest "$_toolchain" "cargo" "$_remote_cargo_manifest" "$_local_cargo_manifest"
 }
 
 get_remote_installer_location_from_manifest() {
@@ -559,6 +634,8 @@ install_toolchain() {
     _toolchain="$1"
     assert_nz "$_toolchain" "toolchain"
 
+    check_future_rust
+
     determine_remote_rust_installer_location "$_toolchain"
     _remote_rust_installer="$RETVAL"
     assert_nz "$_remote_rust_installer" "remote rust installer"
@@ -573,6 +650,11 @@ install_toolchain() {
     mkdir -p "$toolchains_dir"
     need_ok "failed to make toolchain dir"
 
+    _rust_installer_name=$(basename "$_remote_rust_installer")
+    assert_nz "$_rust_installer_name" "rust installer name"
+    _cargo_installer_name=$(basename "$_remote_cargo_installer")
+    assert_nz "$_cargo_installer_name" "cargo installer name"
+
     # Create a temp directory to put the downloaded toolchain
     make_temp_dir
     _workdir="$RETVAL"
@@ -581,22 +663,11 @@ install_toolchain() {
 
     # Download the toolchain
     say "downloading rust installer from '$_remote_rust_installer'"
-    (cd "$_workdir" && curl -f -O "$_remote_rust_installer")
-    if [ $? != 0 ]; then
-	rm -R "$_workdir"
-	err "failed to download rust installer"
-    fi
-    say "downloading cargo installer from '$_remote_cargo_installer'"
-    (cd "$_workdir" && curl -f -O "$_remote_cargo_installer")
-    if [ $? != 0 ]; then
-	rm -R "$_workdir"
-	err "failed to download cargo installer"
-    fi
+    download_and_check "$_remote_rust_installer" "$_workdir/$_rust_installer_name"
 
-    _rust_installer_name=$(basename "$_remote_rust_installer")
-    assert_nz "$_rust_installer_name" "rust installer name"
-    _cargo_installer_name=$(basename "$_remote_cargo_installer")
-    assert_nz "$_cargo_installer_name" "cargo installer name"
+    say "downloading cargo installer from '$_remote_cargo_installer'"
+    download_and_check "$_remote_cargo_installer" "$_workdir/$_cargo_installer_name"
+
     _rust_installer_dir=$(echo "$_rust_installer_name" | sed s/.tar.gz$//)
     assert_nz "$_rust_installer_dir" "rust installer dir"
     _cargo_installer_dir=$(echo "$_cargo_installer_name" | sed s/.tar.gz$//)

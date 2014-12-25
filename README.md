@@ -114,7 +114,7 @@ environment variable.
 * Installation of multirust over an existing installation of Rust or
   vice versa will cause brokenness. Uninstall the other first. This
   should be fixable in the future.
-* The beta release channel doesn't actually exist yet.
+* The beta and stable release channel don't actually exist yet.
 * multirust always installs the latest nightlies of Cargo. After Rust
   implements combined installation each revision of Rust will be
   paired with a specific revision of Cargo.
@@ -139,7 +139,6 @@ environment variable.
 * Allow management of custom toolchain builds.
 * GC unused toolchains.
 * Check for updates of multirust itself.
-* Check checksums.
 * Check sigs.
 * Cache installers to avoid redownloads? Maybe only useful for testing.
 * Resume downloads.
