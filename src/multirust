@@ -172,11 +172,11 @@ flag_verbose=false
 flag_yes=false
 
 make_temp_name() {
-    _pid="$$"
+    local _pid="$$"
     assert_nz "$_pid" "pid"
 
-    _tmp_number="${NEXT_TMP_NUMBER-0}"
-    _tmp_name="tmp-$_pid-$_tmp_number"
+    local _tmp_number="${NEXT_TMP_NUMBER-0}"
+    local _tmp_name="tmp-$_pid-$_tmp_number"
     NEXT_TMP_NUMBER=$(expr "$_tmp_number" + 1)
     assert_nz "$NEXT_TMP_NUMBER" "NEXT_TMP_NUMBER"
     RETVAL="$_tmp_name"
@@ -187,7 +187,7 @@ make_temp() {
     need_ok "failed to make temp dir '$temp_dir'"
 
     make_temp_name
-    _tmp_name="$temp_dir/$RETVAL"
+    local _tmp_name="$temp_dir/$RETVAL"
     touch "$_tmp_name"
     need_ok "couldn't make temp file '$_tmp_name'"
     RETVAL="$_tmp_name"
@@ -198,7 +198,7 @@ make_temp_dir() {
     need_ok "failed to make temp dir '$temp_dir'"
 
     make_temp_name
-    _tmp_name="$temp_dir/$RETVAL"
+    local _tmp_name="$temp_dir/$RETVAL"
     mkdir -p "$_tmp_name"
     need_ok "couldn't make temp dir '$_tmp_name'"
     RETVAL="$_tmp_name"
@@ -206,7 +206,7 @@ make_temp_dir() {
 
 # Returns 0 on success, like sha256sum
 check_sums() {
-    _sumfile="$1"
+    local _sumfile="$1"
     assert_nz "$_sumfile" "sumfile"
 
     # OS X doesn't commonly have sha256sum, so checksum verification is optional
@@ -223,10 +223,10 @@ check_sums() {
     sed s/tmp\\/dist\\/.*\\/final\\/// "$_sumfile" > "$_workdir/tmpsums"
     need_ok "failed to generate temporary checksums"
 
-    _sumfile_dirname=$(dirname "$_sumfile")
+    local _sumfile_dirname=$(dirname "$_sumfile")
     assert_nz "$_sumfile_dirname" "sumfile_dirname"
     (cd "$_sumfile_dirname" && sha256sum "$_workdir/tmpsums" > /dev/null)
-    _sum_retval=$?
+    local _sum_retval=$?
 
     rm -R "$_workdir"
     need_ok "couldn't delete workdir '$_workdir'"
@@ -248,7 +248,7 @@ check_metadata_version() {
 	verbose_say "writing metadata version $metadata_version"
 	echo "$metadata_version" > "$version_file"
     else
-	_current_version=$(cat "$version_file")
+	local _current_version=$(cat "$version_file")
 	verbose_say "got metadata version $_current_version"
 	if [ "$_current_version" != "$metadata_version" ]; then
 	    err "metadata version is $_current_version, need $metadata_version. run \`multirust upgrade-data\`"
@@ -260,8 +260,8 @@ get_architecture() {
 
     verbose_say "detecting architecture"
 
-    _ostype=$(uname -s)
-    _cputype=$(uname -m)
+    local _ostype=$(uname -s)
+    local _cputype=$(uname -m)
 
     verbose_say "uname -s reports: $_ostype"
     verbose_say "uname -m reports: $_cputype"
@@ -269,26 +269,26 @@ get_architecture() {
     if [ "$_ostype" = Darwin -a "$_cputype" = i386 ]; then
 	# Darwin `uname -s` lies
 	if sysctl hw.optional.x86_64 | grep -q ': 1'; then
-	    _cputype=x86_64
+	    local _cputype=x86_64
 	fi
     fi
 
     case "$_ostype" in
 
 	Linux)
-	    _ostype=unknown-linux-gnu
+	    local _ostype=unknown-linux-gnu
 	    ;;
 
 	FreeBSD)
-	    _ostype=unknown-freebsd
+	    local _ostype=unknown-freebsd
 	    ;;
 
 	DragonFly)
-	    _ostype=unknown-dragonfly
+	    local _ostype=unknown-dragonfly
 	    ;;
 
 	Darwin)
-	    _ostype=apple-darwin
+	    local _ostype=apple-darwin
 	    ;;
 
 	MINGW* | MSYS*)
@@ -304,20 +304,20 @@ get_architecture() {
     case "$_cputype" in
 
 	i386 | i486 | i686 | i786 | x86)
-            _cputype=i686
+            local _cputype=i686
             ;;
 
 	xscale | arm)
-	    _cputype=arm
+	    local _cputype=arm
             ;;
 
 	armv7l)
-            _cputype=arm
-            _ostype="${_ostype}eabihf"
+            local _cputype=arm
+            local _ostype="${_ostype}eabihf"
             ;;
 
 	x86_64 | x86-64 | x64 | amd64)
-            _cputype=x86_64
+            local _cputype=x86_64
             ;;
 
 	*)
@@ -329,11 +329,11 @@ get_architecture() {
     if [ $_ostype = unknown-linux-gnu -a $_cputype = x86_64 ]; then
 	file -L "$SHELL" | grep -q "x86[_-]64"
 	if [ $? != 0 ]; then
-	    _cputype=i686
+	    local _cputype=i686
 	fi
     fi
 
-    _arch="$_cputype-$_ostype" 
+    local _arch="$_cputype-$_ostype" 
     verbose_say "architecture is $_arch"
 
     RETVAL="$_arch"
@@ -341,12 +341,12 @@ get_architecture() {
 
 check_future_rust() {
     make_temp_dir
-    _workdir="$RETVAL"
+    local _workdir="$RETVAL"
     assert_nz "$_workdir" "workdir"
     verbose_say "future manifest work dir: $_workdir"
 
     # Check for future rust installer changes
-    _future_manifest="$dist_server/$rust_dist_dir/channel-rust-nightly"
+    local _future_manifest="$dist_server/$rust_dist_dir/channel-rust-nightly"
     say "checking for future manifest version incompatibility"
     (cd "$_workdir" && curl -f -O "$_future_manifest" > /dev/null 2>&1)
     if [ $? = 0 ]; then
@@ -359,16 +359,16 @@ check_future_rust() {
 
 # Downloads a remote file and its checksum and checks it
 download_and_check() {
-    _remote_name="$1"
-    _local_name="$2"
+    local _remote_name="$1"
+    local _local_name="$2"
     assert_nz "$_remote_name" "remote name"
     assert_nz "$_local_name" "local name"
 
-    _remote_sums="$_remote_name.sha256"
-    _local_sums="$_local_name.sha256"
+    local _remote_sums="$_remote_name.sha256"
+    local _local_sums="$_local_name.sha256"
 
-    _remote_basename=$(basename "$_remote_name")
-    _remote_sums_basename="$_remote_basename.sha256"
+    local _remote_basename=$(basename "$_remote_name")
+    local _remote_sums_basename="$_remote_basename.sha256"
     assert_nz "$_remote_basename" "remote basename"
 
     make_temp_dir
@@ -421,17 +421,17 @@ get_local_cargo_manifest_name() {
 }
 
 get_local_rust_manifest_name() {
-    _toolchain="$1"
+    local _toolchain="$1"
     assert_nz "$_toolchain" "toolchain"
 
     RETVAL="$manifests_dir/channel-rustc-$_toolchain"
 }
 
 download_manifest()  {
-    _toolchain="$1"
-    _name="$2"
-    _remote_manifest="$3"
-    _local_manifest="$4"
+    local _toolchain="$1"
+    local _name="$2"
+    local _remote_manifest="$3"
+    local _local_manifest="$4"
     assert_nz "$_toolchain" "toolchain"
     assert_nz "$_name" "name"
     assert_nz "$_remote_manifest" "remote manifest"
@@ -449,15 +449,15 @@ download_manifest()  {
 }
 
 extract_channel_and_date_from_toolchain() {
-    _toolchain="$1"
+    local _toolchain="$1"
     assert_nz "$_toolchain" "toolchain"
 
     case "$_toolchain" in
 	nightly-20[0-9][0-9]-[0-9][0-9]-[0-9][0-9] | \
 	beta-20[0-9][0-9]-[0-9][0-9]-[0-9][0-9] | \
 	stable-20[0-9][0-9]-[0-9][0-9]-[0-9][0-9] )
-	    _channel=$(echo "$_toolchain" | cut -d- -f1)
-	    _date=$(echo "$_toolchain" | cut -d- -f2,3,4)
+	    local _channel=$(echo "$_toolchain" | cut -d- -f1)
+	    local _date=$(echo "$_toolchain" | cut -d- -f2,3,4)
 	    RETVAL_CHANNEL="$_channel"
 	    RETVAL_DATE="$_date"
 	    ;;
@@ -470,21 +470,21 @@ extract_channel_and_date_from_toolchain() {
 }
 
 download_rust_manifest() {
-    _toolchain="$1"
+    local _toolchain="$1"
     assert_nz "$_toolchain" "toolchain"
 
     case "$_toolchain" in
 	nightly | beta | stable )
-	    _remote_rust_manifest="$dist_server/$rust_dist_dir/channel-rustc-$_toolchain"
+	    local _remote_rust_manifest="$dist_server/$rust_dist_dir/channel-rustc-$_toolchain"
 	    ;;
 
 	nightly-* | beta-* | stable-* )
 	    extract_channel_and_date_from_toolchain "$_toolchain"
-	    _channel="$RETVAL_CHANNEL"
-	    _date="$RETVAL_DATE"
+	    local _channel="$RETVAL_CHANNEL"
+	    local _date="$RETVAL_DATE"
 	    assert_nz "$_channel" "channel"
 	    assert_nz "$_date" "date"
-	    _remote_rust_manifest="$dist_server/$rust_dist_dir/$_date/channel-rustc-$_channel"
+	    local _remote_rust_manifest="$dist_server/$rust_dist_dir/$_date/channel-rustc-$_channel"
 	    ;;
 
 	*)
@@ -494,27 +494,27 @@ download_rust_manifest() {
     esac
 
     get_local_rust_manifest_name "$_toolchain"
-    _local_rust_manifest="$RETVAL"
+    local _local_rust_manifest="$RETVAL"
     assert_nz "$_local_rust_manifest" "local rust manifest"
 
     download_manifest "$_toolchain" "rust" "$_remote_rust_manifest" "$_local_rust_manifest"
 }
 
 download_cargo_manifest() {
-    _remote_cargo_manifest="$dist_server/$cargo_dist_dir/channel-cargo-nightly"
+    local _remote_cargo_manifest="$dist_server/$cargo_dist_dir/channel-cargo-nightly"
 
     get_local_cargo_manifest_name
-    _local_cargo_manifest="$RETVAL"
+    local _local_cargo_manifest="$RETVAL"
     assert_nz "$_local_cargo_manifest" "local cargo manifest"
 
     download_manifest "$_toolchain" "cargo" "$_remote_cargo_manifest" "$_local_cargo_manifest"
 }
 
 get_remote_installer_location_from_manifest() {
-    _toolchain="$1"
-    _manifest_file="$2"
-    _package_name="$3"
-    _dist_dir="$4"
+    local _toolchain="$1"
+    local _manifest_file="$2"
+    local _package_name="$3"
+    local _dist_dir="$4"
     assert_nz "$_toolchain" "toolchain"
     assert_nz "$_manifest_file" "manifest file"
     assert_nz "$_package_name" "package name"
@@ -525,7 +525,7 @@ get_remote_installer_location_from_manifest() {
     fi
 
     get_architecture
-    _arch="$RETVAL"
+    local _arch="$RETVAL"
     assert_nz "$_arch" "arch"
 
     while read _line; do
@@ -544,8 +544,8 @@ get_remote_installer_location_from_manifest() {
 
 		    nightly-* | beta-* | stable-* )
 			extract_channel_and_date_from_toolchain "$_toolchain"
-			_channel="$RETVAL_CHANNEL"
-			_date="$RETVAL_DATE"
+			local _channel="$RETVAL_CHANNEL"
+			local _date="$RETVAL_DATE"
 			assert_nz "$_channel" "channel"
 			assert_nz "$_date" "date"
 			RETVAL="$dist_server/$_dist_dir/$_date/$_line"
@@ -564,7 +564,7 @@ get_remote_installer_location_from_manifest() {
 }
 
 determine_remote_rust_installer_location() {
-    _toolchain="$1"
+    local _toolchain="$1"
     assert_nz "$_toolchain" "toolchain"
 
     verbose_say "determining remote rust installer for '$_toolchain'"
@@ -573,7 +573,7 @@ determine_remote_rust_installer_location() {
 	nightly | beta | stable | nightly-* | beta-* | stable-* )
 	    download_rust_manifest "$_toolchain"
 	    get_local_rust_manifest_name "$_toolchain"
-	    _manifest_file="$RETVAL"
+	    local _manifest_file="$RETVAL"
 	    assert_nz "$_manifest_file" "manifest file"
 	    get_remote_installer_location_from_manifest "$_toolchain" "$_manifest_file" "rust" "$rust_dist_dir"
 	    return
@@ -582,10 +582,10 @@ determine_remote_rust_installer_location() {
 	* )
 	    say "interpreting toolchain spec as explicit version"
 	    get_architecture
-	    _arch="$RETVAL"
+	    local _arch="$RETVAL"
 	    assert_nz "$_arch" "arch"
 
-	    _file_name="rust-$_toolchain-$_arch.tar.gz"
+	    local _file_name="rust-$_toolchain-$_arch.tar.gz"
 	    RETVAL="$dist_server/$rust_dist_dir/$_file_name"
 	    return
 	    ;;
@@ -593,33 +593,33 @@ determine_remote_rust_installer_location() {
 }
 
 determine_remote_cargo_installer_location() {
-    _toolchain="$1"
+    local _toolchain="$1"
     assert_nz "$_toolchain" "toolchain"
 
     verbose_say "determining remote cargo installer for '$_toolchain'"
 
     download_cargo_manifest "$_toolchain"
     get_local_cargo_manifest_name
-    _manifest_file="$RETVAL"
+    local _manifest_file="$RETVAL"
     assert_nz "$_manifest_file" "manifest file"
     get_remote_installer_location_from_manifest "$_toolchain" "$_manifest_file" "cargo" "$cargo_dist_dir"
 }
 
 get_toolchain_dir() {
-    _toolchain="$1"
+    local _toolchain="$1"
     assert_nz "$_toolchain" "toolchain"
 
     RETVAL="$toolchains_dir/$_toolchain"
 }
 
 is_toolchain_installed() {
-    _toolchain="$1"
+    local _toolchain="$1"
     assert_nz "$_toolchain" "toolchain"
 
     verbose_say "looking for installed toolchain '$_toolchain'"
 
     get_toolchain_dir "$_toolchain"
-    _toolchain_dir="$RETVAL"
+    local _toolchain_dir="$RETVAL"
     assert_nz "$_toolchain_dir" "toolchain dir"
 
     if [ -e "$_toolchain_dir" ]; then
@@ -631,18 +631,18 @@ is_toolchain_installed() {
 }
 
 install_toolchain() {
-    _toolchain="$1"
+    local _toolchain="$1"
     assert_nz "$_toolchain" "toolchain"
 
     check_future_rust
 
     determine_remote_rust_installer_location "$_toolchain"
-    _remote_rust_installer="$RETVAL"
+    local _remote_rust_installer="$RETVAL"
     assert_nz "$_remote_rust_installer" "remote rust installer"
     verbose_say "remote rust installer location: $_remote_rust_installer"
 
     determine_remote_cargo_installer_location "$_toolchain"
-    _remote_cargo_installer="$RETVAL"
+    local _remote_cargo_installer="$RETVAL"
     assert_nz "$_remote_cargo_installer" "remote cargo installer"
     verbose_say "remote cargo installer location: $_remote_cargo_installer"
 
@@ -650,14 +650,14 @@ install_toolchain() {
     mkdir -p "$toolchains_dir"
     need_ok "failed to make toolchain dir"
 
-    _rust_installer_name=$(basename "$_remote_rust_installer")
+    local _rust_installer_name=$(basename "$_remote_rust_installer")
     assert_nz "$_rust_installer_name" "rust installer name"
-    _cargo_installer_name=$(basename "$_remote_cargo_installer")
+    local _cargo_installer_name=$(basename "$_remote_cargo_installer")
     assert_nz "$_cargo_installer_name" "cargo installer name"
 
     # Create a temp directory to put the downloaded toolchain
     make_temp_dir
-    _workdir="$RETVAL"
+    local _workdir="$RETVAL"
     assert_nz "$_workdir" "workdir"
     verbose_say "download work dir: $_workdir"
 
@@ -668,9 +668,9 @@ install_toolchain() {
     say "downloading cargo installer from '$_remote_cargo_installer'"
     download_and_check "$_remote_cargo_installer" "$_workdir/$_cargo_installer_name"
 
-    _rust_installer_dir=$(echo "$_rust_installer_name" | sed s/.tar.gz$//)
+    local _rust_installer_dir=$(echo "$_rust_installer_name" | sed s/.tar.gz$//)
     assert_nz "$_rust_installer_dir" "rust installer dir"
-    _cargo_installer_dir=$(echo "$_cargo_installer_name" | sed s/.tar.gz$//)
+    local _cargo_installer_dir=$(echo "$_cargo_installer_name" | sed s/.tar.gz$//)
     assert_nz "$_cargo_installer_dir" "cargo installer dir"
 
     # Extract the toolchain
@@ -687,7 +687,7 @@ install_toolchain() {
 
     # Install the toolchain
     get_toolchain_dir "$_toolchain"
-    _toolchain_dir="$RETVAL"
+    local _toolchain_dir="$RETVAL"
     assert_nz "$_toolchain_dir" "toolchain dir"
     verbose_say "installing toolchain to '$_toolchain_dir'"
     say "installing toolchain for '$_toolchain'"
@@ -716,7 +716,7 @@ install_toolchain() {
 }
 
 install_toolchain_if_not_installed() {
-    _toolchain="$1"
+    local _toolchain="$1"
     assert_nz "$_toolchain" "toolchain"
 
     is_toolchain_installed "$_toolchain"
@@ -730,7 +730,7 @@ install_toolchain_if_not_installed() {
 }
 
 update_toolchain() {
-    _toolchain="$1"
+    local _toolchain="$1"
     assert_nz "$_toolchain" "toolchain"
 
     is_toolchain_installed "$_toolchain"
@@ -744,10 +744,10 @@ update_toolchain() {
 }
 
 remove_toolchain() {
-    _toolchain="$1"
+    local _toolchain="$1"
     assert_nz "$_toolchain" "toolchain"
 
-    _toolchain_dir="$toolchains_dir/$_toolchain"
+    local _toolchain_dir="$toolchains_dir/$_toolchain"
 
     if [ -e "$_toolchain_dir" ]; then
 	verbose_say "removing directory '$_toolchain_dir'"
@@ -765,11 +765,11 @@ find_default_sysroot() {
 	err 'no default toolchain configured. run `multirust help default`'
     fi
 
-    _default=$(cat "$default_file")
+    local _default=$(cat "$default_file")
     assert_nz "_$default" "default file is empty"
 
     get_toolchain_dir "$_default"
-    _sysroot="$RETVAL"
+    local _sysroot="$RETVAL"
     assert_nz "$_sysroot" "sysroot"
     
     if [ ! -d "$_sysroot" ]; then
@@ -784,16 +784,16 @@ find_override() {
 	return 1
     fi
 
-    _dir="$(pwd)"
+    local _dir="$(pwd)"
     assert_nz "$_dir" "empty starting dir"
 
     # Go up the directory hierarchy looking for overrides
     while [ "$_dir" != "/" -a "$_dir" != "." ]; do
 	while read _line; do
-	    _ovrdir=$(echo "$_line" | cut -f1)
+	    local _ovrdir=$(echo "$_line" | cut -f1)
 	    need_ok "extracting record from db failed"
 	    assert_nz "$_ovrdir" "empty dir in override db"
-	    _toolchain=$(echo "$_line" | cut -f2)
+	    local _toolchain=$(echo "$_line" | cut -f2)
 	    need_ok "extracting record from db failed"
 	    assert_nz "$_toolchain" "empty toolchain in override db"
 
@@ -809,7 +809,7 @@ find_override() {
 	    fi
 	done < "$override_db"
 
-	_dir="$(dirname $_dir)"
+	local _dir="$(dirname $_dir)"
     done
 
     return 1
@@ -835,11 +835,11 @@ print_override_sysroot_or_default() {
 }
 
 set_default() {
-    _toolchain="$1"
+    local _toolchain="$1"
     assert_nz "$_toolchain" "toolchain"
 
     make_temp
-    _workfile="$RETVAL"
+    local _workfile="$RETVAL"
     assert_nz "$_workfile" "workfile"
 
     echo "$_toolchain" > "$_workfile"
@@ -858,17 +858,17 @@ set_default() {
 }
 
 set_override() {
-    _toolchain="$1"
+    local _toolchain="$1"
     assert_nz "$_toolchain" "toolchain"
 
-    _override_dir="$(pwd)"
+    local _override_dir="$(pwd)"
     assert_nz "$_override_dir" "empty pwd?"
 
     # Escape forward-slashes
-    _escaped_override_dir=`echo "$_override_dir" | sed s/\\\//\\\\\\\\\\\//g`
+    local _escaped_override_dir=`echo "$_override_dir" | sed s/\\\//\\\\\\\\\\\//g`
 
     make_temp
-    _workfile="$RETVAL"
+    local _workfile="$RETVAL"
     assert_nz "$_workfile" "workfile"
 
     # Copy the current db to a new file, removing any existing override
@@ -881,7 +881,7 @@ set_override() {
     fi
 
     # Escape the tab
-    _line=$(echo "$_override_dir\t$_toolchain" | awk /\t/)
+    local _line=$(echo "$_override_dir\t$_toolchain" | awk /\t/)
     # Append the new override
     echo "$_line" >> "$_workfile"
     if [ $? != 0 ]; then
@@ -897,24 +897,24 @@ set_override() {
 }
 
 remove_override() {
-    _override_dir="$(pwd)"
+    local _override_dir="$(pwd)"
     assert_nz "$_override_dir" "empty pwd?"
 
     # Escape forward-slashes
-    _escaped_override_dir=`echo "$_override_dir" | sed s/\\\//\\\\\\\\\\\//g`
+    local _escaped_override_dir=`echo "$_override_dir" | sed s/\\\//\\\\\\\\\\\//g`
 
     make_temp
-    _workfile="$RETVAL"
+    local _workfile="$RETVAL"
     assert_nz "$_workfile" "workfile"
 
     # Check if the override exists
-    _have_override=false
+    local _have_override=false
     if [ -e "$override_db" ]; then
 	# Get an actual tab character because grep doesn't interpret \t
-	_tab=$(echo '\t' | awk '/\t/')
+	local _tab=$(echo '\t' | awk '/\t/')
 	egrep "^$_escaped_override_dir$_tab" "$override_db" > /dev/null
 	if [ $? = 0 ]; then
-	    _have_override=true
+	    local _have_override=true
 	fi
     fi
     if [ $_have_override = false ]; then
@@ -939,12 +939,12 @@ remove_override() {
 }
 
 push_toolchain_ldpath() {
-    _toolchain="$1"
+    local _toolchain="$1"
     assert_nz "$_toolchain" "toolchain"
 
     get_toolchain_dir "$_toolchain"
-    _toolchain_dir="$RETVAL"
-    _new_path="$_toolchain_dir/lib"
+    local _toolchain_dir="$RETVAL"
+    local _new_path="$_toolchain_dir/lib"
 
     OLD_LD_LIBRARY_PATH="$LD_LIBRARY_PATH"
     LD_LIBRARY_PATH="$_new_path:$LD_LIBRARY_PATH"
@@ -968,11 +968,11 @@ show_default() {
 	return
     fi
 
-    _toolchain=$(cat "$default_file")
+    local _toolchain=$(cat "$default_file")
     say "default toolchain: $_toolchain"
 
     get_toolchain_dir "$_toolchain"
-    _toolchain_dir="$RETVAL"
+    local _toolchain_dir="$RETVAL"
 
     say "default location: $_toolchain_dir"
 
@@ -988,9 +988,9 @@ show_default() {
 
 show_override() {
     if find_override; then
-	_ovrdir="$RETVAL_OVRDIR"
-	_toolchain="$RETVAL_TOOLCHAIN"
-	_sysroot="$RETVAL_SYSROOT"
+	local _ovrdir="$RETVAL_OVRDIR"
+	local _toolchain="$RETVAL_TOOLCHAIN"
+	local _sysroot="$RETVAL_SYSROOT"
 
 	say "override directory; $_ovrdir"
 	say "override toolchain: $_toolchain"
@@ -1011,7 +1011,7 @@ show_override() {
 
 list_overrides() {
     if [ -e "$override_db" ]; then
-	_overrides=$(cat "$override_db" | sort)
+	local _overrides=$(cat "$override_db" | sort)
 	if [ -n "$_overrides" ]; then
 	    echo "$_overrides"
 	else
@@ -1024,7 +1024,7 @@ list_overrides() {
 
 list_toolchains() {
     if [ -e "$toolchains_dir" ]; then
-	_toolchains=$(cd "$toolchains_dir" && ls | sort)
+	local _toolchains=$(cd "$toolchains_dir" && ls | sort)
 	if [ -n "$_toolchains" ]; then
 	    echo "$_toolchains"
 	else
