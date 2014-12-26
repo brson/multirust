@@ -72,9 +72,6 @@ multirust: a new version of the 'nightly' release is available. run `multirust u
 In which case the toolchain can be updated with `multirust update
 nightly`.
 
-*Note: Update notifications don't actually work yet but the `multirust
- update` command does.*
-
 An alternate way of accessing multiple toolchains, `multirust alias
 nightly` will produce new binaries called `rustc-nightly`,
 `cargo-nightly`, and `rustdoc-nightly` that live in `~/.multirust/bin`
@@ -134,16 +131,18 @@ environment variable.
 
 # Future work
 
+* Resume downloads.
+* Upload checksums for stable releases to fix stable channel.
+* Fix generation of checksums in buildbot to avoid hacks.
+* Tests.
 * Allow creation of aliases like `rustc-0.12.0` (needs cargo to obey RUSTC and RUSTDOC env vars).
-* Check for channel updates.
-* Allow management of custom toolchain builds.
 * GC unused toolchains.
 * Check for updates of multirust itself.
 * Check sigs.
 * Cache installers to avoid redownloads? Maybe only useful for testing.
-* Resume downloads.
 * override, show-override, remove-override could take an optional path.
-
+* Allow management of custom toolchain builds.
+  
 # License
 
 multirust is licensed under the same terms as the Rust compiler, now and
