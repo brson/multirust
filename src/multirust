@@ -793,7 +793,7 @@ find_default() {
     assert_nz "$_sysroot" "sysroot"
     
     if [ ! -d "$_sysroot" ]; then
-	err "installation for default toolchain '$_default' does not exist. while this is odd, try running \`multirust update $_default\` to repair"
+	err "toolchain '$_default' not installed. run \`multirust update $_default\` to install"
     fi
 
     RETVAL_TOOLCHAIN="$_default"
@@ -824,7 +824,7 @@ find_override() {
 		get_toolchain_dir "$_toolchain"
 		RETVAL_SYSROOT="$RETVAL"
 		if [ ! -e "$RETVAL_SYSROOT" ]; then
-		    err "installation for override toolchain '$_toolchain' does not exist. while this is odd, try running \`multirust update $_toolchain\` to repair"
+		    err "toolchain '$_toolchain' not installed. run \`multirust update $_toolchain\` to install"
 		fi
 		return
 	    fi
@@ -1127,8 +1127,6 @@ check_for_updates_sync() {
 	    (cd "$_workdir" && curl -f -O "$_remote_sumfile" > /dev/null 2>&1)
 	    if [ $? != 0 ]; then
 		verbose_say "couldn't download checksums for $_channel"
-		rm -R "$_workdir"
-		need_ok "couldn't delete workdir"
 	    else
 		local _local_sum="$(cat "$_local_sumfile")"
 		local _new_sum="$(cat "$_workdir/$_sumfile")"
@@ -1139,7 +1137,7 @@ check_for_updates_sync() {
 			cp "$update_list_file" "$_newlist"
 			if [ $? != 0 ]; then
 			    rm -R "$_workdir"
-			    err "couldn't delete workdir"
+			    err "couldn't delete copy update list"
 			fi
 
 			if ! grep -q "$_channel" "$_newlist"; then
