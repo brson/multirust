@@ -155,7 +155,6 @@ version=0.0.1
 metadata_version=1
 dist_server="${MULTIRUST_DIST_SERVER-https://static.rust-lang.org}"
 rust_dist_dir=dist
-cargo_dist_dir=cargo-dist
 default_spec=nightly
 multirust_cmd="$0"
 cmd_dirname="$(dirname "$0")"
@@ -171,6 +170,7 @@ installer_dir="$multirust_dir/installers"
 temp_dir="$multirust_dir/tmp"
 update_stamp_file="$multirust_dir/update-stamp"
 update_list_file="$multirust_dir/available-updates"
+rust_package_name="rust-combined"
 
 # Some globals
 flag_verbose=false
@@ -343,24 +343,6 @@ get_architecture() {
     RETVAL="$_arch"
 }
 
-check_future_rust() {
-    make_temp_dir
-    local _workdir="$RETVAL"
-    assert_nz "$_workdir" "workdir"
-    verbose_say "future manifest work dir: $_workdir"
-
-    # Check for future rust installer changes
-    local _future_manifest="$dist_server/$rust_dist_dir/channel-rust-nightly"
-    say "checking for future manifest version incompatibility"
-    (cd "$_workdir" && curl -f -O "$_future_manifest" > /dev/null 2>&1)
-    if [ $? = 0 ]; then
-	err "remote channel manifest uses future format. upgrade multirust"
-    fi
-
-    rm -R "$_workdir"
-    need_ok "couldn't delete workdir"
-}
-
 # Downloads a remote file and its checksum and checks it
 download_and_check() {
     local _remote_name="$1"
@@ -380,14 +362,14 @@ download_and_check() {
     assert_nz "$_workdir" "workdir"
     verbose_say "download work dir: $_workdir"
 
-    verbose_say "downloading '$_remote_name' to '$_workdir'"
+    say "downloading '$_remote_name' to '$_workdir'"
     (cd "$_workdir" && curl -f -O "$_remote_name")
     if [ $? != 0 ]; then
 	rm -R "$_workdir"
 	err "couldn't download '$_remote_name'"
     fi
 
-    verbose_say "downloading '$_remote_sums' to '$_workdir'"
+    say "downloading '$_remote_sums' to '$_workdir'"
     (cd "$_workdir" && curl -f -O "$_remote_sums")
     if [ $? != 0 ]; then
 	rm -R "$_workdir"
@@ -420,15 +402,11 @@ download_and_check() {
     need_ok "couldn't delete workdir '$_workdir'"
 }
 
-get_local_cargo_manifest_name() {
-    RETVAL="$manifests_dir/channel-cargo-nightly"
-}
-
 get_local_rust_manifest_name() {
     local _toolchain="$1"
     assert_nz "$_toolchain" "toolchain"
 
-    RETVAL="$manifests_dir/channel-rustc-$_toolchain"
+    RETVAL="$manifests_dir/channel-rust-$_toolchain"
 }
 
 download_manifest()  {
@@ -479,7 +457,7 @@ download_rust_manifest() {
 
     case "$_toolchain" in
 	nightly | beta | stable )
-	    local _remote_rust_manifest="$dist_server/$rust_dist_dir/channel-rustc-$_toolchain"
+	    local _remote_rust_manifest="$dist_server/$rust_dist_dir/channel-rust-$_toolchain"
 	    ;;
 
 	nightly-* | beta-* | stable-* )
@@ -488,7 +466,7 @@ download_rust_manifest() {
 	    local _date="$RETVAL_DATE"
 	    assert_nz "$_channel" "channel"
 	    assert_nz "$_date" "date"
-	    local _remote_rust_manifest="$dist_server/$rust_dist_dir/$_date/channel-rustc-$_channel"
+	    local _remote_rust_manifest="$dist_server/$rust_dist_dir/$_date/channel-rust-$_channel"
 	    ;;
 
 	*)
@@ -502,16 +480,6 @@ download_rust_manifest() {
     assert_nz "$_local_rust_manifest" "local rust manifest"
 
     download_manifest "$_toolchain" "rust" "$_remote_rust_manifest" "$_local_rust_manifest"
-}
-
-download_cargo_manifest() {
-    local _remote_cargo_manifest="$dist_server/$cargo_dist_dir/channel-cargo-nightly"
-
-    get_local_cargo_manifest_name
-    local _local_cargo_manifest="$RETVAL"
-    assert_nz "$_local_cargo_manifest" "local cargo manifest"
-
-    download_manifest "$_toolchain" "cargo" "$_remote_cargo_manifest" "$_local_cargo_manifest"
 }
 
 get_remote_installer_location_from_manifest() {
@@ -537,29 +505,24 @@ get_remote_installer_location_from_manifest() {
 	# are package names that are substrings of other packages, 'rust-docs' vs. 'rust'.
 	echo "$_line" | egrep "^$_package_name-(nightly|beta|alpha|[0-9]).*$_arch\.tar\.gz" > /dev/null
 	if [ $? = 0 ]; then
-	    if [ "$_package_name" = "cargo" ]; then
-		# Cargo is always downloaded from current nightly
-		RETVAL="$dist_server/$_dist_dir/$_line"
-	    else
-		case "$_toolchain" in
-		    nightly | beta | stable )
-			RETVAL="$dist_server/$_dist_dir/$_line"
-			;;
+	    case "$_toolchain" in
+		nightly | beta | stable )
+		    RETVAL="$dist_server/$_dist_dir/$_line"
+		    ;;
 
-		    nightly-* | beta-* | stable-* )
-			extract_channel_and_date_from_toolchain "$_toolchain"
-			local _channel="$RETVAL_CHANNEL"
-			local _date="$RETVAL_DATE"
-			assert_nz "$_channel" "channel"
-			assert_nz "$_date" "date"
-			RETVAL="$dist_server/$_dist_dir/$_date/$_line"
-			;;
+		nightly-* | beta-* | stable-* )
+		    extract_channel_and_date_from_toolchain "$_toolchain"
+		    local _channel="$RETVAL_CHANNEL"
+		    local _date="$RETVAL_DATE"
+		    assert_nz "$_channel" "channel"
+		    assert_nz "$_date" "date"
+		    RETVAL="$dist_server/$_dist_dir/$_date/$_line"
+		    ;;
 
-		    *)
-			err "unrecognized toolchain spec: $_toolchain"
-			;;
-		esac
-	    fi
+		*)
+		    err "unrecognized toolchain spec: $_toolchain"
+		    ;;
+	    esac
 	    return
 	fi
     done < "$_manifest_file"
@@ -579,7 +542,7 @@ determine_remote_rust_installer_location() {
 	    get_local_rust_manifest_name "$_toolchain"
 	    local _manifest_file="$RETVAL"
 	    assert_nz "$_manifest_file" "manifest file"
-	    get_remote_installer_location_from_manifest "$_toolchain" "$_manifest_file" "rust" "$rust_dist_dir"
+	    get_remote_installer_location_from_manifest "$_toolchain" "$_manifest_file" $rust_package_name "$rust_dist_dir"
 	    return
 	    ;;
 
@@ -594,19 +557,6 @@ determine_remote_rust_installer_location() {
 	    return
 	    ;;
     esac
-}
-
-determine_remote_cargo_installer_location() {
-    local _toolchain="$1"
-    assert_nz "$_toolchain" "toolchain"
-
-    verbose_say "determining remote cargo installer for '$_toolchain'"
-
-    download_cargo_manifest "$_toolchain"
-    get_local_cargo_manifest_name
-    local _manifest_file="$RETVAL"
-    assert_nz "$_manifest_file" "manifest file"
-    get_remote_installer_location_from_manifest "$_toolchain" "$_manifest_file" "cargo" "$cargo_dist_dir"
 }
 
 get_toolchain_dir() {
@@ -638,17 +588,10 @@ install_toolchain() {
     local _toolchain="$1"
     assert_nz "$_toolchain" "toolchain"
 
-    check_future_rust
-
     determine_remote_rust_installer_location "$_toolchain"
     local _remote_rust_installer="$RETVAL"
     assert_nz "$_remote_rust_installer" "remote rust installer"
     verbose_say "remote rust installer location: $_remote_rust_installer"
-
-    determine_remote_cargo_installer_location "$_toolchain"
-    local _remote_cargo_installer="$RETVAL"
-    assert_nz "$_remote_cargo_installer" "remote cargo installer"
-    verbose_say "remote cargo installer location: $_remote_cargo_installer"
 
     verbose_say "creating toolchains dir '$toolchains_dir'"
     mkdir -p "$toolchains_dir"
@@ -656,8 +599,6 @@ install_toolchain() {
 
     local _rust_installer_name="$(basename "$_remote_rust_installer")"
     assert_nz "$_rust_installer_name" "rust installer name"
-    local _cargo_installer_name="$(basename "$_remote_cargo_installer")"
-    assert_nz "$_cargo_installer_name" "cargo installer name"
 
     # Create a temp directory to put the downloaded toolchain
     make_temp_dir
@@ -669,24 +610,14 @@ install_toolchain() {
     say "downloading rust installer from '$_remote_rust_installer'"
     download_and_check "$_remote_rust_installer" "$_workdir/$_rust_installer_name"
 
-    say "downloading cargo installer from '$_remote_cargo_installer'"
-    download_and_check "$_remote_cargo_installer" "$_workdir/$_cargo_installer_name"
-
     local _rust_installer_dir="$(echo "$_rust_installer_name" | sed s/.tar.gz$//)"
     assert_nz "$_rust_installer_dir" "rust installer dir"
-    local _cargo_installer_dir="$(echo "$_cargo_installer_name" | sed s/.tar.gz$//)"
-    assert_nz "$_cargo_installer_dir" "cargo installer dir"
 
     # Extract the toolchain
     (cd "$_workdir" && tar xzf "$_rust_installer_name")
     if [ $? != 0 ]; then
 	rm -R "$_workdir"
 	err "failed to extract rust installer"
-    fi
-    (cd "$_workdir" && tar xzf "$_cargo_installer_name")
-    if [ $? != 0 ]; then
-	rm -R "$_workdir"
-	err "failed to extract cargo installer"
     fi
 
     # Install the toolchain
@@ -703,13 +634,6 @@ install_toolchain() {
     fi
 
     sh "$_workdir/$_rust_installer_dir/install.sh" --prefix="$_toolchain_dir"
-    if [ $? != 0 ]; then
-	rm -R "$_toolchain_dir"
-	rm -R "$_workdir"
-	err "failed to install toolchain"
-    fi
-
-    sh "$_workdir/$_cargo_installer_dir/install.sh" --prefix="$_toolchain_dir"
     if [ $? != 0 ]; then
 	rm -R "$_toolchain_dir"
 	rm -R "$_workdir"
@@ -1112,7 +1036,7 @@ check_for_updates_sync() {
 	    fi
 	fi
 
-	local _sumfile="channel-rustc-$_channel.sha256"
+	local _sumfile="channel-rust-$_channel.sha256"
 	local _local_sumfile="$manifests_dir/$_sumfile"
 	local _remote_sumfile="$dist_server/$rust_dist_dir/$_sumfile"
 	verbose_say "local sumfile: $_local_sumfile"
