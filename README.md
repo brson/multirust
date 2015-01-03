@@ -122,7 +122,6 @@ environment variable.
 # Future work
 
 * Resume downloads.
-* Fix generation of checksums in buildbot to avoid hacks.
 * Tests.
 * Allow creation of aliases like `rustc-0.12.0` (needs cargo to obey RUSTC and RUSTDOC env vars).
 * GC unused toolchains.
