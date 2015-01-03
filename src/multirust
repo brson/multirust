@@ -633,7 +633,7 @@ install_toolchain() {
 	err "failed to create toolchain install dir"
     fi
 
-    sh "$_workdir/$_rust_installer_dir/install.sh" --prefix="$_toolchain_dir"
+    sh "$_workdir/$_rust_installer_dir/install.sh" --prefix="$_toolchain_dir" --disable-ldconfig
     if [ $? != 0 ]; then
 	rm -R "$_toolchain_dir"
 	rm -R "$_workdir"
