@@ -170,7 +170,7 @@ installer_dir="$multirust_dir/installers"
 temp_dir="$multirust_dir/tmp"
 update_stamp_file="$multirust_dir/update-stamp"
 update_list_file="$multirust_dir/available-updates"
-rust_package_name="rust-combined"
+rust_package_name="rust"
 
 # Some globals
 flag_verbose=false
