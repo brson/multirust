@@ -6,12 +6,12 @@ context.
 Features:
 
 * Manages multiple installations of official Rust binaries.
+* Configure Rust revisions per-directory.
 * Install and update from Rust release channels: nightly, beta, and
   stable.
 * Receive notifications of updates to release channels.
 * Install historical nightly toolchains from the official archives.
 * Install by specific stable version number.
-* Configure Rust revisions per-directory.
 * Isolates Cargo metadata per-installation.
 * Verifies hashes of downloads.
 * Works on Linux and OS X.
