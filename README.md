@@ -9,7 +9,7 @@ Features:
 * Install and update from Rust release channels: nightly, beta, and
   stable.
 * Receive notifications of updates to release channels.
-* Install historical toolchains from the official archives.
+* Install historical nightly toolchains from the official archives.
 * Install by specific stable version number.
 * Configure Rust revisions per-directory.
 * Isolates Cargo metadata per-installation.
@@ -138,6 +138,7 @@ environment variable.
 * Check sigs.
 * Check for and install updates of multirust itself.
 * Windows support.
+* One-liner installation.
 * Allow creation of aliases like `rustc-0.12.0` (needs cargo to obey RUSTC and RUSTDOC env vars).
 * GC unused toolchains.
 * Cache installers to avoid redownloads? Maybe only useful for testing.
