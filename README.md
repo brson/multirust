@@ -3,6 +3,19 @@ toolchain. It replaces the standard Rust toolchain with components
 that dynamically choose between alternate implementations based on
 context.
 
+Features:
+
+* Manages multiple installations of official Rust binaries.
+* Install and update from Rust release channels: nightly, beta, and
+  stable.
+* Receive notifications of updates to release channels.
+* Install historical toolchains from the official archives.
+* Install by specific stable version number.
+* Configure Rust revisions per-directory.
+* Isolates Cargo metadata per-installation.
+* Verifies hashes of downloads.
+* Works on Linux and OS X.
+
 # Usage
 
 Installation:
@@ -117,16 +130,16 @@ environment variable.
   with overrides.
 * Other unusual characters in paths may break overrides.
 * Overrides at the filesystem root probably don't work.
-* Nightly archives only work from 2014-12-16 forward.
 
 # Future work
 
-* Resume downloads.
 * Tests.
+* Resume downloads.
+* Check sigs.
+* Check for and install updates of multirust itself.
+* Windows support.
 * Allow creation of aliases like `rustc-0.12.0` (needs cargo to obey RUSTC and RUSTDOC env vars).
 * GC unused toolchains.
-* Check for updates of multirust itself.
-* Check sigs.
 * Cache installers to avoid redownloads? Maybe only useful for testing.
 * override, show-override, remove-override could take an optional path.
 * Allow management of custom toolchain builds.
