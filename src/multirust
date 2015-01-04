@@ -152,6 +152,8 @@ assert_nz "$0" "\$0 is undefined"
 
 # Some constants
 version=0.0.1
+# This will be replaced by the build script
+commit_version=
 metadata_version=1
 dist_server="${MULTIRUST_DIST_SERVER-https://static.rust-lang.org}"
 rust_dist_dir=dist
@@ -1119,7 +1121,7 @@ for opt in "$@"; do
 	    ;;
 
 	--version)
-	    echo "$version"
+	    echo "multirust $version ($commit_version)"
 	    exit 0
 	    ;;
 

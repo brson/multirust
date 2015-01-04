@@ -2,10 +2,13 @@
 
 set -e
 
+ver_date=$(git log -1 --pretty=format:'%ci')
+ver_hash=$(git rev-parse --short=9 HEAD)
+
 mkdir -p build
 rm -Rf build/*
 mkdir -p build/image/bin
-cp src/multirust build/image/bin/
+cat src/multirust | sed "s/^commit_version=$/commit_version=\"$ver_hash $ver_date\"/" > build/image/bin/multirust
 cp src/multirustproxy build/image/bin/
 cp src/multirustproxy build/image/bin/rustc
 cp src/multirustproxy build/image/bin/cargo
