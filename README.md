@@ -145,6 +145,7 @@ environment variable.
 * override, show-override, remove-override could take an optional path.
 * Allow management of custom toolchain builds.
 * Install without docs? Saves lots of space.
+* Teach multirust to uninstall itself.
   
 # License
 
