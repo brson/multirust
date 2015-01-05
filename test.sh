@@ -8,8 +8,9 @@ TEST_DIR="$S/test"
 TMP_DIR="$S/tmp"
 MOCK_BUILD_DIR="$S/tmp/mock-build"
 MOCK_DIST_DIR="$S/tmp/mock-dist"
-MULTIRUST_HOME="$S/tmp"
+MULTIRUST_HOME="$TMP_DIR"
 MULTIRUST_DIR="$MULTIRUST_HOME/.multirust"
+MULTIRUST_DIST_SERVER="$(cd "$MOCK_DIST_DIR" && pwd)"
 
 say() {
     echo
@@ -256,6 +257,7 @@ build_mock_dist_channel() {
     local _date="$2"
 
     (cd "$MOCK_BUILD_DIR/dist" && ls * > channel-rust-"$_channel")
+    (cd "$MOCK_BUILD_DIR/dist" && for i in *; do shasum -a256 $i > $i.sha256; done)
 }
 
 build_mock_channel() {
@@ -285,8 +287,6 @@ build_mocks() {
     build_mock_channel 1.0.0-beta hash-2 beta beta 2015-01-01
     build_mock_channel 1.0.0 hash-3 1.0.0 stable 2015-01-01
     build_mock_channel 1.1.0-nightly hash-4 nightly nightly 2015-01-02
-    build_mock_channel 1.1.0-beta hash-5 beta beta 2015-01-02
-    build_mock_channel 1.1.0 hash-6 1.1.0 stable 2015-01-02
 }
 
 # Clean out the tmp dir
@@ -302,4 +302,7 @@ try sh $S/build.sh
 
 # Tell multirust where to put .multirust
 export MULTIRUST_HOME
+
+# Tell multirust where to download stuff from
+export MULTIRUST_DIST_SERVER
 

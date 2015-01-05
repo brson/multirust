@@ -19,7 +19,7 @@ src/rust-installer/gen-installer.sh \
     --product-name=multirust \
     --package-name=multirust-0.0.1 \
     --rel-manifest-dir=rustlib \
-    --success-message=multirust-to-the-max! \
+    --success-message=Get-ready-for-Maximum-Rust. \
     --image-dir=./build/image \
     --work-dir=./build/work \
     --output-dir=./build \

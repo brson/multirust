@@ -146,6 +146,7 @@ environment variable.
 * Allow management of custom toolchain builds.
 * Install without docs? Saves lots of space.
 * Teach multirust to uninstall itself.
+* Support rust-lldb and rust-gdb.
   
 # License
 
