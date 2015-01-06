@@ -8,7 +8,7 @@ TEST_DIR="$S/test"
 TMP_DIR="$S/tmp"
 MOCK_BUILD_DIR="$S/tmp/mock-build"
 MOCK_DIST_DIR="$S/tmp/mock-dist"
-MULTIRUST_HOME="$TMP_DIR"
+MULTIRUST_HOME="$(cd "$TMP_DIR" && pwd)"
 MULTIRUST_DIR="$MULTIRUST_HOME/.multirust"
 MULTIRUST_DIST_SERVER="$(cd "$MOCK_DIST_DIR" && pwd)"
 

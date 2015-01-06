@@ -133,6 +133,7 @@ environment variable.
 
 # Future work
 
+* Fix broken update notifications.
 * Tests.
 * Resume downloads.
 * Check sigs.
