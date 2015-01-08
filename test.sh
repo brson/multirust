@@ -22,6 +22,7 @@ pre() {
     echo "test: $1"
     rm -Rf "$MULTIRUST_DIR"
     rm -Rf "$WORK_DIR"
+    mkdir -p "$WORK_DIR"
 }
 
 need_ok() {
@@ -32,6 +33,15 @@ need_ok() {
 	echo
 	exit 1
     fi
+}
+
+fail() {
+    echo
+    echo "$1"
+    echo
+    echo "TEST FAILED!"
+    echo
+    exit 1
 }
 
 try() {
@@ -391,7 +401,7 @@ export PATH
 
 pre "uninitialized"
 expect_fail rustc
-expect_output_fail "no default toolchain configured" rustc
+expect_output_fail "no default toolchain configured" rustc --version
 # FIXME: This should succeed and say 'no default'
 expect_output_fail "no default toolchain configured" multirust show-default
 
@@ -474,3 +484,93 @@ for i in "$MOCK_DIST_DIR/dist"/*.sha256; do
 done
 expect_output_fail "checksum failed" multirust default 1.0.0
 set_current_dist_date 2015-01-02
+
+pre "delete data"
+try multirust default nightly
+if [ ! -d "$MULTIRUST_DIR" ]; then
+    fail "no multirust dir"
+fi
+try multirust delete-data -y
+if [ -d "$MULTIRUST_DIR" ]; then
+    fail "multirust dir not removed"
+fi
+
+pre "install override toolchain from channel"
+try multirust override nightly
+expect_output_ok "hash-nightly-2" rustc --version
+try multirust override beta
+expect_output_ok "hash-beta-2" rustc --version
+try multirust override stable
+expect_output_ok "hash-stable-2" rustc --version
+
+pre "install override toolchain from archive"
+try multirust override nightly-2015-01-01
+expect_output_ok "hash-nightly-1" rustc --version
+try multirust override beta-2015-01-01
+expect_output_ok "hash-beta-1" rustc --version
+try multirust override stable-2015-01-01
+expect_output_ok "hash-stable-1" rustc --version
+
+pre "install override toolchain from version"
+try multirust override 1.1.0
+expect_output_ok "hash-stable-2" rustc --version
+
+pre "override overrides default"
+try multirust default nightly
+try multirust override beta
+expect_output_ok "beta" rustc --version
+
+pre "multiple overrides"
+mkdir -p "$WORK_DIR/dir1"
+mkdir -p "$WORK_DIR/dir2"
+try multirust default nightly
+(cd "$WORK_DIR/dir1" && try multirust override beta)
+(cd "$WORK_DIR/dir2" && try multirust override stable)
+expect_output_ok "nightly" rustc --version
+(cd "$WORK_DIR/dir1" && expect_output_ok "beta" rustc --version)
+(cd "$WORK_DIR/dir2" && expect_output_ok "stable" rustc --version)
+
+pre "change override"
+try multirust override nightly
+try multirust override beta
+expect_output_ok "beta" rustc --version
+
+pre "show override"
+try multirust override nightly
+expect_output_ok "override toolchain: nightly" multirust show-override
+expect_output_ok "override directory: `pwd`" multirust show-override
+expect_output_ok "override location: $MULTIRUST_HOME/.multirust/toolchains/nightly" multirust show-override
+expect_output_ok "hash-nightly-2" multirust show-override
+
+pre "show override no override"
+try multirust default nightly
+expect_output_ok "no override" multirust show-override
+
+pre "show override no override no default"
+expect_output_ok "no override" multirust show-override
+
+pre "remove override no default"
+try multirust override nightly
+try multirust remove-override
+expect_output_fail "no default toolchain configured" rustc --version
+
+pre "remove override with default"
+try multirust default nightly
+try multirust override beta
+try multirust remove-override
+expect_output_ok "nightly" rustc --version
+
+pre "remove override with multiple overrides"
+mkdir -p "$WORK_DIR/dir1"
+mkdir -p "$WORK_DIR/dir2"
+try multirust default nightly
+(cd "$WORK_DIR/dir1" && try multirust override beta)
+(cd "$WORK_DIR/dir2" && try multirust override stable)
+expect_output_ok "nightly" rustc --version
+(cd "$WORK_DIR/dir1" && try multirust remove-override)
+(cd "$WORK_DIR/dir1" && expect_output_ok "nightly" rustc --version)
+(cd "$WORK_DIR/dir2" && expect_output_ok "stable" rustc --version)
+
+# TODO update notifications
+# TODO CARGO_HOME
+# TODO rpath

@@ -933,7 +933,7 @@ show_override() {
 	local _toolchain="$RETVAL_TOOLCHAIN"
 	local _sysroot="$RETVAL_SYSROOT"
 
-	say "override directory; $_ovrdir"
+	say "override directory: $_ovrdir"
 	say "override toolchain: $_toolchain"
 	say "override location: $_sysroot"
 
