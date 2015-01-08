@@ -146,6 +146,38 @@ expect_output_fail() {
     set -e
 }
 
+expect_not_output_ok() {
+    set +e
+    local _expected="$1"
+    shift 1
+    _cmd="$@"
+    _output=`$@ 2>&1`
+    if [ $? -ne 0 ]; then
+	echo \$ "$_cmd"
+	# Using /bin/echo to avoid escaping
+	/bin/echo "$_output"
+	echo
+	echo "TEST FAILED!"
+	echo
+	exit 1
+    elif echo "$_output" | grep -q "$_expected"; then
+	echo \$ "$_cmd"
+	/bin/echo "$_output"
+	echo
+	echo "missing expected output '$_expected'"
+	echo
+	echo
+	echo "TEST FAILED!"
+	echo
+	exit 1
+    elif [ -n "${VERBOSE-}" ]; then
+	echo \$ "$_cmd"
+	/bin/echo "$_output"
+	echo
+    fi
+    set -e
+}
+
 get_architecture() {
 
     local _ostype="$(uname -s)"
@@ -571,6 +603,20 @@ expect_output_ok "nightly" rustc --version
 (cd "$WORK_DIR/dir1" && expect_output_ok "nightly" rustc --version)
 (cd "$WORK_DIR/dir2" && expect_output_ok "stable" rustc --version)
 
+pre "update checks"
+set_current_dist_date 2015-01-01
+try multirust default nightly
+try rustc --version
+try sleep 0.1
+echo "not todays date" > "$MULTIRUST_HOME/.multirust/update-stamp"
+set_current_dist_date 2015-01-02
+try rustc --version
+try sleep 0.1
+expect_output_ok "a new version of 'nightly' is available" rustc --version
+try multirust update nightly
+expect_not_output_ok "a new version of 'nightly' is available" rustc --version
+
 # TODO update notifications
 # TODO CARGO_HOME
 # TODO rpath
+# TODO non-absolute MULTIRUST_HOME

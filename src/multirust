@@ -170,6 +170,7 @@ default_file="$multirust_dir/default"
 toolchains_dir="$multirust_dir/toolchains"
 manifests_dir="$multirust_dir/manifests"
 installer_dir="$multirust_dir/installers"
+channel_sums_dir="$multirust_dir/channel-sums"
 temp_dir="$multirust_dir/tmp"
 update_stamp_file="$multirust_dir/update-stamp"
 update_list_file="$multirust_dir/available-updates"
@@ -657,7 +658,20 @@ install_toolchain() {
 	    err "failed to modify update list"
 	fi
     fi
-    
+
+    # If this is from a release channel save the installer checksum for
+    # use in checking for updates later
+    case "$_toolchain" in
+	nightly | beta | sable )
+	    local _saved_sumfile="$channel_sums_dir/$_toolchain.sha256"
+	    verbose_say "saving checksums to $_saved_sumfile"
+	    mkdir -p "$channel_sums_dir"
+	    need_ok "failed to crate channel sums dir"
+	    cp "$_workdir/$_rust_installer_name.sha256" "$_saved_sumfile"
+	    need_ok "failed to save channel checksums"
+	    ;;
+    esac
+
     rm -R "$_workdir"
     need_ok "couldn't delete workdir"
 }
@@ -1039,9 +1053,12 @@ check_for_updates_sync() {
 	    fi
 	fi
 
-	local _sumfile="channel-rust-$_channel.sha256"
-	local _local_sumfile="$manifests_dir/$_sumfile"
-	local _remote_sumfile="$dist_server/$rust_dist_dir/$_sumfile"
+	determine_remote_rust_installer_location "$_channel"
+	local _remote_rust_installer="$RETVAL"
+	assert_nz "$_remote_rust_installer" "remote rust installer"
+
+	local _local_sumfile="$channel_sums_dir/$_channel.sha256"
+	local _remote_sumfile="$_remote_rust_installer.sha256"
 	verbose_say "local sumfile: $_local_sumfile"
 	verbose_say "remote sumfile: $_remote_sumfile"
 	if [ -e "$_local_sumfile" ]; then
@@ -1128,6 +1145,10 @@ for opt in "$@"; do
 
     esac
 done
+
+if [ -n "$MULTIRUST_VERBOSE" ]; then
+    flag_verbose=true
+fi
 
 cmd="$1"
 
