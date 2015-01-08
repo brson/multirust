@@ -15,15 +15,11 @@ VERSION=0.0.1
 MULTIRUST_BIN_DIR="$S/build/multirust-$VERSION/bin"
 
 say() {
-    echo
     echo "test: $1"
-    echo
 }
 
 pre() {
-    echo
     echo "test: $1"
-    echo
     rm -Rf "$MULTIRUST_DIR"
     rm -Rf "$WORK_DIR"
 }
@@ -41,10 +37,9 @@ need_ok() {
 try() {
     set +e
     _cmd="$@"
-    echo \$ "$_cmd"
     _output=`$@ 2>&1`
     if [ $? -ne 0 ]; then
-	echo
+	echo \$ "$_cmd"
 	# Using /bin/echo to avoid escaping
 	/bin/echo "$_output"
 	echo
@@ -52,6 +47,7 @@ try() {
 	echo
 	exit 1
     elif [ -n "${VERBOSE-}" ]; then
+	echo \$ "$_cmd"
 	/bin/echo "$_output"
     fi
     set -e
@@ -60,10 +56,9 @@ try() {
 expect_fail() {
     set +e
     _cmd="$@"
-    echo \$ "$_cmd"
     _output=`$@ 2>&1`
     if [ $? -eq 0 ]; then
-	echo
+	echo \$ "$_cmd"
 	# Using /bin/echo to avoid escaping
 	/bin/echo "$_output"
 	echo
@@ -71,6 +66,7 @@ expect_fail() {
 	echo
 	exit 1
     elif [ -n "${VERBOSE-}" ]; then
+	echo \$ "$_cmd"
 	/bin/echo "$_output"
     fi
     set -e
@@ -81,17 +77,18 @@ expect_output() {
     local _expected="$1"
     shift 1
     _cmd="$@"
-    echo \$ "$_cmd"
     _output=`$@ 2>&1`
     if [ -n "${VERBOSE-}" ]; then
+	echo \$ "$_cmd"
 	/bin/echo "$_output"
 	echo
     fi
     if ! echo "$_output" | grep -q "$_expected"; then
+	echo \$ "$_cmd"
+	/bin/echo "$_output"
 	echo
 	echo "missing expected output '$_expected'"
 	echo
-	/bin/echo "$_output"
 	echo
 	echo "TEST FAILED!"
 	echo
@@ -309,15 +306,31 @@ build_mock_channel() {
 }
 
 build_mocks() {
-    #build_mock_channel 1.0.0-nightly hash-1 nightly nightly 2015-01-01
-    #build_mock_channel 1.0.0-beta hash-2 beta beta 2015-01-01
-    #build_mock_channel 1.0.0 hash-3 1.0.0 stable 2015-01-01
-    build_mock_channel 1.1.0-nightly hash-4 nightly nightly 2015-01-02
+    if [ -z "${NO_REBUILD_MOCKS-}" ]; then
+	build_mock_channel 1.0.0-nightly hash-nightly-1 nightly nightly 2015-01-01
+	build_mock_channel 1.0.0-beta hash-beta-1 beta beta 2015-01-01
+	build_mock_channel 1.0.0 hash-stable-1 1.0.0 stable 2015-01-01
+
+	build_mock_channel 1.1.0-nightly hash-nightly-2 nightly nightly 2015-01-02
+	build_mock_channel 1.1.0-beta hash-beta-2 beta beta 2015-01-02
+	build_mock_channel 1.1.0 hash-stable-2 1.1.0 stable 2015-01-02
+    fi
+}
+
+set_current_dist_date() {
+    local _dist_date="$1"
+    cp "$MOCK_DIST_DIR/dist/$_dist_date"/* "$MOCK_DIST_DIR/dist/"
 }
 
 # Clean out the tmp dir
+if [ -n "${NO_REBUILD_MOCKS-}" ]; then
+    mv "$MOCK_DIST_DIR" ./mock-backup
+fi
 rm -Rf "$TMP_DIR"
 mkdir "$TMP_DIR"
+if [ -n "${NO_REBUILD_MOCKS-}" ]; then
+    mv ./mock-backup "$MOCK_DIST_DIR"
+fi
 
 # Build the mock revisions
 build_mocks
@@ -352,3 +365,35 @@ try multirust default nightly
 expect_output "1.1.0" rustc --version
 expect_output "1.1.0" rustdoc --version
 expect_output "1.1.0" cargo --version
+
+pre "install toolchain from channel"
+try multirust default nightly
+expect_output "hash-nightly-2" rustc --version
+try multirust default beta
+expect_output "hash-beta-2" rustc --version
+try multirust default stable
+expect_output "hash-stable-2" rustc --version
+
+pre "install toolchain from archive"
+try multirust default nightly-2015-01-01
+expect_output "hash-nightly-1" rustc --version
+try multirust default beta-2015-01-01
+expect_output "hash-beta-1" rustc --version
+try multirust default stable-2015-01-01
+expect_output "hash-stable-1" rustc --version
+
+pre "install toolchain from version"
+try multirust default 1.1.0
+expect_output "hash-stable-2" rustc --version
+
+pre "default existing toolchain"
+try multirust update nightly
+expect_output "using existing install for 'nightly'" multirust default nightly
+
+pre "update channel"
+set_current_dist_date 2015-01-01
+try multirust default nightly
+expect_output "hash-nightly-1" rustc --version
+set_current_dist_date 2015-01-02
+try multirust update nightly
+expect_output "hash-nightly-2" rustc --version
