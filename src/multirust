@@ -232,7 +232,7 @@ check_sums() {
 
     local _sumfile_dirname="$(dirname "$_sumfile")"
     assert_nz "$_sumfile_dirname" "sumfile_dirname"
-    (cd "$_sumfile_dirname" && shasum -a 256 "$_workdir/tmpsums" > /dev/null)
+    (cd "$_sumfile_dirname" && shasum -c -a 256 "$_workdir/tmpsums" > /dev/null)
     local _sum_retval=$?
 
     rm -R "$_workdir"
@@ -923,7 +923,7 @@ show_default() {
 
 	pop_toolchain_ldpath
     else
-	say "no override"
+	say "no default"
     fi
 }
 

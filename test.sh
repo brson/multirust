@@ -12,7 +12,7 @@ MOCK_DIST_DIR="$S/tmp/mock-dist"
 MULTIRUST_HOME="$(cd "$TMP_DIR" && pwd)"
 MULTIRUST_DIR="$MULTIRUST_HOME/.multirust"
 VERSION=0.0.1
-MULTIRUST_BIN_DIR="$S/build/multirust-$VERSION/bin"
+MULTIRUST_BIN_DIR="$S/build/work/multirust-$VERSION/bin"
 
 say() {
     echo "test: $1"
@@ -72,18 +72,21 @@ expect_fail() {
     set -e
 }
 
-expect_output() {
+expect_output_ok() {
     set +e
     local _expected="$1"
     shift 1
     _cmd="$@"
     _output=`$@ 2>&1`
-    if [ -n "${VERBOSE-}" ]; then
+    if [ $? -ne 0 ]; then
 	echo \$ "$_cmd"
+	# Using /bin/echo to avoid escaping
 	/bin/echo "$_output"
 	echo
-    fi
-    if ! echo "$_output" | grep -q "$_expected"; then
+	echo "TEST FAILED!"
+	echo
+	exit 1
+    elif ! echo "$_output" | grep -q "$_expected"; then
 	echo \$ "$_cmd"
 	/bin/echo "$_output"
 	echo
@@ -93,6 +96,42 @@ expect_output() {
 	echo "TEST FAILED!"
 	echo
 	exit 1
+    elif [ -n "${VERBOSE-}" ]; then
+	echo \$ "$_cmd"
+	/bin/echo "$_output"
+	echo
+    fi
+    set -e
+}
+
+expect_output_fail() {
+    set +e
+    local _expected="$1"
+    shift 1
+    _cmd="$@"
+    _output=`$@ 2>&1`
+    if [ $? -eq 0 ]; then
+	echo \$ "$_cmd"
+	# Using /bin/echo to avoid escaping
+	/bin/echo "$_output"
+	echo
+	echo "TEST FAILED!"
+	echo
+	exit 1
+    elif ! echo "$_output" | grep -q "$_expected"; then
+	echo \$ "$_cmd"
+	/bin/echo "$_output"
+	echo
+	echo "missing expected output '$_expected'"
+	echo
+	echo
+	echo "TEST FAILED!"
+	echo
+	exit 1
+    elif [ -n "${VERBOSE-}" ]; then
+	echo \$ "$_cmd"
+	/bin/echo "$_output"
+	echo
     fi
     set -e
 }
@@ -347,53 +386,91 @@ MULTIRUST_DIST_SERVER="file://$(cd "$MOCK_DIST_DIR" && pwd)"
 export MULTIRUST_DIST_SERVER
 
 # Set up the PATH to find multirust
-PATH="$MULTIRUST_BIN_DIR;$PATH"
+PATH="$MULTIRUST_BIN_DIR:$PATH"
+export PATH
 
 pre "uninitialized"
 expect_fail rustc
-expect_output "no default toolchain configured" rustc
-expect_fail multirust show-default
-expect_output "no default toolchain configured" multirust show-default
+expect_output_fail "no default toolchain configured" rustc
+# FIXME: This should succeed and say 'no default'
+expect_output_fail "no default toolchain configured" multirust show-default
 
 pre "default toolchain"
 try multirust default nightly
-try multirust show-default
-expect_output "nightly" multirust show-default
+expect_output_ok "nightly" multirust show-default
 
 pre "expected bins exist"
 try multirust default nightly
-expect_output "1.1.0" rustc --version
-expect_output "1.1.0" rustdoc --version
-expect_output "1.1.0" cargo --version
+expect_output_ok "1.1.0" rustc --version
+expect_output_ok "1.1.0" rustdoc --version
+expect_output_ok "1.1.0" cargo --version
 
 pre "install toolchain from channel"
 try multirust default nightly
-expect_output "hash-nightly-2" rustc --version
+expect_output_ok "hash-nightly-2" rustc --version
 try multirust default beta
-expect_output "hash-beta-2" rustc --version
+expect_output_ok "hash-beta-2" rustc --version
 try multirust default stable
-expect_output "hash-stable-2" rustc --version
+expect_output_ok "hash-stable-2" rustc --version
 
 pre "install toolchain from archive"
 try multirust default nightly-2015-01-01
-expect_output "hash-nightly-1" rustc --version
+expect_output_ok "hash-nightly-1" rustc --version
 try multirust default beta-2015-01-01
-expect_output "hash-beta-1" rustc --version
+expect_output_ok "hash-beta-1" rustc --version
 try multirust default stable-2015-01-01
-expect_output "hash-stable-1" rustc --version
+expect_output_ok "hash-stable-1" rustc --version
 
 pre "install toolchain from version"
 try multirust default 1.1.0
-expect_output "hash-stable-2" rustc --version
+expect_output_ok "hash-stable-2" rustc --version
 
 pre "default existing toolchain"
 try multirust update nightly
-expect_output "using existing install for 'nightly'" multirust default nightly
+expect_output_ok "using existing install for 'nightly'" multirust default nightly
 
 pre "update channel"
 set_current_dist_date 2015-01-01
 try multirust default nightly
-expect_output "hash-nightly-1" rustc --version
+expect_output_ok "hash-nightly-1" rustc --version
 set_current_dist_date 2015-01-02
 try multirust update nightly
-expect_output "hash-nightly-2" rustc --version
+expect_output_ok "hash-nightly-2" rustc --version
+
+pre "list toolchains"
+try multirust update nightly
+try multirust update beta-2015-01-01
+expect_output_ok "nightly" multirust list-toolchains
+expect_output_ok "beta-2015-01-01" multirust list-toolchains
+
+pre "list toolchain with none"
+try multirust list-toolchains
+expect_output_ok "no installed toolchains" multirust list-toolchains
+
+pre "remove toolchain"
+try multirust update nightly
+try multirust remove-toolchain nightly
+try multirust list-toolchains
+expect_output_ok "no installed toolchains" multirust list-toolchains
+
+pre "remove active toolchain error handling"
+try multirust default nightly
+try multirust remove-toolchain nightly
+expect_output_fail "toolchain 'nightly' not installed" rustc --version
+
+pre "bad sha on manifest"
+manifest_hash="$MOCK_DIST_DIR/dist/channel-rust-nightly.sha256"
+sha=`cat "$manifest_hash"`
+echo -n bogus > "$manifest_hash"
+echo "$sha" >> "$manifest_hash"
+expect_output_fail "checksum failed" multirust default nightly
+set_current_dist_date 2015-01-02
+
+pre "bad sha on installer"
+for i in "$MOCK_DIST_DIR/dist"/*.sha256; do
+    sha=`cat "$i"`
+    echo -n bogus > "$i"
+    echo "$sha" >> "$i"
+done
+expect_output_fail "checksum failed" multirust default 1.0.0
+set_current_dist_date 2015-01-02
