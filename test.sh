@@ -6,11 +6,13 @@ S="$(cd $(dirname $0) && pwd)"
 
 TEST_DIR="$S/test"
 TMP_DIR="$S/tmp"
+WORK_DIR="$S/tmp/work"
 MOCK_BUILD_DIR="$S/tmp/mock-build"
 MOCK_DIST_DIR="$S/tmp/mock-dist"
 MULTIRUST_HOME="$(cd "$TMP_DIR" && pwd)"
 MULTIRUST_DIR="$MULTIRUST_HOME/.multirust"
-MULTIRUST_DIST_SERVER="$(cd "$MOCK_DIST_DIR" && pwd)"
+VERSION=0.0.1
+MULTIRUST_BIN_DIR="$S/build/multirust-$VERSION/bin"
 
 say() {
     echo
@@ -23,10 +25,7 @@ pre() {
     echo "test: $1"
     echo
     rm -Rf "$MULTIRUST_DIR"
-}
-
-post() {
-    echo
+    rm -Rf "$WORK_DIR"
 }
 
 need_ok() {
@@ -40,9 +39,10 @@ need_ok() {
 }
 
 try() {
+    set +e
     _cmd="$@"
     echo \$ "$_cmd"
-    _output=`$@`
+    _output=`$@ 2>&1`
     if [ $? -ne 0 ]; then
 	echo
 	# Using /bin/echo to avoid escaping
@@ -51,13 +51,17 @@ try() {
 	echo "TEST FAILED!"
 	echo
 	exit 1
+    elif [ -n "${VERBOSE-}" ]; then
+	/bin/echo "$_output"
     fi
+    set -e
 }
 
 expect_fail() {
+    set +e
     _cmd="$@"
     echo \$ "$_cmd"
-    _output=`$@`
+    _output=`$@ 2>&1`
     if [ $? -eq 0 ]; then
 	echo
 	# Using /bin/echo to avoid escaping
@@ -66,7 +70,34 @@ expect_fail() {
 	echo "TEST FAILED!"
 	echo
 	exit 1
+    elif [ -n "${VERBOSE-}" ]; then
+	/bin/echo "$_output"
     fi
+    set -e
+}
+
+expect_output() {
+    set +e
+    local _expected="$1"
+    shift 1
+    _cmd="$@"
+    echo \$ "$_cmd"
+    _output=`$@ 2>&1`
+    if [ -n "${VERBOSE-}" ]; then
+	/bin/echo "$_output"
+	echo
+    fi
+    if ! echo "$_output" | grep -q "$_expected"; then
+	echo
+	echo "missing expected output '$_expected'"
+	echo
+	/bin/echo "$_output"
+	echo
+	echo "TEST FAILED!"
+	echo
+	exit 1
+    fi
+    set -e
 }
 
 get_architecture() {
@@ -147,12 +178,6 @@ get_architecture() {
 }
 
 build_mock_bin() {
-    local _dir="$1"
-    local _name="$2"
-    local _version="$3"
-}
-
-build_mock_bin() {
     local _name="$1"
     local _version="$2"
     local _version_hash="$3"
@@ -172,6 +197,7 @@ build_mock_rustc_installer() {
     local _image="$MOCK_BUILD_DIR/image/rustc"
     mkdir -p "$_image/bin"
     build_mock_bin rustc "$_version" "$_version_hash" "$_image/bin"
+    build_mock_bin rustdoc "$_version" "$_version_hash" "$_image/bin"
 
     get_architecture
     local _arch="$RETVAL"
@@ -277,15 +303,15 @@ build_mock_channel() {
     build_mock_combined_installer "$_package"
     build_mock_dist_channel "$_channel" "$_date"
 
-    mkdir -p "$MOCK_DIST_DIR/$_date"
-    cp "$MOCK_BUILD_DIR/dist"/* "$MOCK_DIST_DIR/$_date/"
-    cp "$MOCK_BUILD_DIR/dist"/* "$MOCK_DIST_DIR/"
+    mkdir -p "$MOCK_DIST_DIR/dist/$_date"
+    cp "$MOCK_BUILD_DIR/dist"/* "$MOCK_DIST_DIR/dist/$_date/"
+    cp "$MOCK_BUILD_DIR/dist"/* "$MOCK_DIST_DIR/dist/"
 }
 
 build_mocks() {
-    build_mock_channel 1.0.0-nightly hash-1 nightly nightly 2015-01-01
-    build_mock_channel 1.0.0-beta hash-2 beta beta 2015-01-01
-    build_mock_channel 1.0.0 hash-3 1.0.0 stable 2015-01-01
+    #build_mock_channel 1.0.0-nightly hash-1 nightly nightly 2015-01-01
+    #build_mock_channel 1.0.0-beta hash-2 beta beta 2015-01-01
+    #build_mock_channel 1.0.0 hash-3 1.0.0 stable 2015-01-01
     build_mock_channel 1.1.0-nightly hash-4 nightly nightly 2015-01-02
 }
 
@@ -298,11 +324,31 @@ build_mocks
 
 # Build bultirust
 say "building multirust"
-try sh $S/build.sh
+try sh "$S/build.sh"
 
 # Tell multirust where to put .multirust
 export MULTIRUST_HOME
 
 # Tell multirust where to download stuff from
+MULTIRUST_DIST_SERVER="file://$(cd "$MOCK_DIST_DIR" && pwd)"
 export MULTIRUST_DIST_SERVER
 
+# Set up the PATH to find multirust
+PATH="$MULTIRUST_BIN_DIR;$PATH"
+
+pre "uninitialized"
+expect_fail rustc
+expect_output "no default toolchain configured" rustc
+expect_fail multirust show-default
+expect_output "no default toolchain configured" multirust show-default
+
+pre "default toolchain"
+try multirust default nightly
+try multirust show-default
+expect_output "nightly" multirust show-default
+
+pre "expected bins exist"
+try multirust default nightly
+expect_output "1.1.0" rustc --version
+expect_output "1.1.0" rustdoc --version
+expect_output "1.1.0" cargo --version
