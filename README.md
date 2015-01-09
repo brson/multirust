@@ -14,6 +14,7 @@ Features:
 * Install by specific stable version number.
 * Isolate Cargo metadata per-installation.
 * Verify hashes of downloads.
+* Resume partial downloads.
 * For Linux and OS X (Windows MSYS support pending).
 
 # Quick installation
@@ -133,7 +134,6 @@ environment variable.
 
 # Future work
 
-* Resume downloads.
 * Check sigs.
 * Check for and install updates of multirust itself.
 * Windows support.

@@ -145,6 +145,7 @@ need_cmd cut
 need_cmd sort
 need_cmd shasum
 need_cmd date
+need_cmd head
 
 # Environment sanity checks
 assert_nz "$HOME" "\$HOME is undefined"
@@ -172,6 +173,7 @@ manifests_dir="$multirust_dir/manifests"
 installer_dir="$multirust_dir/installers"
 channel_sums_dir="$multirust_dir/channel-sums"
 temp_dir="$multirust_dir/tmp"
+dl_dir="$multirust_dir/dl"
 update_stamp_file="$multirust_dir/update-stamp"
 update_list_file="$multirust_dir/available-updates"
 rust_package_name="rust"
@@ -366,18 +368,41 @@ download_and_check() {
     assert_nz "$_workdir" "workdir"
     verbose_say "download work dir: $_workdir"
 
-    say "downloading '$_remote_name' to '$_workdir'"
-    (cd "$_workdir" && curl -f -O "$_remote_name")
-    if [ $? != 0 ]; then
-	rm -R "$_workdir"
-	err "couldn't download '$_remote_name'"
-    fi
-
     say "downloading '$_remote_sums' to '$_workdir'"
     (cd "$_workdir" && curl -f -O "$_remote_sums")
     if [ $? != 0 ]; then
 	rm -R "$_workdir"
 	err "couldn't download checksum file '$_remote_sums'"
+    fi
+
+    # Create the dl directory for this artifact based
+    # on the checksum so we can find it to resume later.
+    local _dl_dir="$(cat "$_workdir/$_remote_sums_basename" | shasum -a 256 | head -c 10)"
+    need_ok "failed to calculate temporary download file name"
+    verbose_say "dl dir: $dl_dir/$_dl_dir"
+    mkdir -p "$dl_dir/$_dl_dir"
+    need_ok "failed to create temporary download dir"
+
+    say "downloading '$_remote_name' to '$dl_dir/$_dl_dir'"
+    # Invoke curl in a way that will resume if necessary
+    (cd "$dl_dir/$_dl_dir" && curl -C - -f -O "$_remote_name")
+    if [ $? != 0 ]; then
+	rm -R "$_workdir"
+	rm -R "$dl_dir/$_dl_dir"
+	err "couldn't download '$_remote_name'"
+    fi
+
+    mv "$dl_dir/$_dl_dir/$_remote_basename" "$_workdir/$_remote_basename"
+    if [ $? != 0 ]; then
+	rm -R "$_workdir"
+	rm -R "$dl_dir/$_dl_dir"
+	err "couldn't move file from dl dir to work dir"
+    fi
+
+    rm -R "$dl_dir/$_dl_dir"
+    if [ $? != 0 ]; then
+	rm -R "$_workdir"
+	err "failed to remove dl dir"
     fi
 
     say "verifying checksums for '$_remote_basename'"
