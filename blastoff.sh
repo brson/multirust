@@ -55,20 +55,18 @@ run() {
 	    --uninstall )
 		UNINSTALL=true
 		;;
+	    * )
+		err "unrecognized arguent '$arg'"
+		;;
 	esac
     done
 
-    if [ -n "$UNINSTALL" ]; then
-	say "--uninstall unimplemented"
-	exit 0
-    fi
-
     if [ -z "$UNINSTALL" ]; then
 	say "This script will download, build, install and configure multirust with the most common options."
-	say "It will prompt for your password for installation via 'sudo'. Running this same script again"
+	say "It may prompt for your password for installation via 'sudo'. Running this same script again"
 	say "with the --uninstall flag will uninstall multirust."
     else
-	say "This script will uninstall multirust. It will prompt for your password via 'sudo'."
+	say "This script will uninstall multirust. It may prompt for your password via 'sudo'."
     fi
 
     echo
@@ -145,4 +143,4 @@ run() {
     say "all systems go"
 }
 
-run
+run "$@"
