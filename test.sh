@@ -4,11 +4,22 @@ set -e -u
 
 S="$(cd $(dirname $0) && pwd)"
 
-TEST_DIR="$S/test"
 TMP_DIR="$S/tmp"
+MOCK_DIST_DIR="$S/tmp/mock-dist"
+
+# Clean out the tmp dir
+if [ -n "${NO_REBUILD_MOCKS-}" ]; then
+    mv "$MOCK_DIST_DIR" ./mock-backup
+fi
+rm -Rf "$TMP_DIR"
+mkdir "$TMP_DIR"
+if [ -n "${NO_REBUILD_MOCKS-}" ]; then
+    mv ./mock-backup "$MOCK_DIST_DIR"
+fi
+
+TEST_DIR="$S/test"
 WORK_DIR="$S/tmp/work"
 MOCK_BUILD_DIR="$S/tmp/mock-build"
-MOCK_DIST_DIR="$S/tmp/mock-dist"
 MULTIRUST_HOME="$(cd "$TMP_DIR" && pwd)"
 MULTIRUST_DIR="$MULTIRUST_HOME/.multirust"
 VERSION=0.0.1
@@ -402,16 +413,6 @@ set_current_dist_date() {
     local _dist_date="$1"
     cp "$MOCK_DIST_DIR/dist/$_dist_date"/* "$MOCK_DIST_DIR/dist/"
 }
-
-# Clean out the tmp dir
-if [ -n "${NO_REBUILD_MOCKS-}" ]; then
-    mv "$MOCK_DIST_DIR" ./mock-backup
-fi
-rm -Rf "$TMP_DIR"
-mkdir "$TMP_DIR"
-if [ -n "${NO_REBUILD_MOCKS-}" ]; then
-    mv ./mock-backup "$MOCK_DIST_DIR"
-fi
 
 # Build the mock revisions
 build_mocks
