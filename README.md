@@ -14,6 +14,7 @@ Features:
 * Install by specific stable version number.
 * Isolate Cargo metadata per-installation.
 * Verify hashes of downloads.
+* Verify signatures (if GnuPG is available).
 * Resume partial downloads.
 * For Linux and OS X (Windows MSYS support pending).
 
@@ -114,6 +115,28 @@ dynamic linking, even though the toolchains live in various places.
 It keeps Cargo's metadata isolated per toolchain via the `CARGO_HOME`
 environment variable.
 
+# How far can you trust the authenticity of Rust binaries?
+
+Although multirust verifies signatures of its downloads if GnuPG is
+available, the question of whether you can 'trust' Rust depends on
+quite a few factors. Although I'm not prepared to discuss this
+authoritatively, here are some of the details around how the Rust
+project binaries are signed and verified. You must use your own
+judgement about what this means to you.
+
+* Rust binaries are produced on infrastructure, some of which is on
+  AWS, to which several people have access.
+* They are signed automatically by a master bot that has access
+  to a secret subkey of the Rust signing key.
+* They are uploaded to s3 using a secret key on that same bot.
+* The master bot is exposed to the Internet through an ssh tunnel via
+  which it communicates with buildbot slaves.
+* Rust binaries are served over HTTPS from CloudFront.
+* The Rust public key is distributed as part of multirust.
+* Rust is self-hosting, bootstrapped off of a chain of binary
+  snapshots that extends back for several years, which are
+  served over HTTPS but not cryptographically signed.
+
 # Limitations
 
 * Installation of multirust over an existing installation of Rust or
@@ -134,11 +157,10 @@ environment variable.
 
 # Future work
 
-* Check sigs.
 * Check for and install updates of multirust itself.
 * Windows support.
-* One-liner installation.
-* Allow creation of aliases like `rustc-0.12.0` (needs cargo to obey RUSTC and RUSTDOC env vars).
+* Allow creation of aliases like `rustc-0.12.0` (needs cargo to obey
+  RUSTC and RUSTDOC env vars).
 * GC unused toolchains.
 * Cache installers to avoid redownloads? Maybe only useful for testing.
 * override, show-override, remove-override could take an optional path.
@@ -146,6 +168,9 @@ environment variable.
 * Install without docs? Saves lots of space.
 * Teach multirust to uninstall itself.
 * Support rust-lldb and rust-gdb.
+* Clean up error handling to not leave temp dirs around.
+* Handle temp file cleanup more consistently - always cleaned up on
+  error unless requested otherwise.
   
 # License
 

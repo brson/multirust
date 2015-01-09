@@ -18,6 +18,9 @@ if [ -n "${NO_REBUILD_MOCKS-}" ]; then
 fi
 
 TEST_DIR="$S/test"
+TEST_SECRET_KEY="$TEST_DIR/secret-key.gpg"
+TEST_PUBLIC_KEY="$TEST_DIR/public-key.gpg"
+MULTIRUST_GPG_KEY="$TEST_DIR/public-key.asc"
 WORK_DIR="$S/tmp/work"
 MOCK_BUILD_DIR="$S/tmp/mock-build"
 MULTIRUST_HOME="$(cd "$TMP_DIR" && pwd)"
@@ -372,6 +375,16 @@ build_mock_dist_channel() {
     local _date="$2"
 
     (cd "$MOCK_BUILD_DIR/dist" && ls * > channel-rust-"$_channel")
+    if command -v gpg > /dev/null 2>&1; then
+	(cd "$MOCK_BUILD_DIR/dist" && for i in *; do
+		gpg --no-default-keyring --secret-keyring "$TEST_SECRET_KEY" \
+		    --keyring "$TEST_PUBLIC_KEY" \
+		    --no-tty --yes -a --detach-sign "$i"
+		done)
+    else
+	say "gpg not found. not testing signature verification"
+	(cd "$MOCK_BUILD_DIR/dist" && for i in *; do echo "nosig" > "$i.asc"; done)
+    fi
     (cd "$MOCK_BUILD_DIR/dist" && for i in *; do shasum -a256 $i > $i.sha256; done)
 }
 
@@ -423,6 +436,8 @@ try sh "$S/build.sh"
 
 # Tell multirust where to put .multirust
 export MULTIRUST_HOME
+# Tell multirust what key to use to verify sigs
+export MULTIRUST_GPG_KEY
 
 # Tell multirust where to download stuff from
 MULTIRUST_DIST_SERVER="file://$(cd "$MOCK_DIST_DIR" && pwd)"
