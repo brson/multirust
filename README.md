@@ -37,7 +37,7 @@ curl -sf https://raw.githubusercontent.com/brson/multirust/master/blastoff.sh | 
 # Manual build, install and configure
 
 ```
-git clone https://github.com/brson/multirust && cd multirust
+git clone --recursive https://github.com/brson/multirust && cd multirust
 git submodule update --init
 ./build.sh && sudo ./install.sh
 ```
