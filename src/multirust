@@ -831,7 +831,9 @@ set_override() {
 
     # Copy the current db to a new file, removing any existing override
     if [ -e "$override_db" ]; then
-	sed "/^$_escaped_override_dir\t/d" "$override_db" > "$_workfile"
+	# Escape the tab because OS X sed won't
+	local _tab="$(echo '\t' | awk '/\t/')"
+	sed "/^$_escaped_override_dir$_tab/d" "$override_db" > "$_workfile"
 	if [ $? != 0 ]; then
 	    rm -R "$_workfile"
 	    err "unable to edit override db"
@@ -882,7 +884,8 @@ remove_override() {
 
     # Copy the current db to a new file, removing any existing override
     if [ -e "$override_db" ]; then
-	sed "/^$_escaped_override_dir\t/d" "$override_db" > "$_workfile"
+	local _tab="$(echo '\t' | awk '/\t/')"
+	sed "/^$_escaped_override_dir$_tab/d" "$override_db" > "$_workfile"
 	if [ $? != 0 ]; then
 	    rm -R "$_workfile"
 	    err "unable to edit override db"
