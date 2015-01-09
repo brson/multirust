@@ -119,19 +119,18 @@ environment variable.
 
 Although multirust verifies signatures of its downloads if GnuPG is
 available, the question of whether you can 'trust' Rust depends on
-quite a few factors. Although I'm not prepared to discuss this
-authoritatively, here are some of the details around how the Rust
-project binaries are signed and verified. You must use your own
-judgement about what this means to you.
+quite a few factors. Although I'm not prepared to give advice on this
+subject, here are some of the details around how the Rust project
+binaries are signed and verified. You can make your own judgments.
 
-* Rust binaries are produced on infrastructure, some of which is on
-  AWS, to which several people have access.
+* Rust binaries are produced on mostly cloud infrastructe to which
+  several people have access.
 * They are signed automatically by a master bot that has access
   to a secret subkey of the Rust signing key.
 * They are uploaded to s3 using a secret key on that same bot.
 * The master bot is exposed to the Internet through an ssh tunnel via
   which it communicates with buildbot slaves.
-* Rust binaries are served over HTTPS from CloudFront.
+* Rust binaries are served over HTTPS.
 * The Rust public key is distributed as part of multirust.
 * Rust is self-hosting, bootstrapped off of a chain of binary
   snapshots that extends back for several years, which are
