@@ -504,16 +504,14 @@ expect_output_fail "toolchain 'nightly' not installed" rustc --version
 pre "bad sha on manifest"
 manifest_hash="$MOCK_DIST_DIR/dist/channel-rust-nightly.sha256"
 sha=`cat "$manifest_hash"`
-echo -n bogus > "$manifest_hash"
-echo "$sha" >> "$manifest_hash"
+echo "$sha" | sed s/^......../aaaaaaaa/ >  "$manifest_hash"
 expect_output_fail "checksum failed" multirust default nightly
 set_current_dist_date 2015-01-02
 
 pre "bad sha on installer"
 for i in "$MOCK_DIST_DIR/dist"/*.sha256; do
     sha=`cat "$i"`
-    echo -n bogus > "$i"
-    echo "$sha" >> "$i"
+    echo "$sha" | sed s/^......../aaaaaaaa/ > "$i"
 done
 expect_output_fail "checksum failed" multirust default 1.0.0
 set_current_dist_date 2015-01-02
