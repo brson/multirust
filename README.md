@@ -115,7 +115,7 @@ dynamic linking, even though the toolchains live in various places.
 It keeps Cargo's metadata isolated per toolchain via the `CARGO_HOME`
 environment variable.
 
-# How far can you trust the authenticity of Rust binaries?
+# Can you trust Rust binaries?
 
 Although multirust verifies signatures of its downloads if GnuPG is
 available, the question of whether you can 'trust' Rust depends on
