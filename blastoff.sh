@@ -46,6 +46,7 @@ run() {
     need_cmd git
     need_cmd sed
     need_cmd sh
+    need_cmd sleep
 
     GIT_REPO=https://github.com/brson/multirust.git
     UNINSTALL=
@@ -62,23 +63,23 @@ run() {
     done
 
     if [ -z "$UNINSTALL" ]; then
-	say "This script will download, build, install and configure multirust with the most common options."
-	say "It may prompt for your password for installation via 'sudo'. Running this same script again"
+	echo "This script will download, build, install and configure multirust with the most common options."
+	echo "It may prompt for your password for installation via 'sudo'. Running this same script again"
 	say "with the --uninstall flag will uninstall multirust."
     else
 	say "This script will uninstall multirust. It may prompt for your password via 'sudo'."
     fi
 
     echo
-    read -p "Continue (y/n)? " yn
+    sleep 1
+    echo -n "3..."
+    sleep 1
+    echo -n " 2..."
+    sleep 1
+    echo -n " 1..."
+    sleep 1
     echo
-
-    case "$yn" in
-	[Nn] )
-	    say "not installing"
-	    exit 0
-	    ;;
-    esac
+    echo
 
     tmp_dir=$(mktemp -d 2>/dev/null \
 	|| mktemp -d -t 'rustup-tmp-install' 2>/dev/null \
