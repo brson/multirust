@@ -123,7 +123,7 @@ quite a few factors. Although I'm not prepared to give advice on this
 subject, here are some of the details around how the Rust project
 binaries are signed and verified. You can make your own judgments.
 
-* Rust binaries are produced on mostly cloud infrastructe to which
+* Rust binaries are produced on mostly cloud infrastructure to which
   several people have access.
 * They are signed automatically by a master bot that has access
   to a secret subkey of the Rust signing key.
