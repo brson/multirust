@@ -72,11 +72,11 @@ run() {
 
     echo
     sleep 2
-    echo -n "3..."
+    echo -n "3... "
     sleep 1
-    echo -n " 2..."
+    echo -n "2... "
     sleep 1
-    echo -n " 1..."
+    echo -n "1... "
     sleep 1.5
     echo
     echo
