@@ -16,7 +16,7 @@ Features:
 * Verify hashes of downloads.
 * For Linux and OS X (Windows MSYS support pending).
 
-# Quick installation and configuration
+# Quick installation
 
 ```
 curl -sf https://raw.githubusercontent.com/brson/multirust/master/blastoff.sh | sh
