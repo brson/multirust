@@ -16,9 +16,23 @@ Features:
 * Verifies hashes of downloads.
 * Works on Linux and OS X.
 
-# Usage
+# Quick installation and configuration
 
-Installation:
+```
+curl -sf https://raw.githubusercontent.com/brson/multirust/master/blastoff.sh | sh
+```
+
+This will build and install multirust, then download and still the
+nightly toolchain, confinguring it as the default. It will prompt for
+your password via `sudo`.
+
+Uninstallation:
+
+```
+curl -sf https://raw.githubusercontent.com/brson/multirust/master/blastoff.sh | sh -s -- --uninstall
+```
+
+# Less quick installation and configuration
 
 ```
 git submodule update --init
@@ -39,6 +53,8 @@ multirust default nightly
 This will download and install the nightly compiler and package
 manager and configure it as the default when executing `rustc`,
 `rustdoc`, and `cargo`.
+
+# Usage
 
 Overriding the compiler in specific directories:
 
