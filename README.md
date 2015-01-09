@@ -32,9 +32,10 @@ Uninstallation:
 curl -sf https://raw.githubusercontent.com/brson/multirust/master/blastoff.sh | sh -s -- --uninstall
 ```
 
-# Less quick installation and configuration
+# Manual build, install and configure
 
 ```
+git clone https://github.com/brson/multirust && cd multirust
 git submodule update --init
 ./build.sh && sudo ./install.sh
 ```
