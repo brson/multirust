@@ -1038,7 +1038,7 @@ maybe_check_for_updates_async() {
 	verbose_say "update timestamp out of date. checking for updates"
 	echo "$_now" > "$update_stamp_file"
 	# Call multirust recursively in background to look for updates
-	call_multirust ctl check-updates-sync &
+	call_multirust ctl check-updates-sync > /dev/null 2>&1 &
     else
 	verbose_say "update timestamp up to date. not checking for updates"
     fi
