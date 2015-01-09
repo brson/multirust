@@ -24,7 +24,7 @@ Features:
 curl -sf https://raw.githubusercontent.com/brson/multirust/master/blastoff.sh | sh
 ```
 
-This will build and install multirust, then download and still the
+This will build and install multirust, then download and install the
 nightly toolchain, confinguring it as the default when executing `rustc`,
 `rustdoc`, and `cargo`. It will prompt for
 your password via `sudo`.
