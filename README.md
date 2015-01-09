@@ -23,7 +23,8 @@ curl -sf https://raw.githubusercontent.com/brson/multirust/master/blastoff.sh | 
 ```
 
 This will build and install multirust, then download and still the
-nightly toolchain, confinguring it as the default. It will prompt for
+nightly toolchain, confinguring it as the default when executing `rustc`,
+`rustdoc`, and `cargo`. It will prompt for
 your password via `sudo`.
 
 Uninstallation:
@@ -42,15 +43,8 @@ git submodule update --init
 
 Run `sudo ./install.sh --uninstall` to uninstall.
 
-Initial configuration:
-
-```
-multirust default nightly
-```
-
-This will download and install the nightly compiler and package
-manager and configure it as the default when executing `rustc`,
-`rustdoc`, and `cargo`.
+Run `multirust default nightly` to download and install the nightly
+compiler and package manager and configure it as the default.
 
 # Usage
 
@@ -93,15 +87,6 @@ multirust: a new version of the 'nightly' release is available. run `multirust u
 
 In which case the toolchain can be updated with `multirust update
 nightly`.
-
-An alternate way of accessing multiple toolchains, `multirust alias
-nightly` will produce new binaries called `rustc-nightly`,
-`cargo-nightly`, and `rustdoc-nightly` that live in `~/.multirust/bin`
-(add it to your `$PATH` to get access). `multirust alias nightly -g`
-will add these commands globally, prompting for your password to call
-`sudo`. At that point you can invoke `cargo-nightly` and it will use
-the nightly toolchain. *Note: Not implemented. Requires cargo
-modifications.*
 
 # Toolchain specification
 
