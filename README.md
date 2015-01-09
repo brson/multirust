@@ -39,9 +39,6 @@ git submodule update --init
 ./build.sh && sudo ./install.sh
 ```
 
-*Warning: Uninstall Rust and Cargo before installing `multirust`.
-Failure to do so will currently result in unknowable badness.*
-
 Run `sudo ./install.sh --uninstall` to uninstall.
 
 Initial configuration:
@@ -133,9 +130,10 @@ environment variable.
 # Limitations
 
 * Installation of multirust over an existing installation of Rust or
-  vice versa will cause brokenness. Uninstall the other first. This
-  should be fixable in the future.
-* The beta and stable release channel don't actually exist yet.
+  vice versa will cause brokenness. Uninstall the other first.
+  `./install.sh` will detect this and error. This should be fixable in
+  the future.
+* The stable release channel doesn't actually exist yet.
 * The `rustc`, `cargo` and `rustdoc` commands should be symlinks to
   `rustcmdproxy` but are actually copies, a limitation of the
   installer.
@@ -149,8 +147,6 @@ environment variable.
 
 # Future work
 
-* Fix broken update notifications.
-* Tests.
 * Resume downloads.
 * Check sigs.
 * Check for and install updates of multirust itself.
