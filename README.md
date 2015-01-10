@@ -158,6 +158,8 @@ binaries are signed and verified. You can make your own judgments.
 # Future work
 
 * Custom toolchains.
+* Make MULTIRUST_DIST_SERVER more flexible and checksumming optional
+  so it works with Servo's server.
 * Check for and install updates of multirust itself.
 * Windows support.
 * Allow creation of aliases like `rustc-0.12.0` (needs cargo to obey
