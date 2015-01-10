@@ -1,3 +1,4 @@
+
 #!/bin/sh
 
 help() {
@@ -7,7 +8,7 @@ help() {
     echo
     echo "    default          Set the default toolchain"
     echo "    override         Set the toolchain override for the current directory tree"
-    echo "    update           Update a given toolchain"
+    echo "    update           Update (or install if not present) a given toolchain"
     echo "    show-default     Show information about the current default"
     echo "    show-override    Show information about the current override"
     echo "    list-overrides   List all overrides"
