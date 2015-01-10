@@ -7,7 +7,6 @@ help() {
     echo
     echo "    default          Set the default toolchain"
     echo "    override         Set the toolchain override for the current directory tree"
-    echo "    alias            Create alias commands for a toolchain"
     echo "    update           Update a given toolchain"
     echo "    show-default     Show information about the current default"
     echo "    show-override    Show information about the current override"
@@ -15,10 +14,8 @@ help() {
     echo "    list-toolchains  List all installed toolchains"
     echo "    remove-override  Remove the current override"
     echo "    remove-toolchain Uninstall a toolchain"
-    echo "    remove-alias     Delete alias toolchain commands"
     echo "    delete-data      Delete all user metadata, including installed toolchains"
     echo "    upgrade-data     Upgrade user metadata from previous versions"
-    echo "    gc               Delete unused toolchains"
     echo "    help             Show help for this command or subcommands"
     echo
     echo "Use \`multirust help <command>\` for detailed help."
@@ -1359,10 +1356,6 @@ case "$cmd" in
 	set_override "$2"
 	;;
 
-    alias)
-	err "unimplemented"
-	;;
-
     update)
 	if [ -z "$2" ]; then
 	    err 'unspecified update toolchain. try `multirust help update`'
@@ -1397,19 +1390,11 @@ case "$cmd" in
 	remove_toolchain "$2"
 	;;
 
-    remove-alias)
-	err "unimplemented"
-	;;
-
     delete-data)
 	delete_data
 	;;
 
     upgrade-data)
-	err "unimplemented"
-	;;
-
-    gc)
 	err "unimplemented"
 	;;
 
