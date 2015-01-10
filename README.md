@@ -12,6 +12,7 @@ Features:
 * Receive notifications of updates to release channels.
 * Install historical nightly toolchains from the official archives.
 * Install by specific stable version number.
+* Install custom toolchains.
 * Isolate Cargo metadata per-installation.
 * Verify hashes of downloads.
 * Verify signatures (if GnuPG is available).
@@ -91,6 +92,13 @@ multirust: a new version of the 'nightly' release is available. run `multirust u
 In which case the toolchain can be updated with `multirust update
 nightly`.
 
+Custom toolchains - those not distributed by The Rust Project - may be
+installed with `multirust update <toolchain> --custom
+<installer-path-or-url>`, e.g. `multirust update my-rust --custom
+rust-1.0.0-dev-x86_64-unknown-linux-gnu.tar.gz`. In this case the
+toolchain is installed via the specified installer and can then be
+activated with `multirust default my-rust`.
+
 # Toolchain specification
 
 `multirust` supports several ways to indicate the toolchain: 'stable',
@@ -157,9 +165,7 @@ binaries are signed and verified. You can make your own judgments.
 
 # Future work
 
-* Custom toolchains.
-* Make MULTIRUST_DIST_SERVER more flexible and checksumming optional
-  so it works with Servo's server.
+* Travis
 * Don't output update notifications if running --version/-V. Likely
   breaks scripts.
 * Check for and install updates of multirust itself.

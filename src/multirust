@@ -45,7 +45,19 @@ help_update() {
     echo "Updates an installed toolchain or installs from scratch if it is"
     echo "not yet installed."
     echo
-    echo "Usage: multirust update <toolchain>"
+    echo "Usage:"
+    echo "    multirust update <toolchain>"
+    echo "    multirust update <toolchain> --custom <installer-path-or-url>"
+    echo "    multirust update <toolchain> --custom <path-or-url>[,<path-or-url>]"
+    echo
+    echo "The --custom flag allows arbitrary builds of rust to be installed,"
+    echo "either from the local filesystem or the network. Custom installers"
+    echo "are neither checksum nor signature-verified."
+    echo
+    echo "If multiple installers are specified then they are all installed to the"
+    echo "same location. This can make installing cargo easier since otherwise"
+    echo "it would need to be combined with rustc into a single installer"
+    echo "through the rust-packaging project."
 }
 
 help_show_default() {
@@ -776,6 +788,43 @@ is_toolchain_installed() {
 
 install_toolchain() {
     local _toolchain="$1"
+    local _installer="$2"
+    local _workdir="$3"
+
+    local _installer_dir="$_workdir/$(basename "$_installer" | sed s/.tar.gz$//)"
+    assert_nz "$_installer_dir" "installer dir"
+
+    # Extract the toolchain
+    tar xzf "$_installer" -C "$_workdir"
+    if [ $? != 0 ]; then
+	verbose_say "failed to extract installer"
+	return 1
+    fi
+
+    # Install the toolchain
+    get_toolchain_dir "$_toolchain"
+    local _toolchain_dir="$RETVAL"
+    assert_nz "$_toolchain_dir" "toolchain dir"
+    verbose_say "installing toolchain to '$_toolchain_dir'"
+    say "installing toolchain for '$_toolchain'"
+
+    mkdir -p "$_toolchain_dir"
+    if [ $? != 0 ]; then
+	verbose_say "failed to create toolchain install dir"
+	return 1
+    fi
+
+    sh "$_installer_dir/install.sh" --prefix="$_toolchain_dir" --disable-ldconfig
+    if [ $? != 0 ]; then
+	rm -R "$_toolchain_dir"
+	verbose_say "failed to install toolchain"
+	return 1
+    fi
+
+}
+
+install_toolchain_from_dist() {
+    local _toolchain="$1"
     assert_nz "$_toolchain" "toolchain"
 
     determine_remote_rust_installer_location "$_toolchain"
@@ -796,36 +845,13 @@ install_toolchain() {
     assert_nz "$_workdir" "workdir"
     verbose_say "download work dir: $_workdir"
 
-    # Download the toolchain
+    # Download and install toolchain
     say "downloading rust installer from '$_remote_rust_installer'"
     download_and_check "$_remote_rust_installer" "$_workdir/$_rust_installer_name"
 
-    local _rust_installer_dir="$(echo "$_rust_installer_name" | sed s/.tar.gz$//)"
-    assert_nz "$_rust_installer_dir" "rust installer dir"
-
-    # Extract the toolchain
-    (cd "$_workdir" && tar xzf "$_rust_installer_name")
+    local _installer_file="$_workdir/$_rust_installer_name"
+    install_toolchain "$_toolchain" "$_installer_file" "$_workdir"
     if [ $? != 0 ]; then
-	rm -R "$_workdir"
-	err "failed to extract rust installer"
-    fi
-
-    # Install the toolchain
-    get_toolchain_dir "$_toolchain"
-    local _toolchain_dir="$RETVAL"
-    assert_nz "$_toolchain_dir" "toolchain dir"
-    verbose_say "installing toolchain to '$_toolchain_dir'"
-    say "installing toolchain for '$_toolchain'"
-
-    mkdir -p "$_toolchain_dir"
-    if [ $? != 0 ]; then
-	rm -R "$_workdir"
-	err "failed to create toolchain install dir"
-    fi
-
-    sh "$_workdir/$_rust_installer_dir/install.sh" --prefix="$_toolchain_dir" --disable-ldconfig
-    if [ $? != 0 ]; then
-	rm -R "$_toolchain_dir"
 	rm -R "$_workdir"
 	err "failed to install toolchain"
     fi
@@ -872,7 +898,7 @@ install_toolchain_if_not_installed() {
 	return 0
     else
 	say "installing toolchain '$_toolchain'"
-	install_toolchain "$_toolchain"
+	install_toolchain_from_dist "$_toolchain"
     fi
 }
 
@@ -887,7 +913,76 @@ update_toolchain() {
 	say "installing toolchain '$_toolchain'"
     fi
 
-    install_toolchain "$_toolchain"
+    install_toolchain_from_dist "$_toolchain"
+}
+
+update_custom_toolchain() {
+    local _toolchain="$1"
+    local _installers="$2"
+    assert_nz "$_toolchain" "toolchain"
+    assert_nz "$_installers" "installers"
+
+    case "$_toolchain" in
+	nightly | beta | stable )
+	    err "invalid custom toolchain name: '$_toolchain'"
+	    ;;
+    esac
+
+    make_temp_dir
+    local _workdir="$RETVAL"
+    assert_nz "$_workdir" "workdir"
+    verbose_say "download work dir: $_workdir"
+
+    # Used for cleanup
+    get_toolchain_dir "$_toolchain"
+    local _toolchain_dir="$RETVAL"
+    assert_nz "$_toolchain_dir" "toolchain dir"
+
+    # Iterate through list of installers installing each
+    while [ -n "$_installers" ]; do
+
+	# Pull out the first installer
+	local _installer="$(echo "$_installers" | cut -f1 -d,)"
+	need_ok "failed to parse installer"
+	assert_nz "$_installer" "installer"
+
+	# Remove that installer from the list
+	local _next_installers="$(echo "$_installers" | sed s/[^,]*,//)"
+	need_ok "failed to shift installer list"
+
+	# If that was the last installer...
+	if [ "$_next_installers" = "$_installers" ]; then
+	    _next_installers=""
+	fi
+
+	_installers="$_next_installers"
+
+	case "$_installer" in
+	    *://* )
+		(cd "$_workdir" && curl -f -O "$_installer")
+		if [ $? != 0 ]; then
+		    rm -R "$_workdir"
+		    rm -Rf "$_toolchain_dir"
+		    err "failed to download toolchain"
+		fi
+		local _local_installer="$_workdir/$(basename "$_installer")"
+		;;
+
+	    * )
+		local _local_installer="$_installer"
+		;;
+	esac
+
+	install_toolchain "$_toolchain" "$_local_installer" "$_workdir"
+	if [ $? != 0 ]; then
+	    rm -R "$_workdir"
+	    rm -Rf "$_toolchain_dir"
+	    err "failed to install toolchain"
+	fi
+    done
+
+    rm -R "$_workdir"
+    need_ok "failed to remomve work dir"
 }
 
 remove_toolchain() {
@@ -1365,7 +1460,13 @@ case "$cmd" in
 	if [ -z "$2" ]; then
 	    err 'unspecified update toolchain. try `multirust help update`'
 	fi
-	update_toolchain "$2"
+	if [ "$3" = "--custom" -a -n "$4" ]; then
+	    update_custom_toolchain "$2" "$4"
+	elif [ "$3" = "--custom" ]; then
+	    err 'unspecified installer. try `multirust help update`'
+	else
+	    update_toolchain "$2"
+	fi
 	;;
 
     show-default)

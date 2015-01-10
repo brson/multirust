@@ -1,5 +1,10 @@
 #!/bin/sh
 
+# TODO update notifications
+# TODO CARGO_HOME
+# TODO rpath
+# TODO non-absolute MULTIRUST_HOME
+
 set -e -u
 
 S="$(cd $(dirname $0) && pwd)"
@@ -408,16 +413,19 @@ build_mock_channel() {
     mkdir -p "$MOCK_DIST_DIR/dist/$_date"
     cp "$MOCK_BUILD_DIR/dist"/* "$MOCK_DIST_DIR/dist/$_date/"
     cp "$MOCK_BUILD_DIR/dist"/* "$MOCK_DIST_DIR/dist/"
+    # Copy the intermediate installers too, though without manifests, checksums, etc.
+    cp "$MOCK_BUILD_DIR/pkg"/* "$MOCK_DIST_DIR/dist/$_date/"
+    cp "$MOCK_BUILD_DIR/pkg"/* "$MOCK_DIST_DIR/dist/"
 }
 
 build_mocks() {
     if [ -z "${NO_REBUILD_MOCKS-}" ]; then
 	build_mock_channel 1.0.0-nightly hash-nightly-1 nightly nightly 2015-01-01
-	build_mock_channel 1.0.0-beta hash-beta-1 beta beta 2015-01-01
+	build_mock_channel 1.0.0-beta hash-beta-1 1.0.0-beta beta 2015-01-01
 	build_mock_channel 1.0.0 hash-stable-1 1.0.0 stable 2015-01-01
 
 	build_mock_channel 1.1.0-nightly hash-nightly-2 nightly nightly 2015-01-02
-	build_mock_channel 1.1.0-beta hash-beta-2 beta beta 2015-01-02
+	build_mock_channel 1.1.0-beta hash-beta-2 1.1.0-beta beta 2015-01-02
 	build_mock_channel 1.1.0 hash-stable-2 1.1.0 stable 2015-01-02
     fi
 }
@@ -630,7 +638,51 @@ expect_output_ok "a new version of 'nightly' is available" rustc --version
 try multirust update nightly
 expect_not_output_ok "a new version of 'nightly' is available" rustc --version
 
-# TODO update notifications
-# TODO CARGO_HOME
-# TODO rpath
-# TODO non-absolute MULTIRUST_HOME
+# Names of custom installers
+get_architecture
+arch="$RETVAL"
+local_custom_rust="$MOCK_DIST_DIR/dist/rust-nightly-$arch.tar.gz"
+local_custom_rustc="$MOCK_DIST_DIR/dist/rustc-nightly-$arch.tar.gz"
+local_custom_cargo="$MOCK_DIST_DIR/dist/cargo-nightly-$arch.tar.gz"
+remote_custom_rust="$MULTIRUST_DIST_SERVER/dist/rust-nightly-$arch.tar.gz"
+remote_custom_rustc="$MULTIRUST_DIST_SERVER/dist/rustc-nightly-$arch.tar.gz"
+remote_custom_cargo="$MULTIRUST_DIST_SERVER/dist/cargo-nightly-$arch.tar.gz"
+
+pre "custom no installer specified"
+expect_output_fail "unspecified installer" multirust update nightly --custom
+
+pre "custom invalid names"
+expect_output_fail "invalid custom toolchain name: 'nightly'" \
+    multirust update nightly --custom "$local_custom_rust"
+expect_output_fail "invalid custom toolchain name: 'beta'" \
+    multirust update beta --custom "$local_custom_rust"
+expect_output_fail "invalid custom toolchain name: 'stable'" \
+    multirust update stable --custom "$local_custom_rust"
+
+pre "custom local"
+try multirust update custom --custom "$local_custom_rust"
+try multirust default custom
+expect_output_ok nightly rustc --version
+
+pre "custom remote"
+try multirust update custom --custom "$remote_custom_rust"
+try multirust default custom
+expect_output_ok nightly rustc --version
+
+pre "custom multiple local"
+try multirust update custom --custom "$local_custom_rustc,$local_custom_cargo"
+try multirust default custom
+expect_output_ok nightly rustc --version
+expect_output_ok nightly cargo --version
+
+pre "custom multiple remote"
+try multirust update custom --custom "$remote_custom_rustc,$remote_custom_cargo"
+try multirust default custom
+expect_output_ok nightly rustc --version
+expect_output_ok nightly cargo --version
+
+pre "remove custom"
+try multirust update custom --custom "$remote_custom_rustc,$remote_custom_cargo"
+try multirust remove-toolchain custom
+expect_output_ok "no installed toolchains" multirust list-toolchains
+
