@@ -160,6 +160,8 @@ binaries are signed and verified. You can make your own judgments.
 * Custom toolchains.
 * Make MULTIRUST_DIST_SERVER more flexible and checksumming optional
   so it works with Servo's server.
+* Don't output update notifications if running --version/-V. Likely
+  breaks scripts.
 * Check for and install updates of multirust itself.
 * Windows support.
 * Allow creation of aliases like `rustc-0.12.0` (needs cargo to obey
