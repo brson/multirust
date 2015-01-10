@@ -16,6 +16,7 @@ Features:
 * Verify hashes of downloads.
 * Verify signatures (if GnuPG is available).
 * Resume partial downloads.
+* Requires only Bourne shell, curl and common unix utilities.
 * For Linux and OS X (Windows MSYS support pending).
 
 # Quick installation
@@ -156,21 +157,25 @@ binaries are signed and verified. You can make your own judgments.
 
 # Future work
 
+* Custom toolchains.
 * Check for and install updates of multirust itself.
 * Windows support.
 * Allow creation of aliases like `rustc-0.12.0` (needs cargo to obey
   RUSTC and RUSTDOC env vars).
 * GC unused toolchains.
-* Cache installers to avoid redownloads? Maybe only useful for testing.
-* override, show-override, remove-override could take an optional path.
-* Allow management of custom toolchain builds.
+* Cache installers to avoid redownloads? Maybe only useful for
+  testing.
+* override, show-override, remove-override could take an optional
+  path.
 * Install without docs? Saves lots of space.
 * Teach multirust to uninstall itself.
 * Support rust-lldb and rust-gdb.
 * Clean up error handling to not leave temp dirs around.
 * Handle temp file cleanup more consistently - always cleaned up on
   error unless requested otherwise.
-  
+* Use wget if curl isn't available?
+* Multiple options for checksums besides 'shasum'?
+
 # License
 
 multirust is licensed under the same terms as the Rust compiler, now and
