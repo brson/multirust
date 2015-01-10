@@ -179,6 +179,7 @@ binaries are signed and verified. You can make your own judgments.
   error unless requested otherwise.
 * Use wget if curl isn't available?
 * Multiple options for checksums besides 'shasum'?
+* Command to check for and show available updates explicitly.
 
 # License
 
