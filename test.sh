@@ -28,8 +28,7 @@ TEST_PUBLIC_KEY="$TEST_DIR/public-key.gpg"
 MULTIRUST_GPG_KEY="$TEST_DIR/public-key.asc"
 WORK_DIR="$S/tmp/work"
 MOCK_BUILD_DIR="$S/tmp/mock-build"
-MULTIRUST_HOME="$(cd "$TMP_DIR" && pwd)"
-MULTIRUST_DIR="$MULTIRUST_HOME/.multirust"
+MULTIRUST_HOME="$(cd "$TMP_DIR" && pwd)/multirust"
 VERSION=0.0.1
 MULTIRUST_BIN_DIR="$S/build/work/multirust-$VERSION/bin"
 
@@ -39,7 +38,7 @@ say() {
 
 pre() {
     echo "test: $1"
-    rm -Rf "$MULTIRUST_DIR"
+    rm -Rf "$MULTIRUST_HOME"
     rm -Rf "$WORK_DIR"
     mkdir -p "$WORK_DIR"
 }
@@ -545,11 +544,11 @@ set_current_dist_date 2015-01-02
 
 pre "delete data"
 try multirust default nightly
-if [ ! -d "$MULTIRUST_DIR" ]; then
+if [ ! -d "$MULTIRUST_HOME" ]; then
     fail "no multirust dir"
 fi
 try multirust delete-data -y
-if [ -d "$MULTIRUST_DIR" ]; then
+if [ -d "$MULTIRUST_HOME" ]; then
     fail "multirust dir not removed"
 fi
 
@@ -597,7 +596,7 @@ pre "show override"
 try multirust override nightly
 expect_output_ok "override toolchain: nightly" multirust show-override
 expect_output_ok "override directory: `pwd`" multirust show-override
-expect_output_ok "override location: $MULTIRUST_HOME/.multirust/toolchains/nightly" multirust show-override
+expect_output_ok "override location: $MULTIRUST_HOME/toolchains/nightly" multirust show-override
 expect_output_ok "hash-nightly-2" multirust show-override
 
 pre "show override no override"
@@ -635,7 +634,7 @@ set_current_dist_date 2015-01-01
 try multirust default nightly
 try rustc
 try sleep 0.1
-echo "not todays date" > "$MULTIRUST_HOME/.multirust/update-stamp"
+echo "not todays date" > "$MULTIRUST_HOME/update-stamp"
 set_current_dist_date 2015-01-02
 try rustc
 try sleep 0.1
@@ -654,7 +653,7 @@ set_current_dist_date 2015-01-01
 try multirust default nightly
 try rustc --version
 try sleep 0.1
-echo "not todays date" > "$MULTIRUST_HOME/.multirust/update-stamp"
+echo "not todays date" > "$MULTIRUST_HOME/update-stamp"
 set_current_dist_date 2015-01-02
 try rustc --version
 try sleep 0.1
