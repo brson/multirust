@@ -22,18 +22,23 @@ help() {
 }
 
 help_default() {
-    echo "Installs and configures the default toolchain."
+    echo "Sets the default toolchain."
     echo
     echo "Usage: multirust default <toolchain>"
+    echo
+    echo "Sets the default toolchain the one specified. If the toolchain"
+    echo "is not already installed then it is first installed."
 }
 
 help_override() {
-    echo "Installs and configures a toolchain that will override the default"
-    echo "when working at or below the current directory."
+    echo "Sets the current override toolchain."
+    echo "Usage: multirust override <toolchain>"
+    echo
+    echo "Sets the toolchain that will be used when working at or below the"
+    echo "current directory. If the toolchain is not already installed then"
+    echo "it is first installed."
     echo
     echo "To remove an existing override use \`multirust remove-override\`."
-    echo
-    echo "Usage: multirust override <toolchain>"
 }
 
 help_update() {
