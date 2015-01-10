@@ -180,6 +180,8 @@ binaries are signed and verified. You can make your own judgments.
 * Use wget if curl isn't available?
 * Multiple options for checksums besides 'shasum'?
 * Command to check for and show available updates explicitly.
+* Figure out what to do about command line completions for cargo,
+  etc.
 
 # License
 
