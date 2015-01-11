@@ -94,12 +94,26 @@ multirust: a new version of the 'nightly' release is available. run `multirust u
 In which case the toolchain can be updated with `multirust update
 nightly`.
 
+# Custom toolchains
+
 Custom toolchains - those not distributed by The Rust Project - may be
 installed with `multirust update <toolchain> --custom
 <installer-path-or-url>`, e.g. `multirust update my-rust --custom
 rust-1.0.0-dev-x86_64-unknown-linux-gnu.tar.gz`. In this case the
 toolchain is installed via the specified installer and can then be
 activated with `multirust default my-rust`.
+
+Since the main Rust build does not produce an installer that includes
+Cargo, it may be easier to install the individual rustc and cargo
+installers instead of trying to produce the combined installer
+through [rust-packaging](https://github.com/rust-lang/rust-packaging).
+For this reason the `--custom` flag takes a comma-separated list
+of installers, allowing custom rustc and cargo packages to be installed
+with e.g.
+
+```
+multirust update my-rust --custom rustc-1.0.0-dev-x86_64-unknown-linux-gnu.tar.gz,cargo-nightly-x86_64-unknown-linux-gnu.tar.gz
+```
 
 # Toolchain specification
 
