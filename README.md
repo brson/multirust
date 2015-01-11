@@ -79,7 +79,7 @@ multirust override 1.0.0
 
 Information about the current override can be displayed with `multirust
 show-override`. The current override can be deleted by running
-`multirust delete-override` from the directory where the override was
+`multirust remove-override` from the directory where the override was
 created.
 
 When using the 'stable', 'beta', or 'nightly' toolchains, the tools
