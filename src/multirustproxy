@@ -68,11 +68,7 @@ fi
 # Figure out what mode we're in
 case "$cmd_basename" in
     rustc | rustdoc | cargo | rust-lldb | rust-gdb )
-	mode=override
 	rust_cmd="$cmd_basename"
-	;;
-    rustc-* | rustdoc-* | cargo-* )
-	err "multirustproxy aliases not implemented"
 	;;
     multirustproxy)
 	err "I should not be run manually"
@@ -102,30 +98,24 @@ for arg in "$@"; do
     esac
 done
 
-case "$mode" in
-    override)
-	# Check for updates asynchronously or tell the user that updates are available
-	if [ -z "$disable_updates" ]; then
-	    call_multirust ctl check-updates-override
-	    need_ok '`multirust check-updates-override` failed'
-	fi
+# Check for updates asynchronously or tell the user that updates are available
+if [ -z "$disable_updates" ]; then
+    call_multirust ctl check-updates-override
+    need_ok '`multirust check-updates-override` failed'
+fi
 
-	# Get the sysroot for the override toolchain
-	sysroot=$(call_multirust ctl override-sysroot)
-	need_ok '`multirust ctl override-sysroot` failed'
-	assert_nz "$sysroot" "sysroot is empty"
-	lib_path="$sysroot/lib"
-	LD_LIBRARY_PATH="$lib_path:$LD_LIBRARY_PATH"
-	DYLD_LIBRARY_PATH="$lib_path:$DYLD_LIBRARY_PATH"
-	CARGO_HOME="$sysroot/cargo"
-	export LD_LIBRARY_PATH
-	export DYLD_LIBRARY_PATH
-	export CARGO_HOME
-	"$sysroot/bin/$rust_cmd" "$@" $extra_flags
-	exit_code=$?
-	exit $exit_code
-	;;
-
-    *)
-	;;
-esac
+# Get the sysroot for the override toolchain
+sysroot=$(call_multirust ctl override-sysroot)
+need_ok '`multirust ctl override-sysroot` failed'
+assert_nz "$sysroot" "sysroot is empty"
+lib_path="$sysroot/lib"
+LD_LIBRARY_PATH="$lib_path:$LD_LIBRARY_PATH"
+DYLD_LIBRARY_PATH="$lib_path:$DYLD_LIBRARY_PATH"
+CARGO_HOME="$sysroot/cargo"
+export LD_LIBRARY_PATH
+export DYLD_LIBRARY_PATH
+export CARGO_HOME
+"$sysroot/bin/$rust_cmd" "$@" $extra_flags
+exit_code=$?
+exit $exit_code
+;;
