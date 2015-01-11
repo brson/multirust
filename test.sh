@@ -183,7 +183,7 @@ expect_not_output_ok() {
 	echo \$ "$_cmd"
 	/bin/echo "$_output"
 	echo
-	echo "missing expected output '$_expected'"
+	echo "unexpected output '$_expected'"
 	echo
 	echo
 	echo "TEST FAILED!"
@@ -461,7 +461,7 @@ export MULTIRUST_DISABLE_UPDATE_CHECKS=1
 
 pre "uninitialized"
 expect_fail rustc
-expect_output_fail "no default toolchain configured" rustc --version
+expect_output_fail "no default toolchain configured" rustc
 # FIXME: This should succeed and say 'no default'
 expect_output_fail "no default toolchain configured" multirust show-default
 
@@ -526,7 +526,7 @@ expect_output_ok "no installed toolchains" multirust list-toolchains
 pre "remove active toolchain error handling"
 try multirust default nightly
 try multirust remove-toolchain nightly
-expect_output_fail "toolchain 'nightly' not installed" rustc --version
+expect_output_fail "toolchain 'nightly' not installed" rustc
 
 pre "bad sha on manifest"
 manifest_hash="$MOCK_DIST_DIR/dist/channel-rust-nightly.sha256"
@@ -610,7 +610,7 @@ expect_output_ok "no override" multirust show-override
 pre "remove override no default"
 try multirust override nightly
 try multirust remove-override
-expect_output_fail "no default toolchain configured" rustc --version
+expect_output_fail "no default toolchain configured" rustc
 
 pre "remove override with default"
 try multirust default nightly
@@ -633,15 +633,37 @@ pre "update checks"
 unset MULTIRUST_DISABLE_UPDATE_CHECKS
 set_current_dist_date 2015-01-01
 try multirust default nightly
+try rustc
+try sleep 0.1
+echo "not todays date" > "$MULTIRUST_HOME/.multirust/update-stamp"
+set_current_dist_date 2015-01-02
+try rustc
+try sleep 0.1
+expect_output_ok "a new version of 'nightly' is available" rustc
+expect_output_ok "a new version of 'nightly' is available" cargo
+expect_output_ok "a new version of 'nightly' is available" rustdoc
+try multirust update nightly
+expect_not_output_ok "a new version of 'nightly' is available" rustc
+expect_not_output_ok "a new version of 'nightly' is available" cargo
+expect_not_output_ok "a new version of 'nightly' is available" rustdoc
+export MULTIRUST_DISABLE_UPDATE_CHECKS=1
+
+pre "update notifications not displayed for version flags"
+unset MULTIRUST_DISABLE_UPDATE_CHECKS
+set_current_dist_date 2015-01-01
+try multirust default nightly
 try rustc --version
 try sleep 0.1
 echo "not todays date" > "$MULTIRUST_HOME/.multirust/update-stamp"
 set_current_dist_date 2015-01-02
 try rustc --version
 try sleep 0.1
-expect_output_ok "a new version of 'nightly' is available" rustc --version
-try multirust update nightly
 expect_not_output_ok "a new version of 'nightly' is available" rustc --version
+expect_not_output_ok "a new version of 'nightly' is available" rustc -V
+expect_not_output_ok "a new version of 'nightly' is available" cargo --version
+expect_not_output_ok "a new version of 'nightly' is available" cargo -V
+expect_not_output_ok "a new version of 'nightly' is available" rustdoc --version
+expect_not_output_ok "a new version of 'nightly' is available" rustdoc -V
 export MULTIRUST_DISABLE_UPDATE_CHECKS=1
 
 # Names of custom installers
