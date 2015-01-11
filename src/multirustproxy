@@ -103,7 +103,7 @@ case "$mode" in
 	lib_path="$sysroot/lib"
 	LD_LIBRARY_PATH="$lib_path:$LD_LIBRARY_PATH"
 	DYLD_LIBRARY_PATH="$lib_path:$DYLD_LIBRARY_PATH"
-	CARGO_HOME="$sysroot"
+	CARGO_HOME="$sysroot/cargo"
 	export LD_LIBRARY_PATH
 	export DYLD_LIBRARY_PATH
 	export CARGO_HOME
