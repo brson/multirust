@@ -158,7 +158,7 @@ binaries are signed and verified. You can make your own judgments.
 * Definitely broken on windows.
 * Concurrent writing of `multirust`'s metadata can possibly cause
   minor data loss in limited circumstances.
-* Paths with tabs in their names will cause breakage when configured
+* Paths with semicolons in their names will cause breakage when configured
   with overrides.
 * Other unusual characters in paths may break overrides.
 * Overrides at the filesystem root probably don't work.
@@ -186,6 +186,7 @@ binaries are signed and verified. You can make your own judgments.
 * Command to check for and show available updates explicitly.
 * Figure out what to do about command line completions for cargo,
   etc.
+* Tests for various paths with spaces in them.
 
 # License
 

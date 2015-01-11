@@ -193,7 +193,7 @@ update_stamp_file="$multirust_dir/update-stamp"
 update_list_file="$multirust_dir/available-updates"
 rust_package_name="rust"
 # Used for delimiting fields in override_db
-delim="    "
+delim=";"
 
 # Some globals
 flag_verbose=false
@@ -1036,12 +1036,10 @@ find_override() {
     # Go up the directory hierarchy looking for overrides
     while [ "$_dir" != "/" -a "$_dir" != "." ]; do
 	while read _line; do
-	    local _ovrdir="$(echo "$_line" | cut -d ' ' -f1)"
+	    local _ovrdir="$(echo "$_line" | cut -d $delim -f1)"
 	    need_ok "extracting record from db failed"
 	    assert_nz "$_ovrdir" "empty dir in override db"
-	    # We use 1 space as a delimeter, therefore we get the
-	    # fifth position since $delim is four spaces.
-	    local _toolchain="$(echo "$_line" | cut -d ' ' -f5)"
+	    local _toolchain="$(echo "$_line" | cut -d $delim -f2)"
 	    need_ok "extracting record from db failed"
 	    assert_nz "$_toolchain" "empty toolchain in override db"
 
