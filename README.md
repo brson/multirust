@@ -229,6 +229,8 @@ quite meager though so it's unlikely to help.
 * Figure out what to do about command line completions for cargo,
   etc.
 * Tests for various paths with spaces in them.
+* Make blastoff script interactive: require confirmation to start and
+  display a notice if gpg is not installed.
 
 # License
 
