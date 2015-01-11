@@ -1315,6 +1315,13 @@ maybe_check_for_updates_async() {
 	fi
     fi
 
+    # This is so the test runner can disable this non-deterministic
+    # behavior and avoid tripping over other processes writing to .multirust
+    if [ -n "$MULTIRUST_DISABLE_UPDATE_CHECKS" ]; then
+	verbose_say "update checks disabled"
+	return
+    fi
+
     if [ "$_need_update" = true ]; then
 	verbose_say "update timestamp out of date. checking for updates"
 	echo "$_now" > "$update_stamp_file"

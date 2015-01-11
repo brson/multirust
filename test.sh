@@ -455,6 +455,10 @@ export MULTIRUST_DIST_SERVER
 PATH="$MULTIRUST_BIN_DIR:$PATH"
 export PATH
 
+# Don't run the async updates. Otherwise the extra process
+# may futz with our files and break subsequent tests.
+export MULTIRUST_DISABLE_UPDATE_CHECKS=1
+
 pre "uninitialized"
 expect_fail rustc
 expect_output_fail "no default toolchain configured" rustc --version
@@ -626,6 +630,7 @@ expect_output_ok "nightly" rustc --version
 (cd "$WORK_DIR/dir2" && expect_output_ok "stable" rustc --version)
 
 pre "update checks"
+unset MULTIRUST_DISABLE_UPDATE_CHECKS
 set_current_dist_date 2015-01-01
 try multirust default nightly
 try rustc --version
@@ -637,6 +642,7 @@ try sleep 0.1
 expect_output_ok "a new version of 'nightly' is available" rustc --version
 try multirust update nightly
 expect_not_output_ok "a new version of 'nightly' is available" rustc --version
+export MULTIRUST_DISABLE_UPDATE_CHECKS=1
 
 # Names of custom installers
 get_architecture
