@@ -118,4 +118,3 @@ export CARGO_HOME
 "$sysroot/bin/$rust_cmd" "$@" $extra_flags
 exit_code=$?
 exit $exit_code
-;;
