@@ -488,7 +488,7 @@ check_sig() {
     fi
 
     say "verifying signature '$_sig_file'"
-    gpg --no-default-keyring --keyring "$_workdir/key.asc.gpg" --verify "$_sig_file"
+    gpg --keyring "$_workdir/key.asc.gpg" --verify "$_sig_file"
     if [ $? != 0 ]; then
 	rm -R "$_workdir"
 	return 1

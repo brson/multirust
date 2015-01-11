@@ -17,7 +17,7 @@ Features:
 * Install custom toolchains.
 * Isolate Cargo metadata per-installation.
 * Verify hashes of downloads.
-* Verify signatures (if GnuPG is available).
+* Verify signatures (if GPG is available).
 * Resume partial downloads.
 * Requires only Bourne shell, curl and common unix utilities.
 * For Linux and OS X (Windows MSYS support pending).
@@ -128,7 +128,7 @@ environment variable.
 
 # Can you trust Rust binaries?
 
-Although multirust verifies signatures of its downloads if GnuPG is
+Although multirust verifies signatures of its downloads if GPG is
 available, the question of whether you can 'trust' Rust depends on
 quite a few factors. Although I'm not prepared to give advice on this
 subject, here are some of the details around how the Rust project
@@ -144,8 +144,37 @@ binaries are signed and verified. You can make your own judgments.
 * Rust binaries are served over HTTPS.
 * The Rust public key is distributed as part of multirust.
 * Rust is self-hosting, bootstrapped off of a chain of binary
-  snapshots that extends back for several years, which are
-  served over HTTPS but not cryptographically signed.
+  snapshots that extends back for several years, which are presently
+  served over HTTPS (but have not always been), and are not
+  cryptographically signed.
+
+When GPG successfully verifies a signature from the Rust signing key
+it will almost certainly emit a warning saying the key is untrusted:
+
+```
+gpg: Signature made Fri 09 Jan 2015 12:07:05 AM PST using RSA key ID 7B3B09DC
+gpg: Good signature from "Rust Language (Tag and Release Signing Key) <rust-key@rust-lang.org>"
+gpg: WARNING: This key is not certified with a trusted signature!
+gpg:          There is no indication that the signature belongs to the owner.
+Primary key fingerprint: 108F 6620 5EAE B0AA A8DD  5E1C 85AB 96E6 FA1B E5FE
+     Subkey fingerprint: C134 66B7 E169 A085 1886  3216 5CB4 A934 7B3B 09DC
+```
+
+This is because the Rust signing key isn't known to be trusted by
+others in your 'web of trust'. It isn't strictly a problem, assuming
+that you trust the authors of multirust and the channel through which
+you installed it.
+
+If you are so inclined you can import the Rust signing key, and if you
+happen to be in the same web of trust as your own trusted keys, then
+the warnings may go away:
+
+```
+gpg --keyserver hkp://keys.gnupg.net --recv-keys 7B3B09DC
+```
+
+At the present time the certificate chain for the Rust signing key is
+quite meager though so it's unlikely to help.
 
 # Limitations
 
