@@ -6,9 +6,6 @@ sudo: false
 script:
   - ./test.sh
 
-notifications:
-  email: false
-
 branches:
   only:
     - master
