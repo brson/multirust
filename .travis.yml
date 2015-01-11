@@ -1,0 +1,14 @@
+# Use something that's not 'ruby' so we don't set up things like
+# RVM/bundler/ruby and whatnot.
+language: c
+sudo: false
+
+script:
+  - ./test.sh
+
+notifications:
+  email: false
+
+branches:
+  only:
+    - master

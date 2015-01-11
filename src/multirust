@@ -1,5 +1,20 @@
 #!/bin/sh
 
+
+##################### UTILITIES #################################
+_TAB="    "
+
+_tab() {
+    RET_VAL="$1"
+    shift
+
+    for i in "$@"
+    do
+	RET_VAL="$RET_VAL$_TAB$i"
+    done
+}
+
+##################### END UTILITIES #############################
 help() {
     echo "Usage: multirust <command> [--verbose] [--version]"
     echo
@@ -1013,7 +1028,7 @@ find_default() {
     get_toolchain_dir "$_default"
     local _sysroot="$RETVAL"
     assert_nz "$_sysroot" "sysroot"
-    
+
     if [ ! -d "$_sysroot" ]; then
 	err "toolchain '$_default' not installed. run \`multirust update $_default\` to install"
     fi
@@ -1033,10 +1048,12 @@ find_override() {
     # Go up the directory hierarchy looking for overrides
     while [ "$_dir" != "/" -a "$_dir" != "." ]; do
 	while read _line; do
-	    local _ovrdir="$(echo "$_line" | cut -f1)"
+	    local _ovrdir="$(echo "$_line" | cut -d ' ' -f1)"
 	    need_ok "extracting record from db failed"
 	    assert_nz "$_ovrdir" "empty dir in override db"
-	    local _toolchain="$(echo "$_line" | cut -f2)"
+	    # We use 1 space as a delimeter, therefore we get the
+	    # fifth position.
+	    local _toolchain="$(echo "$_line" | cut -d ' ' -f5)"
 	    need_ok "extracting record from db failed"
 	    assert_nz "$_toolchain" "empty toolchain in override db"
 
@@ -1113,16 +1130,16 @@ set_override() {
     # Copy the current db to a new file, removing any existing override
     if [ -e "$override_db" ]; then
 	# Escape the tab because OS X sed won't
-	local _tab="$(echo '\t' | awk '/\t/')"
-	sed "/^$_escaped_override_dir$_tab/d" "$override_db" > "$_workfile"
+	sed "/^$_escaped_override_dir$_TAB/d" "$override_db" > "$_workfile"
 	if [ $? != 0 ]; then
 	    rm -R "$_workfile"
 	    err "unable to edit override db"
 	fi
     fi
 
-    # Escape the tab
-    local _line="$(echo "$_override_dir\t$_toolchain" | awk /\t/)"
+    _tab $_override_dir $_toolchain
+    local _line="$RET_VAL"
+
     # Append the new override
     echo "$_line" >> "$_workfile"
     if [ $? != 0 ]; then
@@ -1152,8 +1169,7 @@ remove_override() {
     local _have_override=false
     if [ -e "$override_db" ]; then
 	# Get an actual tab character because grep doesn't interpret \t
-	local _tab="$(echo '\t' | awk '/\t/')"
-	egrep "^$_escaped_override_dir$_tab" "$override_db" > /dev/null
+	egrep "^$_escaped_override_dir$_TAB" "$override_db" > /dev/null
 	if [ $? = 0 ]; then
 	    local _have_override=true
 	fi
@@ -1165,8 +1181,7 @@ remove_override() {
 
     # Copy the current db to a new file, removing any existing override
     if [ -e "$override_db" ]; then
-	local _tab="$(echo '\t' | awk '/\t/')"
-	sed "/^$_escaped_override_dir$_tab/d" "$override_db" > "$_workfile"
+	sed "/^$_escaped_override_dir$_TAB/d" "$override_db" > "$_workfile"
 	if [ $? != 0 ]; then
 	    rm -R "$_workfile"
 	    err "unable to edit override db"
