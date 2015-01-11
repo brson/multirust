@@ -165,8 +165,8 @@ others in your 'web of trust'. It isn't strictly a problem, assuming
 that you trust the authors of multirust and the channel through which
 you installed it.
 
-If you are so inclined you can import the Rust signing key, and if you
-happen to be in the same web of trust as your own trusted keys, then
+If you are so inclined you can import the Rust signing key, and if it
+happens to be in the same web of trust as your own trusted keys, then
 the warnings may go away:
 
 ```
