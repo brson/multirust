@@ -165,7 +165,6 @@ binaries are signed and verified. You can make your own judgments.
 
 # Future work
 
-* Travis
 * Check for and install updates of multirust itself.
 * Windows support.
 * Allow creation of aliases like `rustc-0.12.0` (needs cargo to obey
