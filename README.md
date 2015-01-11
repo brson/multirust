@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/brson/multirust.svg?branch=master)](https://travis-ci.org/brson/multirust)
+
 A simple tool for managing multiple installations of the Rust
 toolchain. It replaces the standard Rust toolchain with components
 that dynamically choose between alternate implementations based on
