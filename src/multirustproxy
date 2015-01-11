@@ -105,7 +105,7 @@ if [ -z "$disable_updates" ]; then
 fi
 
 # Get the sysroot for the override toolchain
-sysroot=$(call_multirust ctl override-sysroot)
+sysroot="$(call_multirust ctl override-sysroot)"
 need_ok '`multirust ctl override-sysroot` failed'
 assert_nz "$sysroot" "sysroot is empty"
 lib_path="$sysroot/lib"
