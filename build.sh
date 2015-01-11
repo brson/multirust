@@ -14,6 +14,8 @@ cp src/multirustproxy build/image/bin/
 cp src/multirustproxy build/image/bin/rustc
 cp src/multirustproxy build/image/bin/cargo
 cp src/multirustproxy build/image/bin/rustdoc
+cp src/multirustproxy build/image/bin/rust-lldb
+cp src/multirustproxy build/image/bin/rust-gdb
 cp README.md build/image/
 
 src/rust-installer/gen-installer.sh \

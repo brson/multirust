@@ -207,7 +207,6 @@ quite meager though so it's unlikely to help.
   path.
 * Install without docs? Saves lots of space.
 * Teach multirust to uninstall itself.
-* Support rust-lldb and rust-gdb.
 * Clean up error handling to not leave temp dirs around.
 * Handle temp file cleanup more consistently - always cleaned up on
   error unless requested otherwise.

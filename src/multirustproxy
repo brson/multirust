@@ -67,7 +67,7 @@ fi
 
 # Figure out what mode we're in
 case "$cmd_basename" in
-    rustc | rustdoc | cargo )
+    rustc | rustdoc | cargo | rust-lldb | rust-gdb )
 	mode=override
 	rust_cmd="$cmd_basename"
 	;;
