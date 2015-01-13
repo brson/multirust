@@ -11,6 +11,7 @@ S="$(cd $(dirname $0) && pwd)"
 
 TMP_DIR="$S/tmp"
 MOCK_DIST_DIR="$S/tmp/mock-dist"
+CUSTOM_TOOLCHAINS="$S/tmp/custom-toolchains"
 
 # Clean out the tmp dir
 if [ -n "${NO_REBUILD_MOCKS-}" ]; then
@@ -283,6 +284,8 @@ build_mock_bin() {
 	sed s/@@TEMPLATE_BIN_NAME@@/"$_name"/ | \
 	sed s/@@TEMPLATE_VERSION@@/"$_version"/ | \
 	sed s/@@TEMPLATE_HASH@@/"$_version_hash"/ > "$_dir/$_name"
+
+    chmod a+x "$_dir/$_name"
 }
 
 build_mock_rustc_installer() {
@@ -415,6 +418,13 @@ build_mock_channel() {
     # Copy the intermediate installers too, though without manifests, checksums, etc.
     cp "$MOCK_BUILD_DIR/pkg"/* "$MOCK_DIST_DIR/dist/$_date/"
     cp "$MOCK_BUILD_DIR/pkg"/* "$MOCK_DIST_DIR/dist/"
+
+    mkdir -p "$CUSTOM_TOOLCHAINS/$_date"
+
+    for t in "$MOCK_BUILD_DIR/pkg"/*.tar.gz;
+    do
+	tar xzf "$t" --strip 1 -C "$CUSTOM_TOOLCHAINS/$_date/"
+    done
 }
 
 build_mocks() {
@@ -493,6 +503,23 @@ expect_output_ok "hash-beta-1" rustc --version
 try multirust default stable-2015-01-01
 expect_output_ok "hash-stable-1" rustc --version
 
+pre "install toolchain linking from path"
+try multirust default default-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+expect_output_ok "hash-stable-1" rustc --version
+try multirust default beta-2015-01-01
+expect_output_ok "hash-beta-1" rustc --version
+try multirust default nightly-2015-01-01
+expect_output_ok "hash-nightly-1" rustc --version
+
+pre "install toolchain from path"
+try multirust default default-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+expect_output_ok "hash-stable-1" rustc --version
+try multirust default beta-2015-01-01
+expect_output_ok "hash-beta-1" rustc --version
+try multirust default nightly-2015-01-01
+expect_output_ok "hash-nightly-1" rustc --version
+
+
 pre "install toolchain from version"
 try multirust default 1.1.0
 expect_output_ok "hash-stable-2" rustc --version
@@ -570,6 +597,22 @@ try multirust override beta-2015-01-01
 expect_output_ok "hash-beta-1" rustc --version
 try multirust override stable-2015-01-01
 expect_output_ok "hash-stable-1" rustc --version
+
+pre "install override toolchain linking path"
+try multirust override stable-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+expect_output_ok "hash-stable-1" rustc --version
+try multirust override beta-2015-01-01
+expect_output_ok "hash-beta-1" rustc --version
+try multirust override nightly-2015-01-01
+expect_output_ok "hash-nightly-1" rustc --version
+
+pre "install override toolchain from path"
+try multirust override stable-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+expect_output_ok "hash-stable-1" rustc --version
+try multirust override beta-2015-01-01
+expect_output_ok "hash-beta-1" rustc --version
+try multirust override nightly-2015-01-01
+expect_output_ok "hash-nightly-1" rustc --version
 
 pre "install override toolchain from version"
 try multirust override 1.1.0
@@ -712,6 +755,16 @@ try multirust update custom --custom "$remote_custom_rustc,$remote_custom_cargo"
 try multirust default custom
 expect_output_ok nightly rustc --version
 expect_output_ok nightly cargo --version
+
+pre "update toolchain linking path"
+try multirust update custom --link-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+try multirust default custom
+expect_output_ok "hash-stable-1" rustc --version
+
+pre "update toolchain from path"
+try multirust update custom --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+try multirust default custom
+expect_output_ok "hash-stable-1" rustc --version
 
 pre "remove custom"
 try multirust update custom --custom "$remote_custom_rustc,$remote_custom_cargo"
