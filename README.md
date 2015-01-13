@@ -232,6 +232,7 @@ quite meager though so it's unlikely to help.
 * Tests for various paths with spaces in them.
 * Make blastoff script interactive: require confirmation to start and
   display a notice if gpg is not installed.
+* Add a way to disable signature verification.
 
 # License
 
