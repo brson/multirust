@@ -95,6 +95,11 @@ for arg in "$@"; do
 	    # number is often parsed.
 	    disable_updates=true
 	    ;;
+	--print | --print=* )
+	    # If special output is requested, do not disrupt the
+	    # output with update messages.
+	    disable_updates=true
+	    ;;
     esac
 done
 
