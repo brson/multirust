@@ -458,6 +458,9 @@ export PATH
 # may futz with our files and break subsequent tests.
 export MULTIRUST_DISABLE_UPDATE_CHECKS=1
 
+pre "no args"
+expect_output_ok "Usage" multirust
+
 pre "uninitialized"
 expect_fail rustc
 expect_output_fail "no default toolchain configured" rustc

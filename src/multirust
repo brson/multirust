@@ -1,5 +1,6 @@
 #!/bin/sh
 
+set -u
 
 help() {
     echo "Usage: multirust <command> [--verbose] [--version]"
@@ -287,7 +288,7 @@ Mve696B5tlHyc1KxjHR6w9GRsh4=
 -----END PGP PUBLIC KEY BLOCK-----
 "
 
-if [ -n "$MULTIRUST_GPG_KEY" ]; then
+if [ -n "${MULTIRUST_GPG_KEY-}" ]; then
     gpg_key=`cat "$MULTIRUST_GPG_KEY"`
 else
     gpg_key="$official_rust_gpg_key"
@@ -1010,7 +1011,7 @@ find_default() {
     fi
 
     local _default="$(cat "$default_file")"
-    assert_nz "_$default" "default file is empty"
+    assert_nz "$_default" "default file is empty"
 
     get_toolchain_dir "$_default"
     local _sysroot="$RETVAL"
@@ -1185,12 +1186,12 @@ push_toolchain_ldpath() {
     local _toolchain_dir="$RETVAL"
     local _new_path="$_toolchain_dir/lib"
 
-    OLD_LD_LIBRARY_PATH="$LD_LIBRARY_PATH"
-    LD_LIBRARY_PATH="$_new_path:$LD_LIBRARY_PATH"
+    OLD_LD_LIBRARY_PATH="${LD_LIBRARY_PATH-}"
+    LD_LIBRARY_PATH="$_new_path:${LD_LIBRARY_PATH-}"
     export LD_LIBRARY_PATH
 
-    OLD_DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH"
-    DYLD_LIBRARY_PATH="$_new_path:$DYLD_LIBRARY_PATH"
+    OLD_DYLD_LIBRARY_PATH="${DYLD_LIBRARY_PATH-}"
+    DYLD_LIBRARY_PATH="$_new_path:${DYLD_LIBRARY_PATH-}"
     export DYLD_LIBRARY_PATH
 }
 
@@ -1314,7 +1315,7 @@ maybe_check_for_updates_async() {
 
     # This is so the test runner can disable this non-deterministic
     # behavior and avoid tripping over other processes writing to .multirust
-    if [ -n "$MULTIRUST_DISABLE_UPDATE_CHECKS" ]; then
+    if [ -n "${MULTIRUST_DISABLE_UPDATE_CHECKS-}" ]; then
 	verbose_say "update checks disabled"
 	return
     fi
@@ -1434,18 +1435,18 @@ for opt in "$@"; do
     esac
 done
 
-if [ -n "$MULTIRUST_VERBOSE" ]; then
+if [ -n "${MULTIRUST_VERBOSE-}" ]; then
     flag_verbose=true
 fi
 
-cmd="$1"
+cmd="${1-}"
 
 # Make sure our data is in the correct format
 check_metadata_version
 
 case "$cmd" in
     default)
-	if [ -z "$2" ]; then
+	if [ -z "${2-}" ]; then
 	    err 'unspecified default toolchain. try `multirust help default`'
 	fi
 	install_toolchain_if_not_installed "$2"
@@ -1453,7 +1454,7 @@ case "$cmd" in
 	;;
 
     override)
-	if [ -z "$2" ]; then
+	if [ -z "${2-}" ]; then
 	    err 'unspecified override toolchain. try `multirust help override`'
 	fi
 	install_toolchain_if_not_installed "$2"
@@ -1461,12 +1462,12 @@ case "$cmd" in
 	;;
 
     update)
-	if [ -z "$2" ]; then
+	if [ -z "${2-}" ]; then
 	    err 'unspecified update toolchain. try `multirust help update`'
 	fi
-	if [ "$3" = "--custom" -a -n "$4" ]; then
+	if [ "${3-}" = "--custom" -a -n "${4-}" ]; then
 	    update_custom_toolchain "$2" "$4"
-	elif [ "$3" = "--custom" ]; then
+	elif [ "${3-}" = "--custom" ]; then
 	    err 'unspecified installer. try `multirust help update`'
 	else
 	    update_toolchain "$2"
@@ -1494,7 +1495,7 @@ case "$cmd" in
 	;;
 
     remove-toolchain)
-	if [ -z "$2" ]; then
+	if [ -z "${2-}" ]; then
 	    err 'unspecified toolchain. try `multirust help remove-toolchain`'
 	fi
 	remove_toolchain "$2"
@@ -1509,7 +1510,7 @@ case "$cmd" in
 	;;
 
     ctl)
-	case "$2" in
+	case "${2-}" in
 	    override-sysroot)
 		print_override_sysroot_or_default
 		;;
@@ -1534,7 +1535,7 @@ case "$cmd" in
 	;;
 
     help)
-	case "$2" in
+	case "${2-}" in
 	    default)
 		help_default
 		;;

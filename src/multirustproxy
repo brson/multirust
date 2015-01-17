@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -u
+
 say() {
     echo "multirustproxy: $1"
 }
@@ -32,7 +34,7 @@ need_cmd dirname
 need_cmd basename
 
 # Environment sanity checks
-if [ -z "$0" ]; then err "arg 0 is undefined"; fi
+if [ -z "${0-}" ]; then err "arg 0 is undefined"; fi
 
 cmd_dirname=$(dirname "$0")
 cmd_basename=$(basename "$0")
@@ -44,12 +46,12 @@ push_sysroot_ldpath() {
 
     _new_path="$_sysroot/lib"
 
-    OLD_LD_LIBRARY_PATH="$LD_LIBRARY_PATH"
-    LD_LIBRARY_PATH="$_new_path:$LD_LIBRARY_PATH"
+    OLD_LD_LIBRARY_PATH="${LD_LIBRARY_PATH-}"
+    LD_LIBRARY_PATH="$_new_path:${LD_LIBRARY_PATH-}"
     export LD_LIBRARY_PATH
 
-    OLD_DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH"
-    DYLD_LIBRARY_PATH="$_new_path:$DYLD_LIBRARY_PATH"
+    OLD_DYLD_LIBRARY_PATH="${DYLD_LIBRARY_PATH-}"
+    DYLD_LIBRARY_PATH="$_new_path:${DYLD_LIBRARY_PATH-}"
     export DYLD_LIBRARY_PATH
 }
 
@@ -114,8 +116,8 @@ sysroot="$(call_multirust ctl override-sysroot)"
 need_ok '`multirust ctl override-sysroot` failed'
 assert_nz "$sysroot" "sysroot is empty"
 lib_path="$sysroot/lib"
-LD_LIBRARY_PATH="$lib_path:$LD_LIBRARY_PATH"
-DYLD_LIBRARY_PATH="$lib_path:$DYLD_LIBRARY_PATH"
+LD_LIBRARY_PATH="$lib_path:${LD_LIBRARY_PATH-}"
+DYLD_LIBRARY_PATH="$lib_path:${DYLD_LIBRARY_PATH-}"
 CARGO_HOME="$sysroot/cargo"
 export LD_LIBRARY_PATH
 export DYLD_LIBRARY_PATH
