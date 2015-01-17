@@ -666,6 +666,8 @@ expect_not_output_ok "a new version of 'nightly' is available" cargo --version
 expect_not_output_ok "a new version of 'nightly' is available" cargo -V
 expect_not_output_ok "a new version of 'nightly' is available" rustdoc --version
 expect_not_output_ok "a new version of 'nightly' is available" rustdoc -V
+expect_not_output_ok "a new version of 'nightly' is available" rustc --print
+expect_not_output_ok "a new version of 'nightly' is available" rustc --print=crate-name
 export MULTIRUST_DISABLE_UPDATE_CHECKS=1
 
 # Names of custom installers
