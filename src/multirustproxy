@@ -105,6 +105,14 @@ for arg in "$@"; do
     esac
 done
 
+# Get the home directory, just to reexport it later
+multirust_home="${MULTIRUST_HOME-}"
+if [ -z "$multirust_home" ]; then
+    multirust_home="$(call_multirust ctl home)"
+    need_ok '`multirust ctl home` failed'
+    assert_nz "$multirust_home" "multirust_home is empty"
+fi
+
 # Get the override toolchain
 toolchain="${MULTIRUST_TOOLCHAIN-}"
 if [ -z "$toolchain" ]; then
@@ -140,10 +148,15 @@ CARGO_HOME="$sysroot/cargo"
 # (Cargo will seemingly change directories into its own home dir)
 MULTIRUST_TOOLCHAIN="$toolchain"
 
+# As above, just preserve this for cases when $HOME gets moved
+# somewhere crazy (Cargo's test suite does this...)
+MULTIRUST_HOME="$multirust_home"
+
 export LD_LIBRARY_PATH
 export DYLD_LIBRARY_PATH
 export CARGO_HOME
 export MULTIRUST_TOOLCHAIN
+export MULTIRUST_HOME
 
 "$sysroot/bin/$rust_cmd" $extra_flags "$@"
 exit_code=$?
