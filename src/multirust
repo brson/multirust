@@ -1061,18 +1061,26 @@ find_override() {
     return 1
 }
 
-find_override_sysroot_or_default() {
+find_override_toolchain_or_default() {
     if find_override; then
-	RETVAL="$RETVAL_SYSROOT"
+	RETVAL="$RETVAL_TOOLCHAIN"
 	return
     fi
 
     find_default
-    RETVAL="$RETVAL_SYSROOT"
+    RETVAL="$RETVAL_TOOLCHAIN"
 }
 
-print_override_sysroot_or_default() {
-    find_override_sysroot_or_default
+print_override_toolchain_or_default() {
+    find_override_toolchain_or_default
+    echo "$RETVAL"
+}
+
+print_toolchain_sysroot() {
+    local _toolchain="$1"
+    assert_nz "$_toolchain" "toolchain"
+
+    get_toolchain_dir "$_toolchain"
     echo "$RETVAL"
 }
 
@@ -1288,13 +1296,9 @@ delete_data() {
     need_ok "failed to delete '$multirust_dir'"
 }
 
-maybe_print_update_notice_for_override() {
-    if find_override; then
-	local _toolchain="$RETVAL_TOOLCHAIN"
-    else
-	find_default
-	local _toolchain="$RETVAL_TOOLCHAIN"
-    fi
+maybe_print_update_notice_for_toolchain() {
+    local _toolchain="$1"
+    assert_nz "$_toolchain" "toolchain"
 
     if [ -e "$update_list_file" ]; then
 	if grep -q "$_toolchain" "$update_list_file" ; then
@@ -1511,12 +1515,22 @@ case "$cmd" in
 
     ctl)
 	case "${2-}" in
-	    override-sysroot)
-		print_override_sysroot_or_default
+	    override-toolchain)
+		print_override_toolchain_or_default
 		;;
 
-	    check-updates-override)
-		maybe_print_update_notice_for_override
+	    toolchain-sysroot)
+		if [ -z "${3-}" ]; then
+		    err "unspecified toolchain"
+		fi
+		print_toolchain_sysroot "$3"
+		;;
+
+	    check-updates)
+		if [ -z "${3-}" ]; then
+		    err "unspecified toolchain"
+		fi
+		maybe_print_update_notice_for_toolchain "$3"
 		maybe_check_for_updates_async
 		;;
 
