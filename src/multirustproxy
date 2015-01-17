@@ -122,6 +122,6 @@ CARGO_HOME="$sysroot/cargo"
 export LD_LIBRARY_PATH
 export DYLD_LIBRARY_PATH
 export CARGO_HOME
-"$sysroot/bin/$rust_cmd" "$@" $extra_flags
+"$sysroot/bin/$rust_cmd" $extra_flags "$@"
 exit_code=$?
 exit $exit_code
