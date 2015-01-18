@@ -1440,7 +1440,7 @@ print_home() {
     echo "$multirust_dir"
 }
 
-# Disable https because cloud
+# Disable https if we can gpg because cloudfront often gets our files out of sync
 if [ "$dist_server" = "$default_dist_server" ]; then
     if command -v gpg > /dev/null 2>&1; then
 	say "gpg available. disabling https (avoids rust#21293)"
