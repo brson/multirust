@@ -172,14 +172,30 @@ version=0.0.1
 # This will be replaced by the build script
 commit_version=
 metadata_version=1
-dist_server="${MULTIRUST_DIST_SERVER-https://static.rust-lang.org}"
+default_dist_server="https://static.rust-lang.org"
+insecure_dist_server="http://static-rust-lang-org.s3-website-us-west-1.amazonaws.com"
+dist_server="${MULTIRUST_DIST_SERVER-$default_dist_server}"
 rust_dist_dir=dist
 default_spec=nightly
 multirust_cmd="$0"
 cmd_dirname="$(dirname "$0")"
 cmd_basename="$(basename "$0")"
 abs_cmd_basename="$(cd "$cmd_dirname" && pwd)"
+assert_nz "$cmd_dirname" "cmd_dirname"
+assert_nz "$cmd_basename" "cmd_basename"
+assert_nz "$abs_cmd_basename" "abs_cmd_basename"
+
 multirust_dir="${MULTIRUST_HOME-$HOME/.multirust}"
+assert_nz "$multirust_dir" "multirust_dir"
+# Make sure our home dir is absolute. Once multirust is invoked, this
+# variables is carried through recursive toolchain invocations. If
+# some tool like Cargo changes directories, we want to be sure we can
+# find our home dir again.
+mkdir -p "$multirust_dir"
+need_ok "failed to create home directory"
+multirust_dir="$(cd "$multirust_dir" && pwd)"
+assert_nz "$multirust_dir" "multirust_dir"
+
 version_file="$multirust_dir/version"
 override_db="$multirust_dir/overrides"
 default_file="$multirust_dir/default"
@@ -1423,6 +1439,14 @@ check_for_updates_sync() {
 print_home() {
     echo "$multirust_dir"
 }
+
+# Disable https because cloud
+if [ "$dist_server" = "$default_dist_server" ]; then
+    if command -v gpg > /dev/null 2>&1; then
+	say "gpg available. disabling https (avoids rust#21293)"
+	dist_server="$insecure_dist_server"
+    fi
+fi
 
 # Check for some global options
 for opt in "$@"; do
