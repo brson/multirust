@@ -175,6 +175,7 @@ metadata_version=1
 default_dist_server="https://static.rust-lang.org"
 insecure_dist_server="http://static-rust-lang-org.s3-website-us-west-1.amazonaws.com"
 dist_server="${MULTIRUST_DIST_SERVER-$default_dist_server}"
+using_insecure_dist_server=false
 rust_dist_dir=dist
 default_spec=nightly
 multirust_cmd="$0"
@@ -846,6 +847,10 @@ install_toolchain_from_dist() {
     local _toolchain="$1"
     assert_nz "$_toolchain" "toolchain"
 
+    if [ "$using_insecure_dist_server" = "true" ]; then
+	say "gpg available. disabling https (avoids rust#21293)"
+    fi
+
     determine_remote_rust_installer_location "$_toolchain"
     local _remote_rust_installer="$RETVAL"
     assert_nz "$_remote_rust_installer" "remote rust installer"
@@ -1443,8 +1448,8 @@ print_home() {
 # Disable https if we can gpg because cloudfront often gets our files out of sync
 if [ "$dist_server" = "$default_dist_server" ]; then
     if command -v gpg > /dev/null 2>&1; then
-	say "gpg available. disabling https (avoids rust#21293)"
 	dist_server="$insecure_dist_server"
+	using_insecure_dist_server=true
     fi
 fi
 
