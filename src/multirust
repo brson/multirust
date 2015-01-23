@@ -898,7 +898,7 @@ install_toolchain_from_dist() {
     # If this is from a release channel save the installer checksum for
     # use in checking for updates later
     case "$_toolchain" in
-	nightly | beta | sable )
+	nightly | beta | stable )
 	    local _saved_sumfile="$channel_sums_dir/$_toolchain.sha256"
 	    verbose_say "saving checksums to $_saved_sumfile"
 	    mkdir -p "$channel_sums_dir"
@@ -1387,7 +1387,7 @@ check_for_updates_sync() {
 		verbose_say "couldn't download checksums for $_channel"
 	    else
 		local _local_sum="$(cat "$_local_sumfile")"
-		local _new_sum="$(cat "$_workdir/$_sumfile")"
+		local _new_sum="$(cat "$_workdir/$(basename "$_remote_sumfile")")"
 
 		if [ "$_local_sum" != "$_new_sum" ]; then
 		    if [ -e "$update_list_file" ]; then
