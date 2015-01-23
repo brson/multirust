@@ -508,18 +508,10 @@ expect_output_ok "hash-stable-1" rustc --version
 pre "install toolchain linking from path"
 try multirust default default-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-01"
 expect_output_ok "hash-stable-1" rustc --version
-try multirust default beta-2015-01-01
-expect_output_ok "hash-beta-1" rustc --version
-try multirust default nightly-2015-01-01
-expect_output_ok "hash-nightly-1" rustc --version
 
 pre "install toolchain from path"
 try multirust default default-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
 expect_output_ok "hash-stable-1" rustc --version
-try multirust default beta-2015-01-01
-expect_output_ok "hash-beta-1" rustc --version
-try multirust default nightly-2015-01-01
-expect_output_ok "hash-nightly-1" rustc --version
 
 
 pre "install toolchain from version"
@@ -603,18 +595,10 @@ expect_output_ok "hash-stable-1" rustc --version
 pre "install override toolchain linking path"
 try multirust override stable-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-01"
 expect_output_ok "hash-stable-1" rustc --version
-try multirust override beta-2015-01-01
-expect_output_ok "hash-beta-1" rustc --version
-try multirust override nightly-2015-01-01
-expect_output_ok "hash-nightly-1" rustc --version
 
 pre "install override toolchain from path"
 try multirust override stable-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
 expect_output_ok "hash-stable-1" rustc --version
-try multirust override beta-2015-01-01
-expect_output_ok "hash-beta-1" rustc --version
-try multirust override nightly-2015-01-01
-expect_output_ok "hash-nightly-1" rustc --version
 
 pre "install override toolchain from version"
 try multirust override 1.1.0
@@ -758,6 +742,11 @@ try multirust default custom
 expect_output_ok nightly rustc --version
 expect_output_ok nightly cargo --version
 
+pre "remove custom"
+try multirust update custom --custom "$remote_custom_rustc,$remote_custom_cargo"
+try multirust remove-toolchain custom
+expect_output_ok "no installed toolchains" multirust list-toolchains
+
 pre "update toolchain linking path"
 try multirust update custom --link-local "$CUSTOM_TOOLCHAINS/2015-01-01"
 try multirust default custom
@@ -768,8 +757,4 @@ try multirust update custom --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
 try multirust default custom
 expect_output_ok "hash-stable-1" rustc --version
 
-pre "remove custom"
-try multirust update custom --custom "$remote_custom_rustc,$remote_custom_cargo"
-try multirust remove-toolchain custom
-expect_output_ok "no installed toolchains" multirust list-toolchains
 
