@@ -840,3 +840,10 @@ expect_output_fail "invalid custom toolchain name: 'beta'" \
 expect_output_fail "invalid custom toolchain name: 'stable'" \
     multirust update stable --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
 
+pre "custom without rustc"
+rm -Rf "$CUSTOM_TOOLCHAINS/broken"
+cp -R "$CUSTOM_TOOLCHAINS/2015-01-01" "$CUSTOM_TOOLCHAINS/broken"
+rm "$CUSTOM_TOOLCHAINS/broken/bin/rustc"
+expect_output_fail "no rustc in custom toolchain at " \
+    multirust update custom --copy-local "$CUSTOM_TOOLCHAINS/broken"
+rm -Rf "$CUSTOM_TOOLCHAINS/broken"

@@ -1039,6 +1039,11 @@ update_custom_toolchain_from_dir() {
 	err "specified path does not exist $_custom_toolchain"
     fi
 
+    local _expected_rustc="$_custom_toolchain/bin/rustc"
+    if [ ! -e "$_expected_rustc" ]; then
+	err "no rustc in custom toolchain at '$_expected_rustc'"
+    fi
+
     maybe_remove_existing_custom_toolchain "$_toolchain"
 
     get_toolchain_dir "$_toolchain"
