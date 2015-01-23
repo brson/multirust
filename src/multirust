@@ -1554,16 +1554,16 @@ case "$cmd" in
 	shift
 
 	# If $2 is set, lets assume it's `--copy-local`
-	_create_link=false
+	create_link=false
 
 	if [ ! -z "${2-}" -a -z "${3-}" ]; then
 	    err 'unspecified toolchain path. try `multirust help "$cmd"`'
 	elif [ "${2-}" = "--link-local" ]; then
-	     _create_link=true
+	     create_link=true
 	fi
 
-	install_toolchain_if_not_installed "$1" "${3-}" $_create_link
-	res="$(set_$cmd "$1")"
+	install_toolchain_if_not_installed "$1" "${3-}" $create_link
+	"$(set_$cmd "$1")"
 	;;
 
     update)
@@ -1581,16 +1581,16 @@ case "$cmd" in
 	    # `override` and `default`.
 
 	    # If $2 is set, lets assume it's `--copy-local`
-	    _create_link=false
+	    create_link=false
 
 	    if [ ! -z "${2-}" -a -z "${3-}" ]; then
 		err 'unspecified toolchain path. try `multirust help "$cmd"`'
 	    elif [ "${2-}" = "--link-local" ]; then
-		_create_link=true
+		create_link=true
 	    fi
 
 	    if [ ! -z "${2-}" ]; then
-		update_custom_toolchain_from_dir "$1" "${3-}" $_create_link
+		update_custom_toolchain_from_dir "$1" "${3-}" $create_link
 	    else
 		update_toolchain "$1"
 	    fi
