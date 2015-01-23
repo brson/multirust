@@ -1542,7 +1542,7 @@ case "$cmd" in
 	# If $2 is set, lets assume it's `--copy-local`
 	_create_link=false
 
-	if [[ ! -z "${2-}" && -z "${3-}" ]]; then
+	if [ ! -z "${2-}" -a -z "${3-}" ]; then
 	    err 'unspecified toolchain path. try `multirust help "$cmd"`'
 	elif [ "${2-}" = "--link-local" ]; then
 	     _create_link=true
