@@ -97,11 +97,25 @@ nightly`.
 # Custom toolchains
 
 Custom toolchains - those not distributed by The Rust Project - may be
-installed with `multirust update <toolchain> --custom
-<installer-path-or-url>`, e.g. `multirust update my-rust --custom
-rust-1.0.0-dev-x86_64-unknown-linux-gnu.tar.gz`. In this case the
-toolchain is installed via the specified installer and can then be
-activated with `multirust default my-rust`.
+installed from either custom-built installer or from a local directory
+containing a build of Rust.
+
+To install from an existing Rust build use either the `--copy-local`
+or the `--link-local` flags to the `update` command. `--copy-local`
+will copy a build of Rust to multirust's private toolchain
+installation directory; `--link-local` will create a toolchain that is
+a symlink to a build of Rust, convenient for those who frequently
+build Rust themselves:
+
+```
+multirust update my-rust --link-local ~/dev/rust/build/x86_64-unknown-linux-gnu/stage2
+```
+
+A custom-built installer can be installed with `multirust update
+<toolchain> --custom <installer-path-or-url>`, e.g. `multirust update
+my-rust --custom rust-1.0.0-dev-x86_64-unknown-linux-gnu.tar.gz`. In
+this case the toolchain is installed via the specified installer and
+can then be activated with `multirust default my-rust`.
 
 Since the main Rust build does not produce an installer that includes
 Cargo, it may be easier to install the individual rustc and cargo
@@ -114,6 +128,10 @@ with e.g.
 ```
 multirust update my-rust --custom rustc-1.0.0-dev-x86_64-unknown-linux-gnu.tar.gz,cargo-nightly-x86_64-unknown-linux-gnu.tar.gz
 ```
+
+These three options can also be supplied to the `default` and
+`override` commands, in which case the toolchain is installed prior to
+being configured for use.
 
 # Toolchain specification
 
