@@ -1009,6 +1009,22 @@ check_custom_toolchain_name() {
     esac
 }
 
+# When updating custom toolchains always blow away whatever already
+# exists. If we don't do this then raw 'directory' toolchains that
+# don't use the installer could end up breaking things.
+maybe_remove_existing_custom_toolchain() {
+    local _toolchain="$1"
+    assert_nz "$_toolchain" "toolchain"
+
+    is_toolchain_installed "$_toolchain"
+    local _is_installed="$RETVAL"
+
+    if [ "$_is_installed" = true ]; then
+	say "removing existing toolchain before the update"
+	remove_toolchain "$_toolchain"
+    fi
+}
+
 update_custom_toolchain_from_dir() {
     local _toolchain="$1"
     assert_nz "$_toolchain" "toolchain"
@@ -1023,16 +1039,7 @@ update_custom_toolchain_from_dir() {
 	err "specified path does not exist $_custom_toolchain"
     fi
 
-    # Before installing a custom toolchain
-    # remove the existing one. We should probably
-    # do this regardless
-    is_toolchain_installed "$_toolchain"
-    local _is_installed="$RETVAL"
-
-    if [ "$_is_installed" = true ]; then
-	say "removing existing toolchain before the update"
-	remove_toolchain "$_toolchain"
-    fi
+    maybe_remove_existing_custom_toolchain "$_toolchain"
 
     get_toolchain_dir "$_toolchain"
     local _toolchain_dir="$RETVAL"
@@ -1056,6 +1063,8 @@ update_custom_toolchain_from_installers() {
     assert_nz "$_installers" "installers"
 
     check_custom_toolchain_name "$_toolchain"
+
+    maybe_remove_existing_custom_toolchain "$_toolchain"
 
     make_temp_dir
     local _workdir="$RETVAL"
