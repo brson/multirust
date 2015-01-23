@@ -1603,7 +1603,7 @@ check_metadata_version
 case "$cmd" in
     default | override )
 	if [ -z "${2-}" ]; then
-	    err 'unspecified $cmd toolchain. try `multirust help $cmd`'
+	    err "unspecified $cmd toolchain. try \`multirust help $cmd\`"
 	fi
 
 	if [ "${3-}" = "--custom" -a -n "${4-}" ]; then
@@ -1615,7 +1615,7 @@ case "$cmd" in
 	elif [ "${3-}" = "--link-local" -a -n "${4-}" ]; then
 	    update_custom_toolchain_from_dir "$2" "${4-}" true
 	elif [ "${3-}" = "--copy-local" -o "${3-}" = "--link-local" ]; then
-	    err 'unspecified toolchain path. try `multirust help "$cmd"`'
+	    err "unspecified toolchain path. try \`multirust help $cmd\`"
 	elif [ -n "${3-}" ]; then
 	    err "unrecognized option ${3-}"
 	else
@@ -1638,7 +1638,7 @@ case "$cmd" in
 	elif [ "${3-}" = "--link-local" -a -n "${4-}" ]; then
 	    update_custom_toolchain_from_dir "$2" "${4-}" true
 	elif [ "${3-}" = "--copy-local" -o "${3-}" = "--link-local" ]; then
-	    err 'unspecified toolchain path. try `multirust help "$cmd"`'
+	    err 'unspecified toolchain path. try `multirust help update`'
 	elif [ -n "${3-}" ]; then
 	    err "unrecognized option ${3-}"
 	else
