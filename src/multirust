@@ -501,7 +501,7 @@ check_sig() {
     local _sig_file="$1"
     assert_nz "$_sig_file" "sig file"
 
-    if ! command -v gpg1 > /dev/null 2>&1; then
+    if ! command -v gpg > /dev/null 2>&1; then
 	say "gpg not found. not verifying signatures"
 	return
     fi
@@ -936,21 +936,25 @@ install_toolchain_from_dist() {
 install_toolchain_if_not_installed() {
     local _toolchain="$1"
     assert_nz "$_toolchain" "toolchain"
+    local _custom_toolchain="${2-}"
+    local _create_link="${3-}"
 
     is_toolchain_installed "$_toolchain"
     if [ "$RETVAL" = true ]; then
 	say "using existing install for '$_toolchain'"
 	return 0
+    fi
+
+    if [ ! -z "$_custom_toolchain" -a ! -z "$_create_link" ]; then
+	update_custom_toolchain_from_dir $*
     else
-	update_toolchain $*
+	update_toolchain "$_toolchain"
     fi
 }
 
 update_toolchain() {
     local _toolchain="$1"
     assert_nz "$_toolchain" "toolchain"
-    local _custom_toolchain="${2-}"
-    local _create_link="${3-}"
 
     is_toolchain_installed "$_toolchain"
     local _is_installed="$RETVAL"
@@ -961,36 +965,46 @@ update_toolchain() {
 	say "installing toolchain '$_toolchain'"
     fi
 
-    if [ ! -z "$_custom_toolchain" -a ! -z "$_create_link" ]; then
-	if [ ! -e "$_custom_toolchain" ]; then
-	    err "specified path does not exist $_custom_toolchain"
-	fi
+    install_toolchain_from_dist "$_toolchain"
+}
 
-	# Before installing a custom toolchain
-	# remove the existing one. We should probably
-	# do this regardless
-	if [ "$_is_installed" = true ]; then
-	    say "removing existing toolchain before the update"
-	    remove_toolchain "$_toolchain"
-	fi
+update_custom_toolchain_from_dir() {
+    local _toolchain="$1"
+    assert_nz "$_toolchain" "toolchain"
+    local _custom_toolchain="$2"
+    assert_nz "$_custom_toolchain" "custom_toolchain"
+    local _create_link="$3"
+    assert_nz "$_create_link"
 
-	get_toolchain_dir "$_toolchain"
-	local _toolchain_dir="$RETVAL"
-	local _custom_toolchain_dir="$(cd $_custom_toolchain && pwd)"
+    if [ ! -e "$_custom_toolchain" ]; then
+	err "specified path does not exist $_custom_toolchain"
+    fi
 
-	if [ "$_create_link" = true ]; then
-	    say "creating link from $_custom_toolchain_dir"
-	    ln -s "$_custom_toolchain_dir" "$_toolchain_dir"
-	else
-	    say "copying from $_custom_toolchain_dir"
-	    cp -R "$_custom_toolchain_dir" "$_toolchain_dir"
-	fi
+    # Before installing a custom toolchain
+    # remove the existing one. We should probably
+    # do this regardless
+    is_toolchain_installed "$_toolchain"
+    local _is_installed="$RETVAL"
+
+    if [ "$_is_installed" = true ]; then
+	say "removing existing toolchain before the update"
+	remove_toolchain "$_toolchain"
+    fi
+
+    get_toolchain_dir "$_toolchain"
+    local _toolchain_dir="$RETVAL"
+    local _custom_toolchain_dir="$(cd $_custom_toolchain && pwd)"
+
+    if [ "$_create_link" = true ]; then
+	say "creating link from $_custom_toolchain_dir"
+	ln -s "$_custom_toolchain_dir" "$_toolchain_dir"
     else
-	install_toolchain_from_dist "$_toolchain"
+	say "copying from $_custom_toolchain_dir"
+	cp -R "$_custom_toolchain_dir" "$_toolchain_dir"
     fi
 }
 
-update_custom_toolchain() {
+update_custom_toolchain_from_installers() {
     local _toolchain="$1"
     local _installers="$2"
     assert_nz "$_toolchain" "toolchain"
@@ -1557,7 +1571,7 @@ case "$cmd" in
 	    err 'unspecified update toolchain. try `multirust help update`'
 	fi
 	if [ "${3-}" = "--custom" -a -n "${4-}" ]; then
-	    update_custom_toolchain "$2" "$4"
+	    update_custom_toolchain_from_installers "$2" "$4"
 	elif [ "${3-}" = "--custom" ]; then
 	    err 'unspecified installer. try `multirust help update`'
 	else
@@ -1575,7 +1589,11 @@ case "$cmd" in
 		_create_link=true
 	    fi
 
-	    update_toolchain "$1" "${3-}" $_create_link
+	    if [ ! -z "${2-}" ]; then
+		update_custom_toolchain_from_dir "$1" "${3-}" $_create_link
+	    else
+		update_toolchain "$1"
+	    fi
 	fi
 	;;
 
