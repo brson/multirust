@@ -26,7 +26,13 @@ help() {
 help_default() {
     echo "Sets the default toolchain."
     echo
-    echo "Usage: multirust default <toolchain>"
+    echo "Usage: multirust default <toolchain> [--copy-local <toolchain-path> | --link-local <toolchain-path]"
+    echo
+    echo "Use --copy-local <path> to install a local toolchain. This will copy"
+    echo "the toolchain in multirust's home."
+    echo
+    echo "Use --link-local <path> to link to a local toolchain. This will create"
+    echo "a soft link to the local toolchain in multirust's home."
     echo
     echo "Sets the default toolchain the one specified. If the toolchain"
     echo "is not already installed then it is first installed."
@@ -34,11 +40,17 @@ help_default() {
 
 help_override() {
     echo "Sets the current override toolchain."
-    echo "Usage: multirust override <toolchain>"
+    echo "Usage: multirust override <toolchain> [--copy-local <toolchain-path> | --link-local <toolchain-path]"
     echo
     echo "Sets the toolchain that will be used when working at or below the"
     echo "current directory. If the toolchain is not already installed then"
     echo "it is first installed."
+    echo
+    echo "Use --copy-local <path> to install a local toolchain. This will copy"
+    echo "the toolchain in multirust's home."
+    echo
+    echo "Use --link-local <path> to link to a local toolchain. This will create"
+    echo "a soft link to the local toolchain in multirust's home."
     echo
     echo "To remove an existing override use \`multirust remove-override\`."
 }
@@ -48,9 +60,16 @@ help_update() {
     echo "not yet installed."
     echo
     echo "Usage:"
-    echo "    multirust update <toolchain>"
-    echo "    multirust update <toolchain> --custom <installer-path-or-url>"
-    echo "    multirust update <toolchain> --custom <path-or-url>[,<path-or-url>]"
+    echo "    multirust update <toolchain> [--copy-local <toolchain-path> |"
+    echo "                                  --link-local <toolchain-path> |"
+    echo "                                  --custom <installer-path-or-url> |"
+    echo "                                  --custom <path-or-url>[,<path-or-url>]]"
+    echo
+    echo "Use --copy-local <path> to install a local toolchain. This will copy"
+    echo "the toolchain in multirust's home."
+    echo
+    echo "Use --link-local <path> to link to a local toolchain. This will create"
+    echo "a soft link to the local toolchain in multirust's home."
     echo
     echo "The --custom flag allows arbitrary builds of rust to be installed,"
     echo "either from the local filesystem or the network. Custom installers"
@@ -482,7 +501,7 @@ check_sig() {
     local _sig_file="$1"
     assert_nz "$_sig_file" "sig file"
 
-    if ! command -v gpg > /dev/null 2>&1; then
+    if ! command -v gpg1 > /dev/null 2>&1; then
 	say "gpg not found. not verifying signatures"
 	return
     fi
@@ -785,6 +804,12 @@ get_toolchain_dir() {
     local _toolchain="$1"
     assert_nz "$_toolchain" "toolchain"
 
+    if [ ! -e "$toolchains_dir" ]; then
+	verbose_say "creating toolchains dir '$toolchains_dir'"
+	mkdir -p "$toolchains_dir"
+	need_ok "failed to make toolchain dir"
+    fi
+
     RETVAL="$toolchains_dir/$_toolchain"
 }
 
@@ -856,10 +881,6 @@ install_toolchain_from_dist() {
     assert_nz "$_remote_rust_installer" "remote rust installer"
     verbose_say "remote rust installer location: $_remote_rust_installer"
 
-    verbose_say "creating toolchains dir '$toolchains_dir'"
-    mkdir -p "$toolchains_dir"
-    need_ok "failed to make toolchain dir"
-
     local _rust_installer_name="$(basename "$_remote_rust_installer")"
     assert_nz "$_rust_installer_name" "rust installer name"
 
@@ -921,23 +942,52 @@ install_toolchain_if_not_installed() {
 	say "using existing install for '$_toolchain'"
 	return 0
     else
-	say "installing toolchain '$_toolchain'"
-	install_toolchain_from_dist "$_toolchain"
+	update_toolchain $*
     fi
 }
 
 update_toolchain() {
     local _toolchain="$1"
     assert_nz "$_toolchain" "toolchain"
+    local _custom_toolchain="${2-}"
+    local _create_link="${3-}"
 
     is_toolchain_installed "$_toolchain"
-    if [ "$RETVAL" = true ]; then
+    local _is_installed="$RETVAL"
+
+    if [ "$_is_installed" = true ]; then
 	say "updating existing install for '$_toolchain'"
     else
 	say "installing toolchain '$_toolchain'"
     fi
 
-    install_toolchain_from_dist "$_toolchain"
+    if [ ! -z "$_custom_toolchain" -a ! -z "$_create_link" ]; then
+	if [ ! -e "$_custom_toolchain" ]; then
+	    err "specified path does not exist $_custom_toolchain"
+	fi
+
+	# Before installing a custom toolchain
+	# remove the existing one. We should probably
+	# do this regardless
+	if [ "$_is_installed" = true ]; then
+	    say "removing existing toolchain before the update"
+	    remove_toolchain "$_toolchain"
+	fi
+
+	get_toolchain_dir "$_toolchain"
+	local _toolchain_dir="$RETVAL"
+	local _custom_toolchain_dir="$(cd $_custom_toolchain && pwd)"
+
+	if [ "$_create_link" == true ]; then
+	    say "creating link from $_custom_toolchain_dir"
+	    ln -s "$_custom_toolchain_dir" "$_toolchain_dir"
+	else
+	    say "copying from $_custom_toolchain_dir"
+	    cp -R "$_custom_toolchain_dir" "$_toolchain_dir"
+	fi
+    else
+	install_toolchain_from_dist "$_toolchain"
+    fi
 }
 
 update_custom_toolchain() {
@@ -1038,7 +1088,7 @@ find_default() {
     local _sysroot="$RETVAL"
     assert_nz "$_sysroot" "sysroot"
 
-    if [ ! -d "$_sysroot" ]; then
+    if [ ! -e "$_sysroot" ]; then
 	err "toolchain '$_default' not installed. run \`multirust update $_default\` to install"
     fi
 
@@ -1482,20 +1532,24 @@ cmd="${1-}"
 check_metadata_version
 
 case "$cmd" in
-    default)
+    default | override )
 	if [ -z "${2-}" ]; then
-	    err 'unspecified default toolchain. try `multirust help default`'
+	    err 'unspecified $cmd toolchain. try `multirust help $cmd`'
 	fi
-	install_toolchain_if_not_installed "$2"
-	set_default "$2"
-	;;
 
-    override)
-	if [ -z "${2-}" ]; then
-	    err 'unspecified override toolchain. try `multirust help override`'
+	shift
+
+	# If $2 is set, lets assume it's `--copy-local`
+	_create_link=false
+
+	if [[ ! -z "${2-}" && -z "${3-}" ]]; then
+	    err 'unspecified toolchain path. try `multirust help "$cmd"`'
+	elif [ "${2-}" = "--link-local" ]; then
+	     _create_link=true
 	fi
-	install_toolchain_if_not_installed "$2"
-	set_override "$2"
+
+	install_toolchain_if_not_installed "$1" "${3-}" $_create_link
+	res="$(set_$cmd "$1")"
 	;;
 
     update)
@@ -1507,7 +1561,21 @@ case "$cmd" in
 	elif [ "${3-}" = "--custom" ]; then
 	    err 'unspecified installer. try `multirust help update`'
 	else
-	    update_toolchain "$2"
+	    shift
+	    # Duplicating this code because `update` allows to use
+	    # a custom installer which doesn't make much sense for
+	    # `override` and `default`.
+
+	    # If $2 is set, lets assume it's `--copy-local`
+	    _create_link=false
+
+	    if [[ ! -z "${2-}" && -z "${3-}" ]]; then
+		err 'unspecified toolchain path. try `multirust help "$cmd"`'
+	    elif [ "${2-}" = "--link-local" ]; then
+		_create_link=true
+	    fi
+
+	    update_toolchain "$1" "${3-}" $_create_link
 	fi
 	;;
 
