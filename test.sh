@@ -548,7 +548,7 @@ try multirust default default-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01
 expect_output_ok "hash-stable-2" rustc --version
 
 pre "install toolchain from custom"
-try multirust default custom --custom "$local_custom_rust"
+try multirust default custom --installer "$local_custom_rust"
 expect_output_ok nightly rustc --version
 
 pre "install toolchain from version"
@@ -761,48 +761,48 @@ expect_not_output_ok "a new version of 'nightly' is available" rustc --print=cra
 export MULTIRUST_DISABLE_UPDATE_CHECKS=1
 
 pre "custom no installer specified"
-expect_output_fail "unspecified installer" multirust update nightly --custom
+expect_output_fail "unspecified installer" multirust update nightly --installer
 
 pre "custom invalid names"
 expect_output_fail "invalid custom toolchain name: 'nightly'" \
-    multirust update nightly --custom "$local_custom_rust"
+    multirust update nightly --installer "$local_custom_rust"
 expect_output_fail "invalid custom toolchain name: 'beta'" \
-    multirust update beta --custom "$local_custom_rust"
+    multirust update beta --installer "$local_custom_rust"
 expect_output_fail "invalid custom toolchain name: 'stable'" \
-    multirust update stable --custom "$local_custom_rust"
+    multirust update stable --installer "$local_custom_rust"
 
 pre "custom invalid names with archive dates"
 expect_output_fail "invalid custom toolchain name: 'nightly-2015-01-01'" \
-    multirust update nightly-2015-01-01 --custom "$local_custom_rust"
+    multirust update nightly-2015-01-01 --installer "$local_custom_rust"
 expect_output_fail "invalid custom toolchain name: 'beta-2015-01-01'" \
-    multirust update beta-2015-01-01 --custom "$local_custom_rust"
+    multirust update beta-2015-01-01 --installer "$local_custom_rust"
 expect_output_fail "invalid custom toolchain name: 'stable-2015-01-01'" \
-    multirust update stable-2015-01-01 --custom "$local_custom_rust"
+    multirust update stable-2015-01-01 --installer "$local_custom_rust"
 
 pre "custom local"
-try multirust update custom --custom "$local_custom_rust"
+try multirust update custom --installer "$local_custom_rust"
 try multirust default custom
 expect_output_ok nightly rustc --version
 
 pre "custom remote"
-try multirust update custom --custom "$remote_custom_rust"
+try multirust update custom --installer "$remote_custom_rust"
 try multirust default custom
 expect_output_ok nightly rustc --version
 
 pre "custom multiple local"
-try multirust update custom --custom "$local_custom_rustc,$local_custom_cargo"
+try multirust update custom --installer "$local_custom_rustc,$local_custom_cargo"
 try multirust default custom
 expect_output_ok nightly rustc --version
 expect_output_ok nightly cargo --version
 
 pre "custom multiple remote"
-try multirust update custom --custom "$remote_custom_rustc,$remote_custom_cargo"
+try multirust update custom --installer "$remote_custom_rustc,$remote_custom_cargo"
 try multirust default custom
 expect_output_ok nightly rustc --version
 expect_output_ok nightly cargo --version
 
 pre "remove custom"
-try multirust update custom --custom "$remote_custom_rustc,$remote_custom_cargo"
+try multirust update custom --installer "$remote_custom_rustc,$remote_custom_cargo"
 try multirust remove-toolchain custom
 expect_output_ok "no installed toolchains" multirust list-toolchains
 

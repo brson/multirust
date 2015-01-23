@@ -112,21 +112,22 @@ multirust update my-rust --link-local ~/dev/rust/build/x86_64-unknown-linux-gnu/
 ```
 
 A custom-built installer can be installed with `multirust update
-<toolchain> --custom <installer-path-or-url>`, e.g. `multirust update
-my-rust --custom rust-1.0.0-dev-x86_64-unknown-linux-gnu.tar.gz`. In
-this case the toolchain is installed via the specified installer and
-can then be activated with `multirust default my-rust`.
+<toolchain> --installer <installer-path-or-url>`, e.g. `multirust
+update my-rust --installer
+rust-1.0.0-dev-x86_64-unknown-linux-gnu.tar.gz`. In this case the
+toolchain is installed via the specified installer and can then be
+activated with `multirust default my-rust`.
 
 Since the main Rust build does not produce an installer that includes
 Cargo, it may be easier to install the individual rustc and cargo
-installers instead of trying to produce the combined installer
-through [rust-packaging](https://github.com/rust-lang/rust-packaging).
-For this reason the `--custom` flag takes a comma-separated list
-of installers, allowing custom rustc and cargo packages to be installed
+installers instead of trying to produce the combined installer through
+[rust-packaging](https://github.com/rust-lang/rust-packaging). For
+this reason the `--installer` flag takes a comma-separated list of
+installers, allowing custom rustc and cargo packages to be installed
 with e.g.
 
 ```
-multirust update my-rust --custom rustc-1.0.0-dev-x86_64-unknown-linux-gnu.tar.gz,cargo-nightly-x86_64-unknown-linux-gnu.tar.gz
+multirust update my-rust --installer rustc-1.0.0-dev-x86_64-unknown-linux-gnu.tar.gz,cargo-nightly-x86_64-unknown-linux-gnu.tar.gz
 ```
 
 These three options can also be supplied to the `default` and
