@@ -26,7 +26,14 @@ help() {
 help_default() {
     echo "Sets the default toolchain."
     echo
-    echo "Usage: multirust default <toolchain> [--copy-local <toolchain-path> | --link-local <toolchain-path]"
+    echo "Usage:"
+    echo "    multirust default <toolchain> [--copy-local <toolchain-path> |"
+    echo "                                   --link-local <toolchain-path> |"
+    echo "                                   --custom <installer-path-or-url> |"
+    echo "                                   --custom <path-or-url>[,<path-or-url>]]"
+    echo
+    echo "Sets the default toolchain to the one specified. If the toolchain"
+    echo "is not already installed then it is first installed."
     echo
     echo "Use --copy-local <path> to install a local toolchain. This will copy"
     echo "the toolchain in multirust's home."
@@ -34,13 +41,27 @@ help_default() {
     echo "Use --link-local <path> to link to a local toolchain. This will create"
     echo "a soft link to the local toolchain in multirust's home."
     echo
-    echo "Sets the default toolchain the one specified. If the toolchain"
-    echo "is not already installed then it is first installed."
+    echo "The --custom flag allows arbitrary builds of rust to be installed,"
+    echo "either from the local filesystem or the network. Custom installers"
+    echo "are neither checksum nor signature-verified."
+    echo
+    echo "With --custom, if multiple installers are specified then they are all"
+    echo "installed to the same location. This can make installing cargo easier"
+    echo "since otherwise it would need to be combined with rustc into a single"
+    echo "installer through the rust-packaging project."
+    echo
+    echo "If the toolchain is already installed then it is not reinstalled, though"
+    echo "if installing a custom toolchain with --copy-local, --link-local, or"
+    echo "--custom then the toolchain is always reinstalled."
 }
 
 help_override() {
     echo "Sets the current override toolchain."
-    echo "Usage: multirust override <toolchain> [--copy-local <toolchain-path> | --link-local <toolchain-path]"
+    echo "Usage:"
+    echo "    multirust override <toolchain> [--copy-local <toolchain-path> |"
+    echo "                                    --link-local <toolchain-path> |"
+    echo "                                    --custom <installer-path-or-url> |"
+    echo "                                    --custom <path-or-url>[,<path-or-url>]]"
     echo
     echo "Sets the toolchain that will be used when working at or below the"
     echo "current directory. If the toolchain is not already installed then"
@@ -51,6 +72,19 @@ help_override() {
     echo
     echo "Use --link-local <path> to link to a local toolchain. This will create"
     echo "a soft link to the local toolchain in multirust's home."
+    echo
+    echo "The --custom flag allows arbitrary builds of rust to be installed,"
+    echo "either from the local filesystem or the network. Custom installers"
+    echo "are neither checksum nor signature-verified."
+    echo
+    echo "With --custom, if multiple installers are specified then they are all"
+    echo "installed to the same location. This can make installing cargo easier"
+    echo "since otherwise it would need to be combined with rustc into a single"
+    echo "installer through the rust-packaging project."
+    echo
+    echo "If the toolchain is already installed then it is not reinstalled, though"
+    echo "if installing a custom toolchain with --copy-local, --link-local, or"
+    echo "--custom then the toolchain is always reinstalled."
     echo
     echo "To remove an existing override use \`multirust remove-override\`."
 }
@@ -75,10 +109,10 @@ help_update() {
     echo "either from the local filesystem or the network. Custom installers"
     echo "are neither checksum nor signature-verified."
     echo
-    echo "If multiple installers are specified then they are all installed to the"
-    echo "same location. This can make installing cargo easier since otherwise"
-    echo "it would need to be combined with rustc into a single installer"
-    echo "through the rust-packaging project."
+    echo "With --custom, if multiple installers are specified then they are all"
+    echo "installed to the same location. This can make installing cargo easier"
+    echo "since otherwise it would need to be combined with rustc into a single"
+    echo "installer through the rust-packaging project."
 }
 
 help_show_default() {
@@ -966,7 +1000,10 @@ check_custom_toolchain_name() {
     local _toolchain="$1"
 
     case "$_toolchain" in
-	nightly | beta | stable )
+	nightly | beta | stable | \
+	nightly-20[0-9][0-9]-[0-9][0-9]-[0-9][0-9] | \
+	beta-20[0-9][0-9]-[0-9][0-9]-[0-9][0-9] | \
+	stable-20[0-9][0-9]-[0-9][0-9]-[0-9][0-9] )
 	    err "invalid custom toolchain name: '$_toolchain'"
 	    ;;
     esac
@@ -1553,19 +1590,25 @@ case "$cmd" in
 	    err 'unspecified $cmd toolchain. try `multirust help $cmd`'
 	fi
 
-	# If $2 is set, lets assume it's `--copy-local`
-	create_link=false
-
-	if [ ! -z "${3-}" -a -z "${4-}" ]; then
-	    err 'unspecified toolchain path. try `multirust help "$cmd"`'
-	elif [ "${3-}" = "--link-local" ]; then
-	     create_link=true
-	fi
-
-	if [ -z "${3-}" ]; then
-	    install_toolchain_if_not_installed "$2"
+	if [ "${3-}" = "--custom" -a -n "${4-}" ]; then
+	    update_custom_toolchain_from_installers "$2" "$4"
+	elif [ "${3-}" = "--custom" ]; then
+	    err 'unspecified installer. try `multirust help update`'
 	else
-	    update_custom_toolchain_from_dir "$2" "${4-}" $create_link
+	    # If $2 is set, lets assume it's `--copy-local`
+	    create_link=false
+
+	    if [ ! -z "${3-}" -a -z "${4-}" ]; then
+		err 'unspecified toolchain path. try `multirust help "$cmd"`'
+	    elif [ "${3-}" = "--link-local" ]; then
+		create_link=true
+	    fi
+
+	    if [ -z "${3-}" ]; then
+		install_toolchain_if_not_installed "$2"
+	    else
+		update_custom_toolchain_from_dir "$2" "${4-}" $create_link
+	    fi
 	fi
 	"$(set_$cmd "$2")"
 	;;

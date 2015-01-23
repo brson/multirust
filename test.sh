@@ -470,6 +470,16 @@ export PATH
 # may futz with our files and break subsequent tests.
 export MULTIRUST_DISABLE_UPDATE_CHECKS=1
 
+# Names of custom installers
+get_architecture
+arch="$RETVAL"
+local_custom_rust="$MOCK_DIST_DIR/dist/rust-nightly-$arch.tar.gz"
+local_custom_rustc="$MOCK_DIST_DIR/dist/rustc-nightly-$arch.tar.gz"
+local_custom_cargo="$MOCK_DIST_DIR/dist/cargo-nightly-$arch.tar.gz"
+remote_custom_rust="$MULTIRUST_DIST_SERVER/dist/rust-nightly-$arch.tar.gz"
+remote_custom_rustc="$MULTIRUST_DIST_SERVER/dist/rustc-nightly-$arch.tar.gz"
+remote_custom_cargo="$MULTIRUST_DIST_SERVER/dist/cargo-nightly-$arch.tar.gz"
+
 pre "no args"
 expect_output_ok "Usage" multirust
 
@@ -537,6 +547,9 @@ expect_output_ok "hash-stable-1" rustc --version
 try multirust default default-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-02"
 expect_output_ok "hash-stable-2" rustc --version
 
+pre "install toolchain from custom"
+try multirust default custom --custom "$local_custom_rust"
+expect_output_ok nightly rustc --version
 
 pre "install toolchain from version"
 try multirust default 1.1.0
@@ -747,16 +760,6 @@ expect_not_output_ok "a new version of 'nightly' is available" rustc --print
 expect_not_output_ok "a new version of 'nightly' is available" rustc --print=crate-name
 export MULTIRUST_DISABLE_UPDATE_CHECKS=1
 
-# Names of custom installers
-get_architecture
-arch="$RETVAL"
-local_custom_rust="$MOCK_DIST_DIR/dist/rust-nightly-$arch.tar.gz"
-local_custom_rustc="$MOCK_DIST_DIR/dist/rustc-nightly-$arch.tar.gz"
-local_custom_cargo="$MOCK_DIST_DIR/dist/cargo-nightly-$arch.tar.gz"
-remote_custom_rust="$MULTIRUST_DIST_SERVER/dist/rust-nightly-$arch.tar.gz"
-remote_custom_rustc="$MULTIRUST_DIST_SERVER/dist/rustc-nightly-$arch.tar.gz"
-remote_custom_cargo="$MULTIRUST_DIST_SERVER/dist/cargo-nightly-$arch.tar.gz"
-
 pre "custom no installer specified"
 expect_output_fail "unspecified installer" multirust update nightly --custom
 
@@ -767,6 +770,14 @@ expect_output_fail "invalid custom toolchain name: 'beta'" \
     multirust update beta --custom "$local_custom_rust"
 expect_output_fail "invalid custom toolchain name: 'stable'" \
     multirust update stable --custom "$local_custom_rust"
+
+pre "custom invalid names with archive dates"
+expect_output_fail "invalid custom toolchain name: 'nightly-2015-01-01'" \
+    multirust update nightly-2015-01-01 --custom "$local_custom_rust"
+expect_output_fail "invalid custom toolchain name: 'beta-2015-01-01'" \
+    multirust update beta-2015-01-01 --custom "$local_custom_rust"
+expect_output_fail "invalid custom toolchain name: 'stable-2015-01-01'" \
+    multirust update stable-2015-01-01 --custom "$local_custom_rust"
 
 pre "custom local"
 try multirust update custom --custom "$local_custom_rust"
