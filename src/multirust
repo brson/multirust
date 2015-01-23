@@ -35,15 +35,15 @@ help_default() {
     echo "Sets the default toolchain to the one specified. If the toolchain"
     echo "is not already installed then it is first installed."
     echo
-    echo "Use --copy-local <path> to install a local toolchain. This will copy"
-    echo "the toolchain in multirust's home."
+    echo "Use --copy-local <path> to install by copying a local toolchain. This will"
+    echo "copy the toolchain from a local directory to a directory in multirust's home."
     echo
-    echo "Use --link-local <path> to link to a local toolchain. This will create"
-    echo "a soft link to the local toolchain in multirust's home."
+    echo "Use --link-local <path> to install by linking to a local toolchain. This will"
+    echo "create a soft link to the local toolchain in multirust's home."
     echo
-    echo "The --installer flag allows arbitrary builds of rust to be installed,"
-    echo "either from the local filesystem or the network. Custom installers"
-    echo "are neither checksum nor signature-verified."
+    echo "The --installer flag allows arbitrary builds of rust to be installed from a"
+    echo "custom-built installer, either from the local filesystem or the network."
+    echo "Custom installers are neither checksum nor signature-verified."
     echo
     echo "With --installer, if multiple installers are specified then they are all"
     echo "installed to the same location. This can make installing cargo easier"
@@ -67,15 +67,15 @@ help_override() {
     echo "current directory. If the toolchain is not already installed then"
     echo "it is first installed."
     echo
-    echo "Use --copy-local <path> to install a local toolchain. This will copy"
-    echo "the toolchain in multirust's home."
+    echo "Use --copy-local <path> to install by copying a local toolchain. This will"
+    echo "copy the toolchain from a local directory to a directory in multirust's home."
     echo
-    echo "Use --link-local <path> to link to a local toolchain. This will create"
-    echo "a soft link to the local toolchain in multirust's home."
+    echo "Use --link-local <path> to install by linking to a local toolchain. This will"
+    echo "create a soft link to the local toolchain in multirust's home."
     echo
-    echo "The --installer flag allows arbitrary builds of rust to be installed,"
-    echo "either from the local filesystem or the network. Custom installers"
-    echo "are neither checksum nor signature-verified."
+    echo "The --installer flag allows arbitrary builds of rust to be installed from a"
+    echo "custom-built installer, either from the local filesystem or the network."
+    echo "Custom installers are neither checksum nor signature-verified."
     echo
     echo "With --installer, if multiple installers are specified then they are all"
     echo "installed to the same location. This can make installing cargo easier"
@@ -99,15 +99,15 @@ help_update() {
     echo "                                  --installer <installer-path-or-url> |"
     echo "                                  --installer <path-or-url>[,<path-or-url>]]"
     echo
-    echo "Use --copy-local <path> to install a local toolchain. This will copy"
-    echo "the toolchain in multirust's home."
+    echo "Use --copy-local <path> to install by copying a local toolchain. This will"
+    echo "copy the toolchain from a local directory to a directory in multirust's home."
     echo
-    echo "Use --link-local <path> to link to a local toolchain. This will create"
-    echo "a soft link to the local toolchain in multirust's home."
+    echo "Use --link-local <path> to install by linking to a local toolchain. This will"
+    echo "create a soft link to the local toolchain in multirust's home."
     echo
-    echo "The --installer flag allows arbitrary builds of rust to be installed,"
-    echo "either from the local filesystem or the network. Custom installers"
-    echo "are neither checksum nor signature-verified."
+    echo "The --installer flag allows arbitrary builds of rust to be installed from a"
+    echo "custom-built installer, either from the local filesystem or the network."
+    echo "Custom installers are neither checksum nor signature-verified."
     echo
     echo "With --installer, if multiple installers are specified then they are all"
     echo "installed to the same location. This can make installing cargo easier"
