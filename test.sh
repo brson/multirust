@@ -16,11 +16,13 @@ CUSTOM_TOOLCHAINS="$S/tmp/custom-toolchains"
 # Clean out the tmp dir
 if [ -n "${NO_REBUILD_MOCKS-}" ]; then
     mv "$MOCK_DIST_DIR" ./mock-backup
+    mv "$CUSTOM_TOOLCHAINS" ./custom-backup
 fi
 rm -Rf "$TMP_DIR"
 mkdir "$TMP_DIR"
 if [ -n "${NO_REBUILD_MOCKS-}" ]; then
     mv ./mock-backup "$MOCK_DIST_DIR"
+    mv ./custom-backup "$CUSTOM_TOOLCHAINS"
 fi
 
 TEST_DIR="$S/test"
