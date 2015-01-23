@@ -32,7 +32,7 @@ MULTIRUST_GPG_KEY="$TEST_DIR/public-key.asc"
 WORK_DIR="$S/tmp/work"
 MOCK_BUILD_DIR="$S/tmp/mock-build"
 MULTIRUST_HOME="$(cd "$TMP_DIR" && pwd)/multirust"
-VERSION=0.0.1
+VERSION=0.0.2
 MULTIRUST_BIN_DIR="$S/build/work/multirust-$VERSION/bin"
 
 say() {

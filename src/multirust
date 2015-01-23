@@ -221,7 +221,7 @@ assert_nz "$HOME" "\$HOME is undefined"
 assert_nz "$0" "\$0 is undefined"
 
 # Some constants
-version=0.0.1
+version=0.0.2
 # This will be replaced by the build script
 commit_version=
 metadata_version=1
