@@ -978,7 +978,7 @@ update_toolchain() {
 	local _toolchain_dir="$RETVAL"
 	local _custom_toolchain_dir="$(cd $_custom_toolchain && pwd)"
 
-	if [ "$_create_link" == true ]; then
+	if [ "$_create_link" = true ]; then
 	    say "creating link from $_custom_toolchain_dir"
 	    ln -s "$_custom_toolchain_dir" "$_toolchain_dir"
 	else
