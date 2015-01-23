@@ -962,6 +962,16 @@ update_toolchain() {
     install_toolchain_from_dist "$_toolchain"
 }
 
+check_custom_toolchain_name() {
+    local _toolchain="$1"
+
+    case "$_toolchain" in
+	nightly | beta | stable )
+	    err "invalid custom toolchain name: '$_toolchain'"
+	    ;;
+    esac
+}
+
 update_custom_toolchain_from_dir() {
     local _toolchain="$1"
     assert_nz "$_toolchain" "toolchain"
@@ -969,6 +979,8 @@ update_custom_toolchain_from_dir() {
     assert_nz "$_custom_toolchain" "custom_toolchain"
     local _create_link="$3"
     assert_nz "$_create_link"
+
+    check_custom_toolchain_name "$_toolchain"
 
     if [ ! -e "$_custom_toolchain" ]; then
 	err "specified path does not exist $_custom_toolchain"
@@ -1004,11 +1016,7 @@ update_custom_toolchain_from_installers() {
     assert_nz "$_toolchain" "toolchain"
     assert_nz "$_installers" "installers"
 
-    case "$_toolchain" in
-	nightly | beta | stable )
-	    err "invalid custom toolchain name: '$_toolchain'"
-	    ;;
-    esac
+    check_custom_toolchain_name "$_toolchain"
 
     make_temp_dir
     local _workdir="$RETVAL"

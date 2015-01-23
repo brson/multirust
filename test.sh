@@ -821,4 +821,11 @@ try multirust update custom --copy-local "$CUSTOM_TOOLCHAINS/2015-01-02"
 try multirust default custom
 expect_output_ok "hash-stable-2" rustc --version
 
+pre "custom dir invalid names"
+expect_output_fail "invalid custom toolchain name: 'nightly'" \
+    multirust update nightly --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+expect_output_fail "invalid custom toolchain name: 'beta'" \
+    multirust update beta --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+expect_output_fail "invalid custom toolchain name: 'stable'" \
+    multirust update stable --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
 
