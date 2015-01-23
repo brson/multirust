@@ -1041,9 +1041,11 @@ update_custom_toolchain_from_dir() {
     if [ "$_create_link" = true ]; then
 	say "creating link from $_custom_toolchain_dir"
 	ln -s "$_custom_toolchain_dir" "$_toolchain_dir"
+	need_ok "failed to create link to toolchain"
     else
 	say "copying from $_custom_toolchain_dir"
 	cp -R "$_custom_toolchain_dir" "$_toolchain_dir"
+	need_ok "failed to copy toolchain direcotry"
     fi
 }
 
