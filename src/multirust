@@ -1596,21 +1596,16 @@ case "$cmd" in
 	    update_custom_toolchain_from_installers "$2" "$4"
 	elif [ "${3-}" = "--custom" ]; then
 	    err 'unspecified installer. try `multirust help update`'
+	elif [ "${3-}" = "--copy-local" -a -n "${4-}" ]; then
+	    update_custom_toolchain_from_dir "$2" "${4-}" false
+	elif [ "${3-}" = "--link-local" -a -n "${4-}" ]; then
+	    update_custom_toolchain_from_dir "$2" "${4-}" true
+	elif [ "${3-}" = "--copy-local" -o "${3-}" = "--link-local" ]; then
+	    err 'unspecified toolchain path. try `multirust help "$cmd"`'
+	elif [ -n "${3-}" ]; then
+	    err "unrecognized option ${3-}"
 	else
-	    # If $2 is set, lets assume it's `--copy-local`
-	    create_link=false
-
-	    if [ ! -z "${3-}" -a -z "${4-}" ]; then
-		err 'unspecified toolchain path. try `multirust help "$cmd"`'
-	    elif [ "${3-}" = "--link-local" ]; then
-		create_link=true
-	    fi
-
-	    if [ -z "${3-}" ]; then
-		install_toolchain_if_not_installed "$2"
-	    else
-		update_custom_toolchain_from_dir "$2" "${4-}" $create_link
-	    fi
+	    install_toolchain_if_not_installed "$2"
 	fi
 	"$(set_$cmd "$2")"
 	;;
@@ -1619,29 +1614,21 @@ case "$cmd" in
 	if [ -z "${2-}" ]; then
 	    err 'unspecified update toolchain. try `multirust help update`'
 	fi
+
 	if [ "${3-}" = "--custom" -a -n "${4-}" ]; then
 	    update_custom_toolchain_from_installers "$2" "$4"
 	elif [ "${3-}" = "--custom" ]; then
 	    err 'unspecified installer. try `multirust help update`'
+	elif [ "${3-}" = "--copy-local" -a -n "${4-}" ]; then
+	    update_custom_toolchain_from_dir "$2" "${4-}" false
+	elif [ "${3-}" = "--link-local" -a -n "${4-}" ]; then
+	    update_custom_toolchain_from_dir "$2" "${4-}" true
+	elif [ "${3-}" = "--copy-local" -o "${3-}" = "--link-local" ]; then
+	    err 'unspecified toolchain path. try `multirust help "$cmd"`'
+	elif [ -n "${3-}" ]; then
+	    err "unrecognized option ${3-}"
 	else
-	    # Duplicating this code because `update` allows to use
-	    # a custom installer which doesn't make much sense for
-	    # `override` and `default`.
-
-	    # If $2 is set, lets assume it's `--copy-local`
-	    create_link=false
-
-	    if [ ! -z "${3-}" -a -z "${4-}" ]; then
-		err 'unspecified toolchain path. try `multirust help "$cmd"`'
-	    elif [ "${3-}" = "--link-local" ]; then
-		create_link=true
-	    fi
-
-	    if [ ! -z "${3-}" ]; then
-		update_custom_toolchain_from_dir "$2" "${4-}" $create_link
-	    else
-		update_toolchain "$2"
-	    fi
+	    update_toolchain "$2"
 	fi
 	;;
 
