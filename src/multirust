@@ -936,8 +936,6 @@ install_toolchain_from_dist() {
 install_toolchain_if_not_installed() {
     local _toolchain="$1"
     assert_nz "$_toolchain" "toolchain"
-    local _custom_toolchain="${2-}"
-    local _create_link="${3-}"
 
     is_toolchain_installed "$_toolchain"
     if [ "$RETVAL" = true ]; then
@@ -945,11 +943,7 @@ install_toolchain_if_not_installed() {
 	return 0
     fi
 
-    if [ ! -z "$_custom_toolchain" -a ! -z "$_create_link" ]; then
-	update_custom_toolchain_from_dir $*
-    else
-	update_toolchain "$_toolchain"
-    fi
+    update_toolchain "$_toolchain"
 }
 
 update_toolchain() {
@@ -1560,7 +1554,11 @@ case "$cmd" in
 	     create_link=true
 	fi
 
-	install_toolchain_if_not_installed "$2" "${4-}" $create_link
+	if [ -z "${3-}" ]; then
+	    install_toolchain_if_not_installed "$2"
+	else
+	    update_custom_toolchain_from_dir "$2" "${4-}" $create_link
+	fi
 	"$(set_$cmd "$2")"
 	;;
 

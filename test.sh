@@ -513,6 +513,30 @@ pre "install toolchain from path"
 try multirust default default-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
 expect_output_ok "hash-stable-1" rustc --version
 
+pre "install toolchain linking from path again"
+try multirust default default-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+expect_output_ok "hash-stable-1" rustc --version
+try multirust default default-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-02"
+expect_output_ok "hash-stable-2" rustc --version
+
+pre "install toolchain from path again"
+try multirust default default-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+expect_output_ok "hash-stable-1" rustc --version
+try multirust default default-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-02"
+expect_output_ok "hash-stable-2" rustc --version
+
+pre "install toolchain change from copy to link"
+try multirust default default-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+expect_output_ok "hash-stable-1" rustc --version
+try multirust default default-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-02"
+expect_output_ok "hash-stable-2" rustc --version
+
+pre "install toolchain change from link to copy"
+try multirust default default-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+expect_output_ok "hash-stable-1" rustc --version
+try multirust default default-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-02"
+expect_output_ok "hash-stable-2" rustc --version
+
 
 pre "install toolchain from version"
 try multirust default 1.1.0
@@ -599,6 +623,30 @@ expect_output_ok "hash-stable-1" rustc --version
 pre "install override toolchain from path"
 try multirust override stable-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
 expect_output_ok "hash-stable-1" rustc --version
+
+pre "install override toolchain linking path again"
+try multirust override stable-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+expect_output_ok "hash-stable-1" rustc --version
+try multirust override stable-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-02"
+expect_output_ok "hash-stable-2" rustc --version
+
+pre "install override toolchain from path again"
+try multirust override stable-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+expect_output_ok "hash-stable-1" rustc --version
+try multirust override stable-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-02"
+expect_output_ok "hash-stable-2" rustc --version
+
+pre "install override toolchain change from copy to link"
+try multirust override stable-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+expect_output_ok "hash-stable-1" rustc --version
+try multirust override stable-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-02"
+expect_output_ok "hash-stable-2" rustc --version
+
+pre "install override toolchain change from link to copy"
+try multirust override stable-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+expect_output_ok "hash-stable-1" rustc --version
+try multirust override stable-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-02"
+expect_output_ok "hash-stable-2" rustc --version
 
 pre "install override toolchain from version"
 try multirust override 1.1.0
@@ -756,5 +804,21 @@ pre "update toolchain from path"
 try multirust update custom --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
 try multirust default custom
 expect_output_ok "hash-stable-1" rustc --version
+
+pre "update toolchain change from copy to link"
+try multirust update custom --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+try multirust default custom
+expect_output_ok "hash-stable-1" rustc --version
+try multirust update custom --link-local "$CUSTOM_TOOLCHAINS/2015-01-02"
+try multirust default custom
+expect_output_ok "hash-stable-2" rustc --version
+
+pre "update toolchain change from link to copy"
+try multirust update custom --link-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+try multirust default custom
+expect_output_ok "hash-stable-1" rustc --version
+try multirust update custom --copy-local "$CUSTOM_TOOLCHAINS/2015-01-02"
+try multirust default custom
+expect_output_ok "hash-stable-2" rustc --version
 
 
