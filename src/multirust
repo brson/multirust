@@ -1,166 +1,208 @@
 #!/bin/sh
 
+# <help>
+#
+# Usage: multirust <command> [--verbose] [--version]
+#
+# Commands:
+#
+#     default          Set the default toolchain
+#     override         Set the toolchain override for the current directory tree
+#     update           Update (or install if not present) a given toolchain
+#     show-default     Show information about the current default
+#     show-override    Show information about the current override
+#     list-overrides   List all overrides
+#     list-toolchains  List all installed toolchains
+#     remove-override  Remove the current override
+#     remove-toolchain Uninstall a toolchain
+#     delete-data      Delete all user metadata, including installed toolchains
+#     upgrade-data     Upgrade user metadata from previous versions
+#     help             Show help for this command or subcommands
+#
+# Use `multirust help <command>` for detailed help.
+#
+# </help>
+
+# <help-default>
+#
+# Sets the default toolchain.
+#
+# Usage:
+#     multirust default <toolchain> [--copy-local <toolchain-path> |
+#                                    --link-local <toolchain-path> |
+#                                    --installer <installer-path-or-url> |
+#                                    --installer <path-or-url>[,<path-or-url>]]
+#
+# Sets the default toolchain to the one specified. If the toolchain is
+# not already installed then it is first installed.
+#
+# Use --copy-local <path> to install by copying a local
+# toolchain. This will copy the toolchain from a local directory to a
+# directory in multirust's home.
+#
+# Use --link-local <path> to install by linking to a local
+# toolchain. This will create a soft link to the local toolchain in
+# multirust's home.
+#
+# The --installer flag allows arbitrary builds of rust to be installed
+# from a custom-built installer, either from the local filesystem or
+# the network.  Custom installers are neither checksum nor
+# signature-verified.
+#
+# With --installer, if multiple installers are specified then they are
+# all installed to the same location. This can make installing cargo
+# easier since otherwise it would need to be combined with rustc into
+# a single installer through the rust-packaging project.
+#
+# If the toolchain is already installed then it is not reinstalled,
+# though if installing a custom toolchain with --copy-local,
+# --link-local, or --installer then the toolchain is always
+# reinstalled.
+#
+# </help-default>
+
+# <help-override>
+#
+# Sets the current override toolchain.
+#
+# Usage:
+#     multirust override <toolchain> [--copy-local <toolchain-path> |
+#                                     --link-local <toolchain-path> |
+#                                     --installer <installer-path-or-url> |
+#                                     --installer <path-or-url>[,<path-or-url>]]
+#
+# Sets the toolchain that will be used when working at or below the
+# current directory. If the toolchain is not already installed then it
+# is first installed.
+#
+# Use --copy-local <path> to install by copying a local
+# toolchain. This will copy the toolchain from a local directory to a
+# directory in multirust's home.
+#
+# Use --link-local <path> to install by linking to a local
+# toolchain. This will create a soft link to the local toolchain in
+# multirust's home.
+#
+# The --installer flag allows arbitrary builds of rust to be installed
+# from a custom-built installer, either from the local filesystem or
+# the network.  Custom installers are neither checksum nor
+# signature-verified.
+#
+# With --installer, if multiple installers are specified then they are
+# all installed to the same location. This can make installing cargo
+# easier since otherwise it would need to be combined with rustc into
+# a single installer through the rust-packaging project.
+#
+# If the toolchain is already installed then it is not reinstalled,
+# though if installing a custom toolchain with --copy-local,
+# --link-local, or --installer then the toolchain is always
+# reinstalled.
+#
+# To remove an existing override use `multirust remove-override`.
+#
+# </help-override>
+
+# <help-update>
+#
+# Updates an installed toolchain or installs from scratch if it is not
+# yet installed.
+#
+# Usage:
+#     multirust update <toolchain> [--copy-local <toolchain-path> |
+#                                   --link-local <toolchain-path> |
+#                                   --installer <installer-path-or-url> |
+#                                   --installer <path-or-url>[,<path-or-url>]]
+#
+# Use --copy-local <path> to install by copying a local
+# toolchain. This will copy the toolchain from a local directory to a
+# directory in multirust's home.
+#
+# Use --link-local <path> to install by linking to a local
+# toolchain. This will create a soft link to the local toolchain in
+# multirust's home.
+#
+# The --installer flag allows arbitrary builds of rust to be installed
+# from a custom-built installer, either from the local filesystem or
+# the network.  Custom installers are neither checksum nor
+# signature-verified.
+#
+# With --installer, if multiple installers are specified then they are
+# all installed to the same location. This can make installing cargo
+# easier since otherwise it would need to be combined with rustc into
+# a single installer through the rust-packaging project.
+#
+# </help-update>
+
+# <help-show-default>
+#
+# Displays information about the default toolchain.
+#
+# Usage: multirust show-default
+#
+# </help-show-default>
+
+# <help-show-override>
+#
+# Displays information about the current toolchain override.
+#
+# Usage: multirust show-override
+#
+# </help-show-override>
+
+# <help-list-overrides>
+#
+# Displays a list of all overrides.
+#
+# Usage: multirust list-overrides
+#
+# </help-list-overrides>
+
+# <help-list-toolchains>
+#
+# Displays a list of all toolchains.
+#
+# Usage: multirust list-toolchains
+#
+# </help-list-toolchains>
+
+# <help-remove-override>
+#
+# Removes the override for the current directory.
+#
+# Usage: multirust remove-override
+#
+# </help-remove-override>
+
+# <help-remove-toolchain>
+#
+# Uninstalls an installed toolchain.
+#
+# Usage: multirust remove-toolchain <toolchain>
+#
+# </help-remove-toolchain>
+
+# <help-delete-data>
+#
+# Deletes the ~/.multirust directory, removing all installed
+# toolchains, overrides, and aliases for the current user.
+#
+# Prompts for confirmation. Disable prompt with -y.
+#
+# Does not delete global aliases.
+#
+# Usage: multirust delete-data [-y].
+#
+# </help-delete-data>
+
+# <help-help>
+#
+# Usage: multirust help [subcommand]
+#
+# Displays help for multirust or a multirust subcommand.
+#
+# </help-help>
+
 set -u
-
-help() {
-    echo "Usage: multirust <command> [--verbose] [--version]"
-    echo
-    echo "Commands:"
-    echo
-    echo "    default          Set the default toolchain"
-    echo "    override         Set the toolchain override for the current directory tree"
-    echo "    update           Update (or install if not present) a given toolchain"
-    echo "    show-default     Show information about the current default"
-    echo "    show-override    Show information about the current override"
-    echo "    list-overrides   List all overrides"
-    echo "    list-toolchains  List all installed toolchains"
-    echo "    remove-override  Remove the current override"
-    echo "    remove-toolchain Uninstall a toolchain"
-    echo "    delete-data      Delete all user metadata, including installed toolchains"
-    echo "    upgrade-data     Upgrade user metadata from previous versions"
-    echo "    help             Show help for this command or subcommands"
-    echo
-    echo "Use \`multirust help <command>\` for detailed help."
-}
-
-help_default() {
-    echo "Sets the default toolchain."
-    echo
-    echo "Usage:"
-    echo "    multirust default <toolchain> [--copy-local <toolchain-path> |"
-    echo "                                   --link-local <toolchain-path> |"
-    echo "                                   --installer <installer-path-or-url> |"
-    echo "                                   --installer <path-or-url>[,<path-or-url>]]"
-    echo
-    echo "Sets the default toolchain to the one specified. If the toolchain"
-    echo "is not already installed then it is first installed."
-    echo
-    echo "Use --copy-local <path> to install by copying a local toolchain. This will"
-    echo "copy the toolchain from a local directory to a directory in multirust's home."
-    echo
-    echo "Use --link-local <path> to install by linking to a local toolchain. This will"
-    echo "create a soft link to the local toolchain in multirust's home."
-    echo
-    echo "The --installer flag allows arbitrary builds of rust to be installed from a"
-    echo "custom-built installer, either from the local filesystem or the network."
-    echo "Custom installers are neither checksum nor signature-verified."
-    echo
-    echo "With --installer, if multiple installers are specified then they are all"
-    echo "installed to the same location. This can make installing cargo easier"
-    echo "since otherwise it would need to be combined with rustc into a single"
-    echo "installer through the rust-packaging project."
-    echo
-    echo "If the toolchain is already installed then it is not reinstalled, though"
-    echo "if installing a custom toolchain with --copy-local, --link-local, or"
-    echo "--installer then the toolchain is always reinstalled."
-}
-
-help_override() {
-    echo "Sets the current override toolchain."
-    echo "Usage:"
-    echo "    multirust override <toolchain> [--copy-local <toolchain-path> |"
-    echo "                                    --link-local <toolchain-path> |"
-    echo "                                    --installer <installer-path-or-url> |"
-    echo "                                    --installer <path-or-url>[,<path-or-url>]]"
-    echo
-    echo "Sets the toolchain that will be used when working at or below the"
-    echo "current directory. If the toolchain is not already installed then"
-    echo "it is first installed."
-    echo
-    echo "Use --copy-local <path> to install by copying a local toolchain. This will"
-    echo "copy the toolchain from a local directory to a directory in multirust's home."
-    echo
-    echo "Use --link-local <path> to install by linking to a local toolchain. This will"
-    echo "create a soft link to the local toolchain in multirust's home."
-    echo
-    echo "The --installer flag allows arbitrary builds of rust to be installed from a"
-    echo "custom-built installer, either from the local filesystem or the network."
-    echo "Custom installers are neither checksum nor signature-verified."
-    echo
-    echo "With --installer, if multiple installers are specified then they are all"
-    echo "installed to the same location. This can make installing cargo easier"
-    echo "since otherwise it would need to be combined with rustc into a single"
-    echo "installer through the rust-packaging project."
-    echo
-    echo "If the toolchain is already installed then it is not reinstalled, though"
-    echo "if installing a custom toolchain with --copy-local, --link-local, or"
-    echo "--installer then the toolchain is always reinstalled."
-    echo
-    echo "To remove an existing override use \`multirust remove-override\`."
-}
-
-help_update() {
-    echo "Updates an installed toolchain or installs from scratch if it is"
-    echo "not yet installed."
-    echo
-    echo "Usage:"
-    echo "    multirust update <toolchain> [--copy-local <toolchain-path> |"
-    echo "                                  --link-local <toolchain-path> |"
-    echo "                                  --installer <installer-path-or-url> |"
-    echo "                                  --installer <path-or-url>[,<path-or-url>]]"
-    echo
-    echo "Use --copy-local <path> to install by copying a local toolchain. This will"
-    echo "copy the toolchain from a local directory to a directory in multirust's home."
-    echo
-    echo "Use --link-local <path> to install by linking to a local toolchain. This will"
-    echo "create a soft link to the local toolchain in multirust's home."
-    echo
-    echo "The --installer flag allows arbitrary builds of rust to be installed from a"
-    echo "custom-built installer, either from the local filesystem or the network."
-    echo "Custom installers are neither checksum nor signature-verified."
-    echo
-    echo "With --installer, if multiple installers are specified then they are all"
-    echo "installed to the same location. This can make installing cargo easier"
-    echo "since otherwise it would need to be combined with rustc into a single"
-    echo "installer through the rust-packaging project."
-}
-
-help_show_default() {
-    echo "Displays information about the default toolchain."
-    echo
-    echo "Usage: multirust show-default"
-}
-
-help_show_override() {
-    echo "Displays information about the current toolchain override."
-    echo
-    echo "Usage: multirust show-override"
-}
-
-help_list_overrides() {
-    echo "Displays a list of all overrides."
-    echo
-    echo "Usage: multirust list-overrides"
-}
-
-help_list_toolchains() {
-    echo "Displays a list of all toolchains."
-    echo
-    echo "Usage: multirust list-toolchains"
-}
-
-help_remove_override() {
-    echo "Removes the override for the current directory."
-    echo
-    echo "Usage: multirust remove-override"
-}
-
-help_remove_toolchain() {
-    echo "Uninstalls an installed toolchain."
-    echo
-    echo "Usage: multirust remove-toolchain <toolchain>"
-}
-
-help_delete_data() {
-    echo "Deletes the ~/.multirust directory, removing all installed toolchains,"
-    echo "overrides, and aliases for the current user."
-    echo
-    echo "Prompts for confirmation. Disable prompt with -y."
-    echo
-    echo "Does not delete global aliases."
-    echo
-    echo "Usage: multirust delete-data [-y]."
-}
 
 # Some utilities
 
@@ -1575,6 +1617,117 @@ fi
 # Make sure our data is in the correct format
 check_metadata_version
 
+main() {
+    local _cmd_arg="${1-}"
+
+    case "$_cmd_arg" in
+	default | override )
+	    # For distribution builds install only if not installed
+	    # For custom builds always install toolchain
+	    handle_common_install_args install_toolchain_if_not_installed "$@"
+
+	    # Run either set_default or set_override to turn it on
+	    toolchain="${2-}"
+	    "set_$_cmd_arg" "$toolchain"
+	    ;;
+
+	update)
+	    # For distribution builds always install
+	    # For custom builds always install toolchain
+	    handle_common_install_args update_toolchain "$@"
+	    ;;
+
+	show-default)
+	    show_default
+	    ;;
+
+	show-override)
+	    show_override
+	    ;;
+
+	list-overrides)
+	    list_overrides
+	    ;;
+
+	list-toolchains)
+	    list_toolchains
+	    ;;
+
+	remove-override)
+	    remove_override
+	    ;;
+
+	remove-toolchain)
+	    if [ -z "${2-}" ]; then
+		err 'unspecified toolchain. try `multirust help remove-toolchain`'
+	    fi
+	    remove_toolchain "$2"
+	    ;;
+
+	delete-data)
+	    delete_data
+	    ;;
+
+	upgrade-data)
+	    err "unimplemented"
+	    ;;
+
+	ctl)
+	    case "${2-}" in
+		home)
+		    print_home
+		    ;;
+
+		override-toolchain)
+		    print_override_toolchain_or_default
+		    ;;
+
+		toolchain-sysroot)
+		    if [ -z "${3-}" ]; then
+			err "unspecified toolchain"
+		    fi
+		    print_toolchain_sysroot "$3"
+		    ;;
+
+		check-updates)
+		    if [ -z "${3-}" ]; then
+			err "unspecified toolchain"
+		    fi
+		    maybe_print_update_notice_for_toolchain "$3"
+		    maybe_check_for_updates_async
+		    ;;
+
+		check-updates-sync)
+		    check_for_updates_sync
+		    ;;
+
+		"")
+		    err 'empty ctl command. try `multirust help ctl`'
+		    ;;
+
+		*)
+		    err "unrecognized ctl comand \`$2\`. try \`multirust help ctl\`"
+		    ;;
+	    esac
+	    ;;
+
+	help)
+	    case "${2-}" in
+		"" )
+		    display_topic help
+		    ;;
+		* )
+		    display_topic help-"${2-}"
+		    ;;
+	    esac
+	    ;;
+
+	*)
+	    display_topic help
+	    ;;
+    esac
+}
+
 # Run commands for --installer, --copy-local, --link-local
 handle_common_install_args() {
     local _else_cmd="$1"
@@ -1638,148 +1791,36 @@ handle_install_option() {
     "$_update_cmd" "$_toolchain" "$_install_source_arg"
 }
 
-cmd_arg="${1-}"
+display_topic() {
+    local _topic="$1"
 
-case "$cmd_arg" in
-    default | override )
-	# For distribution builds install only if not installed
-	# For custom builds always install toolchain
-	handle_common_install_args install_toolchain_if_not_installed "$@"
+    local _multirust_src="$cmd_dirname/multirust"
 
-	# Run either set_default or set_override to turn it on
-	toolchain="${2-}"
-	"set_$cmd_arg" "$toolchain"
-	;;
+    extract_topic_from_source "$_multirust_src" "$_topic"
 
-    update)
-	# For distribution builds always install
-	# For custom builds always install toolchain
-	handle_common_install_args update_toolchain "$@"
-	;;
+    if [ $? != 0 ]; then
+	err "unrecognized topic '$_topic'"
+    fi
+}
 
-    show-default)
-	show_default
-	;;
+extract_topic_from_source() {
+    local _source="$1"
+    local _topic="$2"
 
-    show-override)
-	show_override
-	;;
+    local _tagged_docs="$(awk "/<$_topic>/,/<\/$_topic>/" "$_source")"
+    local _docs="$(echo "$_tagged_docs" | sed '1d' | sed '1d' | sed '$d' | sed 's/^\# \?//')"
 
-    list-overrides)
-	list_overrides
-	;;
+    echo "$_docs"
 
-    list-toolchains)
-	list_toolchains
-	;;
+    if [ $? != 0 ]; then
+	return $?
+    fi
 
-    remove-override)
-	remove_override
-	;;
+    if [ -z "$_docs" ]; then
+	return 1
+    fi
 
-    remove-toolchain)
-	if [ -z "${2-}" ]; then
-	    err 'unspecified toolchain. try `multirust help remove-toolchain`'
-	fi
-	remove_toolchain "$2"
-	;;
+    return 0
+}
 
-    delete-data)
-	delete_data
-	;;
-
-    upgrade-data)
-	err "unimplemented"
-	;;
-
-    ctl)
-	case "${2-}" in
-	    home)
-		print_home
-		;;
-
-	    override-toolchain)
-		print_override_toolchain_or_default
-		;;
-
-	    toolchain-sysroot)
-		if [ -z "${3-}" ]; then
-		    err "unspecified toolchain"
-		fi
-		print_toolchain_sysroot "$3"
-		;;
-
-	    check-updates)
-		if [ -z "${3-}" ]; then
-		    err "unspecified toolchain"
-		fi
-		maybe_print_update_notice_for_toolchain "$3"
-		maybe_check_for_updates_async
-		;;
-
-	    check-updates-sync)
-		check_for_updates_sync
-		;;
-
-	    "")
-		err 'empty ctl command. try `multirust help ctl`'
-		;;
-
-	    *)
-		err "unrecognized ctl comand \`$2\`. try \`multirust help ctl\`"
-		;;
-	esac
-	;;
-
-    help)
-	case "${2-}" in
-	    default)
-		help_default
-		;;
-	    override)
-		help_override
-		;;
-	    update)
-		help_update
-		;;
-	    show-default)
-		help_show_default
-		;;
-	    show-override)
-		help_show_override
-		;;
-	    list-overrides)
-		help_list_overrides
-		;;
-	    list-toolchains)
-		help_list_toolchains
-		;;
-	    remove-override)
-		help_remove_override
-		;;
-	    remove-toolchain)
-		help_remove_toolchain
-		;;
-	    delete-data)
-		help_delete_data
-		;;
-	    ctl)
-		help_ctl
-		;;
-	    help)
-		help
-		;;
-	    "") help
-		;;
-	    *)
-		err "unrecognized command \`$2\`"
-		;;
-	esac
-	;;
-
-    *)
-	help
-	;;
-esac
-
-exit 0
+main "$@"
