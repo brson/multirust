@@ -94,6 +94,18 @@ multirust: a new version of the 'nightly' release is available. run `multirust u
 In which case the toolchain can be updated with `multirust update
 nightly`.
 
+# Toolchain specification
+
+`multirust` supports several ways to indicate the toolchain: 'stable',
+'beta' and 'nightly' all download from the corresponding release
+channel. When any of these toolchain specifiers are used `multirust`
+will periodically notify you of available updates. All three channels
+can be optionally appended with an archive date, as in
+'nightly-2014-12-18', in which case the toolchain is downloaded from
+the archive for that date (if available). Any other specifier is
+considered an explict Rust version number, as in '0.12.0', or a custom
+toolchain identifier, depending on context.
+
 # Custom toolchains
 
 Custom toolchains - those not distributed by The Rust Project - may be
@@ -133,18 +145,6 @@ multirust update my-rust --installer rustc-1.0.0-dev-x86_64-unknown-linux-gnu.ta
 These three options can also be supplied to the `default` and
 `override` commands, in which case the toolchain is installed prior to
 being configured for use.
-
-# Toolchain specification
-
-`multirust` supports several ways to indicate the toolchain: 'stable',
-'beta' and 'nightly' all download from the corresponding release
-channel. When any of these toolchain specifiers are used `multirust`
-will periodically notify you of available updates. All three channels
-can be optionally appended with an archive date, as in
-'nightly-2014-12-18', in which case the toolchain is downloaded from
-the archive for that date (if available). Any other specifier is
-considered an explict Rust version number, as in '0.12.0', or a custom
-toolchain identifier, depending on context.
 
 # Implementation Details
 
