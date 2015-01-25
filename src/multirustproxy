@@ -105,6 +105,9 @@ for arg in "$@"; do
     esac
 done
 
+# Verbose output would break the following ctl commands
+unset MULTIRUST_VERBOSE
+
 # Get the home directory, just to reexport it later
 multirust_home="${MULTIRUST_HOME-}"
 if [ -z "$multirust_home" ]; then
