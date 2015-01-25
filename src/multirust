@@ -1025,7 +1025,7 @@ maybe_remove_existing_custom_toolchain() {
     fi
 }
 
-update_custom_toolchain_from_dir() {
+update_custom_toolchain_from_dir_common() {
     local _toolchain="$1"
     assert_nz "$_toolchain" "toolchain"
     local _custom_toolchain="$2"
@@ -1059,6 +1059,18 @@ update_custom_toolchain_from_dir() {
 	cp -R "$_custom_toolchain_dir" "$_toolchain_dir"
 	need_ok "failed to copy toolchain direcotry"
     fi
+}
+
+update_custom_toolchain_from_dir() {
+    local _toolchain="$1"
+    local _custom_toolchain="$2"
+    update_custom_toolchain_from_dir_common "$_toolchain" "$_custom_toolchain" false
+}
+
+update_custom_toolchain_from_link() {
+    local _toolchain="$1"
+    local _custom_toolchain="$2"
+    update_custom_toolchain_from_dir_common "$_toolchain" "$_custom_toolchain" false
 }
 
 update_custom_toolchain_from_installers() {
@@ -1595,55 +1607,89 @@ if [ -n "${MULTIRUST_VERBOSE-}" ]; then
     flag_verbose=true
 fi
 
-cmd="${1-}"
-
 # Make sure our data is in the correct format
 check_metadata_version
 
-case "$cmd" in
-    default | override )
-	if [ -z "${2-}" ]; then
-	    err "unspecified $cmd toolchain. try \`multirust help $cmd\`"
-	fi
+# Run commands for --installer, --copy-local, --link-local
+handle_common_install_args() {
+    local _else_cmd="$1"
+    local _cmd="$2"
 
-	if [ "${3-}" = "--installer" -a -n "${4-}" ]; then
-	    update_custom_toolchain_from_installers "$2" "$4"
-	elif [ "${3-}" = "--installer" ]; then
-	    err 'unspecified installer. try `multirust help update`'
-	elif [ "${3-}" = "--copy-local" -a -n "${4-}" ]; then
-	    update_custom_toolchain_from_dir "$2" "${4-}" false
-	elif [ "${3-}" = "--link-local" -a -n "${4-}" ]; then
-	    update_custom_toolchain_from_dir "$2" "${4-}" true
-	elif [ "${3-}" = "--copy-local" -o "${3-}" = "--link-local" ]; then
-	    err "unspecified toolchain path. try \`multirust help $cmd\`"
-	elif [ -n "${3-}" ]; then
-	    err "unrecognized option ${3-}"
-	else
-	    install_toolchain_if_not_installed "$2"
-	fi
-	"$(set_$cmd "$2")"
+    local _toolchain_arg="${3-}"
+
+    if [ -z "$_toolchain_arg" ]; then
+	err "unspecified $_cmd toolchain. try \`multirust help $_cmd\`"
+    fi
+
+    local _option_name_arg="${4-}"
+    local _option_value_arg="${5-}"
+
+    verbose_say "cmd: $_cmd"
+    verbose_say "toolchain: $_toolchain_arg"
+    verbose_say "option_name: $_option_name_arg"
+    verbose_say "option_value: $_option_value_arg"
+
+    case "$_option_name_arg" in
+	--installer )
+	    handle_install_option "$_cmd" "installer" \
+		update_custom_toolchain_from_installers \
+		"$_toolchain_arg" "$_option_value_arg"
+	    ;;
+
+	--copy-local )
+	    handle_install_option "$_cmd" "toolchain path" \
+		update_custom_toolchain_from_dir \
+		"$_toolchain_arg" "$_option_value_arg"
+	    ;;
+
+	--link-local )
+	    handle_install_option "$_cmd" "toolchain path" \
+		update_custom_toolchain_from_link \
+		"$_toolchain_arg" "$_option_value_arg"
+	    ;;
+
+	"" )
+	    "$_else_cmd" "$_toolchain_arg"
+	    ;;
+
+	*)
+	    err "unrecognized option $_option_name_arg"
+	    ;;
+    esac
+}
+
+handle_install_option() {
+    local _cmd="$1"
+    local _what="$2"
+    local _update_cmd="$3"
+    local _toolchain="$4"
+
+    local _install_source_arg="$5"
+
+    if [ -z "$_install_source_arg" ]; then
+	err "unspecified $_what. try \`multirust help $_cmd\`"
+    fi
+
+    "$_update_cmd" "$_toolchain" "$_install_source_arg"
+}
+
+cmd_arg="${1-}"
+
+case "$cmd_arg" in
+    default | override )
+	# For distribution builds install only if not installed
+	# For custom builds always install toolchain
+	handle_common_install_args install_toolchain_if_not_installed "$@"
+
+	# Run either set_default or set_override to turn it on
+	toolchain="${2-}"
+	"set_$cmd_arg" "$toolchain"
 	;;
 
     update)
-	if [ -z "${2-}" ]; then
-	    err 'unspecified update toolchain. try `multirust help update`'
-	fi
-
-	if [ "${3-}" = "--installer" -a -n "${4-}" ]; then
-	    update_custom_toolchain_from_installers "$2" "$4"
-	elif [ "${3-}" = "--installer" ]; then
-	    err 'unspecified installer. try `multirust help update`'
-	elif [ "${3-}" = "--copy-local" -a -n "${4-}" ]; then
-	    update_custom_toolchain_from_dir "$2" "${4-}" false
-	elif [ "${3-}" = "--link-local" -a -n "${4-}" ]; then
-	    update_custom_toolchain_from_dir "$2" "${4-}" true
-	elif [ "${3-}" = "--copy-local" -o "${3-}" = "--link-local" ]; then
-	    err 'unspecified toolchain path. try `multirust help update`'
-	elif [ -n "${3-}" ]; then
-	    err "unrecognized option ${3-}"
-	else
-	    update_toolchain "$2"
-	fi
+	# For distribution builds always install
+	# For custom builds always install toolchain
+	handle_common_install_args update_toolchain "$@"
 	;;
 
     show-default)
