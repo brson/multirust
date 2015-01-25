@@ -365,7 +365,6 @@ else
 fi
 
 call_multirust() {
-    assert_nz "$multirust_cmd" "multirust"
     "$multirust_cmd" "$@"
 }
 
@@ -405,7 +404,6 @@ make_temp_dir() {
 # Returns 0 on success, like sha256sum
 check_sums() {
     local _sumfile="$1"
-    assert_nz "$_sumfile" "sumfile"
 
     # Hackily edit the sha256 file to workaround a bug in the bots' generation of sums
     make_temp_dir
@@ -533,7 +531,6 @@ get_architecture() {
 
 check_sig() {
     local _sig_file="$1"
-    assert_nz "$_sig_file" "sig file"
 
     if ! command -v gpg > /dev/null 2>&1; then
 	say "gpg not found. not verifying signatures"
@@ -573,8 +570,6 @@ check_sig() {
 download_and_check() {
     local _remote_name="$1"
     local _local_name="$2"
-    assert_nz "$_remote_name" "remote name"
-    assert_nz "$_local_name" "local name"
 
     local _remote_sums="$_remote_name.sha256"
     local _local_sums="$_local_name.sha256"
@@ -679,7 +674,6 @@ download_and_check() {
 
 get_local_rust_manifest_name() {
     local _toolchain="$1"
-    assert_nz "$_toolchain" "toolchain"
 
     RETVAL="$manifests_dir/channel-rust-$_toolchain"
 }
@@ -689,10 +683,6 @@ download_manifest()  {
     local _name="$2"
     local _remote_manifest="$3"
     local _local_manifest="$4"
-    assert_nz "$_toolchain" "toolchain"
-    assert_nz "$_name" "name"
-    assert_nz "$_remote_manifest" "remote manifest"
-    assert_nz "$_local_manifest" "local manifest"
 
     verbose_say "remote $_name manifest: $_remote_manifest"
     verbose_say "local $_name manifest: $_local_manifest"
@@ -707,7 +697,6 @@ download_manifest()  {
 
 extract_channel_and_date_from_toolchain() {
     local _toolchain="$1"
-    assert_nz "$_toolchain" "toolchain"
 
     case "$_toolchain" in
 	nightly-20[0-9][0-9]-[0-9][0-9]-[0-9][0-9] | \
@@ -728,7 +717,6 @@ extract_channel_and_date_from_toolchain() {
 
 download_rust_manifest() {
     local _toolchain="$1"
-    assert_nz "$_toolchain" "toolchain"
 
     case "$_toolchain" in
 	nightly | beta | stable )
@@ -762,10 +750,6 @@ get_remote_installer_location_from_manifest() {
     local _manifest_file="$2"
     local _package_name="$3"
     local _dist_dir="$4"
-    assert_nz "$_toolchain" "toolchain"
-    assert_nz "$_manifest_file" "manifest file"
-    assert_nz "$_package_name" "package name"
-    assert_nz "$_dist_dir" "dist dir"
 
     if [ ! -e "$_manifest_file" ]; then
 	err "manifest file '$_manifest_file' does not exist"
@@ -807,7 +791,6 @@ get_remote_installer_location_from_manifest() {
 
 determine_remote_rust_installer_location() {
     local _toolchain="$1"
-    assert_nz "$_toolchain" "toolchain"
 
     verbose_say "determining remote rust installer for '$_toolchain'"
 
@@ -836,7 +819,6 @@ determine_remote_rust_installer_location() {
 
 get_toolchain_dir() {
     local _toolchain="$1"
-    assert_nz "$_toolchain" "toolchain"
 
     if [ ! -e "$toolchains_dir" ]; then
 	verbose_say "creating toolchains dir '$toolchains_dir'"
@@ -849,7 +831,6 @@ get_toolchain_dir() {
 
 is_toolchain_installed() {
     local _toolchain="$1"
-    assert_nz "$_toolchain" "toolchain"
 
     verbose_say "looking for installed toolchain '$_toolchain'"
 
@@ -871,7 +852,6 @@ install_toolchain() {
     local _workdir="$3"
 
     local _installer_dir="$_workdir/$(basename "$_installer" | sed s/.tar.gz$//)"
-    assert_nz "$_installer_dir" "installer dir"
 
     # Extract the toolchain
     tar xzf "$_installer" -C "$_workdir"
@@ -904,7 +884,6 @@ install_toolchain() {
 
 install_toolchain_from_dist() {
     local _toolchain="$1"
-    assert_nz "$_toolchain" "toolchain"
 
     if [ "$using_insecure_dist_server" = "true" ]; then
 	say "gpg available. disabling https (avoids rust#21293)"
@@ -969,7 +948,6 @@ install_toolchain_from_dist() {
 
 install_toolchain_if_not_installed() {
     local _toolchain="$1"
-    assert_nz "$_toolchain" "toolchain"
 
     is_toolchain_installed "$_toolchain"
     if [ "$RETVAL" = true ]; then
@@ -982,7 +960,6 @@ install_toolchain_if_not_installed() {
 
 update_toolchain() {
     local _toolchain="$1"
-    assert_nz "$_toolchain" "toolchain"
 
     is_toolchain_installed "$_toolchain"
     local _is_installed="$RETVAL"
@@ -1014,7 +991,6 @@ check_custom_toolchain_name() {
 # don't use the installer could end up breaking things.
 maybe_remove_existing_custom_toolchain() {
     local _toolchain="$1"
-    assert_nz "$_toolchain" "toolchain"
 
     is_toolchain_installed "$_toolchain"
     local _is_installed="$RETVAL"
@@ -1027,11 +1003,8 @@ maybe_remove_existing_custom_toolchain() {
 
 update_custom_toolchain_from_dir_common() {
     local _toolchain="$1"
-    assert_nz "$_toolchain" "toolchain"
     local _custom_toolchain="$2"
-    assert_nz "$_custom_toolchain" "custom_toolchain"
     local _create_link="$3"
-    assert_nz "$_create_link"
 
     check_custom_toolchain_name "$_toolchain"
 
@@ -1076,8 +1049,6 @@ update_custom_toolchain_from_link() {
 update_custom_toolchain_from_installers() {
     local _toolchain="$1"
     local _installers="$2"
-    assert_nz "$_toolchain" "toolchain"
-    assert_nz "$_installers" "installers"
 
     check_custom_toolchain_name "$_toolchain"
 
@@ -1142,7 +1113,6 @@ update_custom_toolchain_from_installers() {
 
 remove_toolchain() {
     local _toolchain="$1"
-    assert_nz "$_toolchain" "toolchain"
 
     local _toolchain_dir="$toolchains_dir/$_toolchain"
 
@@ -1230,7 +1200,6 @@ print_override_toolchain_or_default() {
 
 print_toolchain_sysroot() {
     local _toolchain="$1"
-    assert_nz "$_toolchain" "toolchain"
 
     get_toolchain_dir "$_toolchain"
     echo "$RETVAL"
@@ -1238,7 +1207,6 @@ print_toolchain_sysroot() {
 
 set_default() {
     local _toolchain="$1"
-    assert_nz "$_toolchain" "toolchain"
 
     make_temp
     local _workfile="$RETVAL"
@@ -1261,7 +1229,6 @@ set_default() {
 
 set_override() {
     local _toolchain="$1"
-    assert_nz "$_toolchain" "toolchain"
 
     local _override_dir="$(pwd)"
     assert_nz "$_override_dir" "empty pwd?"
@@ -1340,7 +1307,6 @@ remove_override() {
 
 push_toolchain_ldpath() {
     local _toolchain="$1"
-    assert_nz "$_toolchain" "toolchain"
 
     get_toolchain_dir "$_toolchain"
     local _toolchain_dir="$RETVAL"
@@ -1450,7 +1416,6 @@ delete_data() {
 
 maybe_print_update_notice_for_toolchain() {
     local _toolchain="$1"
-    assert_nz "$_toolchain" "toolchain"
 
     if [ -e "$update_list_file" ]; then
 	if grep -q "$_toolchain" "$update_list_file" ; then
