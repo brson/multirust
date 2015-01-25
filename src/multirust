@@ -16,7 +16,6 @@
 #     remove-override  Remove the current override
 #     remove-toolchain Uninstall a toolchain
 #     delete-data      Delete all user metadata, including installed toolchains
-#     upgrade-data     Upgrade user metadata from previous versions
 #     help             Show help for this command or subcommands
 #
 # Use `multirust help <command>` for detailed help.
@@ -204,114 +203,79 @@
 
 set -u
 
-# Some utilities
-
-say() {
-    echo "multirust: $1"
+main() {
+    set_globals "$@"
+    check_metadata_version
+    handle_command_line_args "$@"
 }
 
-verbose_say() {
-    if [ "$flag_verbose" = true ]; then
-	say "$1"
+set_globals() {
+    # Environment sanity checks
+    assert_nz "$HOME" "\$HOME is undefined"
+    assert_nz "$0" "\$0 is undefined"
+
+    # Some constants
+    version=0.0.2
+    # NB: This will be replaced by the build script
+    commit_version=
+    metadata_version=1
+
+    # Find the location of the distribution server
+    default_dist_server="https://static.rust-lang.org"
+    insecure_dist_server="http://static-rust-lang-org.s3-website-us-west-1.amazonaws.com"
+    dist_server="${MULTIRUST_DIST_SERVER-$default_dist_server}"
+    using_insecure_dist_server=false
+
+    # Disable https if we can gpg because cloudfront often gets our files out of sync
+    if [ "$dist_server" = "$default_dist_server" ]; then
+	if command -v gpg > /dev/null 2>&1; then
+	    dist_server="$insecure_dist_server"
+	    using_insecure_dist_server=true
+	fi
     fi
-}
 
-err() {
-    say "$1" >&2
-    exit 1
-}
+    # The directory on the server containing the dist artifacts
+    rust_dist_dir=dist
 
-need_cmd() {
-    if ! command -v $1 > /dev/null 2>&1
-    then err "need $1"
-    fi
-}
+    # Useful values pulled from the name of the invoked process
+    multirust_cmd="$0"
+    cmd_dirname="$(dirname "$0")"
+    cmd_basename="$(basename "$0")"
+    abs_cmd_basename="$(cd "$cmd_dirname" && pwd)"
+    assert_nz "$cmd_dirname" "cmd_dirname"
+    assert_nz "$cmd_basename" "cmd_basename"
+    assert_nz "$abs_cmd_basename" "abs_cmd_basename"
 
-need_ok() {
-    if [ $? != 0 ]; then err "$1"; fi
-}
+    # Set up the multirust data dir
+    multirust_dir="${MULTIRUST_HOME-$HOME/.multirust}"
+    assert_nz "$multirust_dir" "multirust_dir"
+    # Make sure our home dir is absolute. Once multirust is invoked, this
+    # variables is carried through recursive toolchain invocations. If
+    # some tool like Cargo changes directories, we want to be sure we can
+    # find our home dir again.
+    mkdir -p "$multirust_dir"
+    need_ok "failed to create home directory"
+    multirust_dir="$(cd "$multirust_dir" && pwd)"
+    assert_nz "$multirust_dir" "multirust_dir"
 
-assert_nz() {
-    if [ -z "$1" ]; then err "assert_nz $2"; fi
-}
+    # Data locations
+    version_file="$multirust_dir/version"
+    override_db="$multirust_dir/overrides"
+    default_file="$multirust_dir/default"
+    toolchains_dir="$multirust_dir/toolchains"
+    manifests_dir="$multirust_dir/manifests"
+    installer_dir="$multirust_dir/installers"
+    channel_sums_dir="$multirust_dir/channel-sums"
+    temp_dir="$multirust_dir/tmp"
+    dl_dir="$multirust_dir/dl"
+    update_stamp_file="$multirust_dir/update-stamp"
+    update_list_file="$multirust_dir/available-updates"
 
-# Ensure various commands exist
-need_cmd dirname
-need_cmd basename
-need_cmd mkdir
-need_cmd cat
-need_cmd curl
-need_cmd mktemp
-need_cmd rm
-need_cmd egrep
-need_cmd grep
-need_cmd file
-need_cmd uname
-need_cmd tar
-need_cmd sed
-need_cmd sh
-need_cmd mv
-need_cmd awk
-need_cmd cut
-need_cmd sort
-need_cmd shasum
-need_cmd date
-need_cmd head
+    # Used for delimiting fields in override_db
+    delim=";"
 
-# Environment sanity checks
-assert_nz "$HOME" "\$HOME is undefined"
-assert_nz "$0" "\$0 is undefined"
-
-# Some constants
-version=0.0.2
-# This will be replaced by the build script
-commit_version=
-metadata_version=1
-default_dist_server="https://static.rust-lang.org"
-insecure_dist_server="http://static-rust-lang-org.s3-website-us-west-1.amazonaws.com"
-dist_server="${MULTIRUST_DIST_SERVER-$default_dist_server}"
-using_insecure_dist_server=false
-rust_dist_dir=dist
-default_spec=nightly
-multirust_cmd="$0"
-cmd_dirname="$(dirname "$0")"
-cmd_basename="$(basename "$0")"
-abs_cmd_basename="$(cd "$cmd_dirname" && pwd)"
-assert_nz "$cmd_dirname" "cmd_dirname"
-assert_nz "$cmd_basename" "cmd_basename"
-assert_nz "$abs_cmd_basename" "abs_cmd_basename"
-
-multirust_dir="${MULTIRUST_HOME-$HOME/.multirust}"
-assert_nz "$multirust_dir" "multirust_dir"
-# Make sure our home dir is absolute. Once multirust is invoked, this
-# variables is carried through recursive toolchain invocations. If
-# some tool like Cargo changes directories, we want to be sure we can
-# find our home dir again.
-mkdir -p "$multirust_dir"
-need_ok "failed to create home directory"
-multirust_dir="$(cd "$multirust_dir" && pwd)"
-assert_nz "$multirust_dir" "multirust_dir"
-
-version_file="$multirust_dir/version"
-override_db="$multirust_dir/overrides"
-default_file="$multirust_dir/default"
-toolchains_dir="$multirust_dir/toolchains"
-manifests_dir="$multirust_dir/manifests"
-installer_dir="$multirust_dir/installers"
-channel_sums_dir="$multirust_dir/channel-sums"
-temp_dir="$multirust_dir/tmp"
-dl_dir="$multirust_dir/dl"
-update_stamp_file="$multirust_dir/update-stamp"
-update_list_file="$multirust_dir/available-updates"
-rust_package_name="rust"
-# Used for delimiting fields in override_db
-delim=";"
-
-# Some globals
-flag_verbose=false
-flag_yes=false
-
-official_rust_gpg_key="
+    # Set up the GPG key
+    official_rust_gpg_key="
 -----BEGIN PGP PUBLIC KEY BLOCK-----
 Version: GnuPG v1
 
@@ -400,11 +364,1079 @@ Mve696B5tlHyc1KxjHR6w9GRsh4=
 -----END PGP PUBLIC KEY BLOCK-----
 "
 
-if [ -n "${MULTIRUST_GPG_KEY-}" ]; then
-    gpg_key=`cat "$MULTIRUST_GPG_KEY"`
-else
-    gpg_key="$official_rust_gpg_key"
-fi
+    if [ -n "${MULTIRUST_GPG_KEY-}" ]; then
+	gpg_key=`cat "$MULTIRUST_GPG_KEY"`
+    else
+	gpg_key="$official_rust_gpg_key"
+    fi
+
+    # Check for some global command-line options
+    flag_verbose=false
+    flag_yes=false
+
+    for opt in "$@"; do
+	case "$opt" in
+	    --verbose)
+		flag_verbose=true
+		;;
+
+	    -y | --yes)
+		flag_yes=true
+		;;
+
+	    --version)
+		echo "multirust $version ($commit_version)"
+		exit 0
+		;;
+
+	esac
+    done
+
+    if [ -n "${MULTIRUST_VERBOSE-}" ]; then
+	flag_verbose=true
+    fi
+}
+
+# Verifies that ~/.multirust exists and uses the correct format
+check_metadata_version() {
+    verbose_say "checking metadata version"
+
+    if [ ! -e "$multirust_dir" ]; then
+	verbose_say "creating .multirust directory at \`$multirust_dir\`"
+	mkdir -p "$multirust_dir"
+	need_ok "failed to create multirust directory"
+    fi
+
+    if [ ! -e "$version_file" ]; then
+	verbose_say "writing metadata version $metadata_version"
+	echo "$metadata_version" > "$version_file"
+    else
+	local _current_version="$(cat "$version_file")"
+	verbose_say "got metadata version $_current_version"
+	if [ "$_current_version" != "$metadata_version" ]; then
+	    err "metadata version is $_current_version, need $metadata_version. run \`multirust upgrade-data\`"
+	fi
+    fi
+}
+
+handle_command_line_args() {
+    local _cmd_arg="${1-}"
+
+    case "$_cmd_arg" in
+	update)
+	    # For distribution builds always install
+	    # For custom builds always install toolchain
+	    handle_common_install_args update_toolchain "$@"
+	    ;;
+
+	default | override )
+	    # For distribution builds install only if not installed
+	    # For custom builds always install toolchain
+	    handle_common_install_args install_toolchain_if_not_installed "$@"
+
+	    # Run either set_default or set_override to turn it on
+	    toolchain="${2-}"
+	    "set_$_cmd_arg" "$toolchain"
+	    ;;
+
+	show-default) show_default;;
+	show-override) show_override;;
+	list-overrides) list_overrides;;
+	list-toolchains) list_toolchains;;
+	remove-override) remove_override;;
+
+	remove-toolchain)
+	    if [ -z "${2-}" ]; then
+		err 'unspecified toolchain. try `multirust help remove-toolchain`'
+	    fi
+	    remove_toolchain "$2"
+	    ;;
+
+	delete-data) delete_data;;
+
+	ctl)
+	    case "${2-}" in
+		home)
+		    echo "$multirust_dir"
+		    ;;
+
+		override-toolchain)
+		    ctl_print_override_toolchain_or_default
+		    ;;
+
+		toolchain-sysroot)
+		    if [ -z "${3-}" ]; then
+			err "unspecified toolchain"
+		    fi
+		    ctl_print_toolchain_sysroot "$3"
+		    ;;
+
+		check-updates)
+		    if [ -z "${3-}" ]; then
+			err "unspecified toolchain"
+		    fi
+		    ctl_maybe_print_update_notice_for_toolchain "$3"
+		    ctl_maybe_check_for_updates_async
+		    ;;
+
+		check-updates-sync)
+		    ctl_check_for_updates_sync
+		    ;;
+
+		"")
+		    err 'empty ctl command. try `multirust help ctl`'
+		    ;;
+
+		*)
+		    err "unrecognized ctl comand \`$2\`. try \`multirust help ctl\`"
+		    ;;
+	    esac
+	    ;;
+
+	help)
+	    case "${2-}" in
+		"" )
+		    display_topic help
+		    ;;
+		* )
+		    display_topic help-"${2-}"
+		    ;;
+	    esac
+	    ;;
+
+	*)
+	    display_topic help
+	    ;;
+    esac
+}
+
+# Run commands for --installer, --copy-local, --link-local
+handle_common_install_args() {
+    local _else_cmd="$1"
+    local _cmd="$2"
+
+    local _toolchain_arg="${3-}"
+
+    if [ -z "$_toolchain_arg" ]; then
+	err "unspecified $_cmd toolchain. try \`multirust help $_cmd\`"
+    fi
+
+    local _option_name_arg="${4-}"
+    local _option_value_arg="${5-}"
+
+    verbose_say "cmd: $_cmd"
+    verbose_say "toolchain: $_toolchain_arg"
+    verbose_say "option_name: $_option_name_arg"
+    verbose_say "option_value: $_option_value_arg"
+
+    case "$_option_name_arg" in
+	--installer )
+	    handle_install_option "$_cmd" "installer" \
+		update_custom_toolchain_from_installers \
+		"$_toolchain_arg" "$_option_value_arg"
+	    ;;
+
+	--copy-local )
+	    handle_install_option "$_cmd" "toolchain path" \
+		update_custom_toolchain_from_dir \
+		"$_toolchain_arg" "$_option_value_arg"
+	    ;;
+
+	--link-local )
+	    handle_install_option "$_cmd" "toolchain path" \
+		update_custom_toolchain_from_link \
+		"$_toolchain_arg" "$_option_value_arg"
+	    ;;
+
+	"" )
+	    "$_else_cmd" "$_toolchain_arg"
+	    ;;
+
+	*)
+	    err "unrecognized option $_option_name_arg"
+	    ;;
+    esac
+}
+
+handle_install_option() {
+    local _cmd="$1"
+    local _what="$2"
+    local _update_cmd="$3"
+    local _toolchain="$4"
+
+    local _install_source_arg="$5"
+
+    if [ -z "$_install_source_arg" ]; then
+	err "unspecified $_what. try \`multirust help $_cmd\`"
+    fi
+
+    "$_update_cmd" "$_toolchain" "$_install_source_arg"
+}
+
+
+# Updating toolchains
+
+update_toolchain() {
+    local _toolchain="$1"
+
+    is_toolchain_installed "$_toolchain"
+    local _is_installed="$RETVAL"
+
+    if [ "$_is_installed" = true ]; then
+	say "updating existing install for '$_toolchain'"
+    else
+	say "installing toolchain '$_toolchain'"
+    fi
+
+    install_toolchain_from_dist "$_toolchain"
+}
+
+install_toolchain_if_not_installed() {
+    local _toolchain="$1"
+
+    is_toolchain_installed "$_toolchain"
+    if [ "$RETVAL" = true ]; then
+	say "using existing install for '$_toolchain'"
+	return 0
+    fi
+
+    update_toolchain "$_toolchain"
+}
+
+install_toolchain_from_dist() {
+    local _toolchain="$1"
+
+    if [ "$using_insecure_dist_server" = "true" ]; then
+	say "gpg available. disabling https (avoids rust#21293)"
+    fi
+
+    determine_remote_rust_installer_location "$_toolchain"
+    local _remote_rust_installer="$RETVAL"
+    assert_nz "$_remote_rust_installer" "remote rust installer"
+    verbose_say "remote rust installer location: $_remote_rust_installer"
+
+    local _rust_installer_name="$(basename "$_remote_rust_installer")"
+    assert_nz "$_rust_installer_name" "rust installer name"
+
+    # Create a temp directory to put the downloaded toolchain
+    make_temp_dir
+    local _workdir="$RETVAL"
+    assert_nz "$_workdir" "workdir"
+    verbose_say "download work dir: $_workdir"
+
+    # Download and install toolchain
+    say "downloading rust installer from '$_remote_rust_installer'"
+    download_and_check "$_remote_rust_installer" "$_workdir/$_rust_installer_name"
+
+    local _installer_file="$_workdir/$_rust_installer_name"
+    install_toolchain "$_toolchain" "$_installer_file" "$_workdir"
+    if [ $? != 0 ]; then
+	rm -R "$_workdir"
+	err "failed to install toolchain"
+    fi
+
+    # Remove this toolchain from the update list
+    if [ -e "$update_list_file" ]; then
+	verbose_say "removing $_toolchain from update list"
+	sed /^"$_toolchain"$/d "$update_list_file" > "$_workdir/newlist"
+	if [ $? != 0 ]; then
+	    rm -R "$_workdir"
+	    err "failed to modify update list"
+	fi
+	mv -f "$_workdir/newlist" "$update_list_file"
+	if [ $? != 0 ]; then
+	    rm -R "$_workdir"
+	    err "failed to modify update list"
+	fi
+    fi
+
+    # If this is from a release channel save the installer checksum for
+    # use in checking for updates later
+    case "$_toolchain" in
+	nightly | beta | stable )
+	    local _saved_sumfile="$channel_sums_dir/$_toolchain.sha256"
+	    verbose_say "saving checksums to $_saved_sumfile"
+	    mkdir -p "$channel_sums_dir"
+	    need_ok "failed to crate channel sums dir"
+	    cp "$_workdir/$_rust_installer_name.sha256" "$_saved_sumfile"
+	    need_ok "failed to save channel checksums"
+	    ;;
+    esac
+
+    rm -R "$_workdir"
+    need_ok "couldn't delete workdir"
+}
+
+install_toolchain() {
+    local _toolchain="$1"
+    local _installer="$2"
+    local _workdir="$3"
+
+    local _installer_dir="$_workdir/$(basename "$_installer" | sed s/.tar.gz$//)"
+
+    # Extract the toolchain
+    tar xzf "$_installer" -C "$_workdir"
+    if [ $? != 0 ]; then
+	verbose_say "failed to extract installer"
+	return 1
+    fi
+
+    # Install the toolchain
+    get_toolchain_dir "$_toolchain"
+    local _toolchain_dir="$RETVAL"
+    assert_nz "$_toolchain_dir" "toolchain dir"
+    verbose_say "installing toolchain to '$_toolchain_dir'"
+    say "installing toolchain for '$_toolchain'"
+
+    mkdir -p "$_toolchain_dir"
+    if [ $? != 0 ]; then
+	verbose_say "failed to create toolchain install dir"
+	return 1
+    fi
+
+    sh "$_installer_dir/install.sh" --prefix="$_toolchain_dir" --disable-ldconfig
+    if [ $? != 0 ]; then
+	rm -R "$_toolchain_dir"
+	verbose_say "failed to install toolchain"
+.	return 1
+    fi
+
+}
+
+remove_toolchain() {
+    local _toolchain="$1"
+
+    local _toolchain_dir="$toolchains_dir/$_toolchain"
+
+    if [ -e "$_toolchain_dir" ]; then
+	verbose_say "removing directory '$_toolchain_dir'"
+	# Need to use -f because it contains Cargo's git directories
+	rm -Rf "$_toolchain_dir"
+	need_ok "failed to remove toolchain"
+	say "toolchain '$_toolchain' uninstalled"
+    else
+	say "no toolchain installed for '$_toolchain'"
+    fi
+}
+
+is_toolchain_installed() {
+    local _toolchain="$1"
+
+    verbose_say "looking for installed toolchain '$_toolchain'"
+
+    get_toolchain_dir "$_toolchain"
+    local _toolchain_dir="$RETVAL"
+    assert_nz "$_toolchain_dir" "toolchain dir"
+
+    if [ -e "$_toolchain_dir" ]; then
+	RETVAL=true
+	return
+    fi
+
+    RETVAL=false
+}
+
+get_toolchain_dir() {
+    local _toolchain="$1"
+
+    if [ ! -e "$toolchains_dir" ]; then
+	verbose_say "creating toolchains dir '$toolchains_dir'"
+	mkdir -p "$toolchains_dir"
+	need_ok "failed to make toolchain dir"
+    fi
+
+    RETVAL="$toolchains_dir/$_toolchain"
+}
+
+
+# Custom toolchain installation
+
+update_custom_toolchain_from_dir() {
+    local _toolchain="$1"
+    local _custom_toolchain="$2"
+    update_custom_toolchain_from_dir_common "$_toolchain" "$_custom_toolchain" false
+}
+
+update_custom_toolchain_from_link() {
+    local _toolchain="$1"
+    local _custom_toolchain="$2"
+    update_custom_toolchain_from_dir_common "$_toolchain" "$_custom_toolchain" false
+}
+
+update_custom_toolchain_from_dir_common() {
+    local _toolchain="$1"
+    local _custom_toolchain="$2"
+    local _create_link="$3"
+
+    check_custom_toolchain_name "$_toolchain"
+
+    if [ ! -e "$_custom_toolchain" ]; then
+	err "specified path does not exist $_custom_toolchain"
+    fi
+
+    local _expected_rustc="$_custom_toolchain/bin/rustc"
+    if [ ! -e "$_expected_rustc" ]; then
+	err "no rustc in custom toolchain at '$_expected_rustc'"
+    fi
+
+    maybe_remove_existing_custom_toolchain "$_toolchain"
+
+    get_toolchain_dir "$_toolchain"
+    local _toolchain_dir="$RETVAL"
+    local _custom_toolchain_dir="$(cd $_custom_toolchain && pwd)"
+
+    if [ "$_create_link" = true ]; then
+	say "creating link from $_custom_toolchain_dir"
+	ln -s "$_custom_toolchain_dir" "$_toolchain_dir"
+	need_ok "failed to create link to toolchain"
+    else
+	say "copying from $_custom_toolchain_dir"
+	cp -R "$_custom_toolchain_dir" "$_toolchain_dir"
+	need_ok "failed to copy toolchain direcotry"
+    fi
+}
+
+update_custom_toolchain_from_installers() {
+    local _toolchain="$1"
+    local _installers="$2"
+
+    check_custom_toolchain_name "$_toolchain"
+
+    maybe_remove_existing_custom_toolchain "$_toolchain"
+
+    make_temp_dir
+    local _workdir="$RETVAL"
+    assert_nz "$_workdir" "workdir"
+    verbose_say "download work dir: $_workdir"
+
+    # Used for cleanup
+    get_toolchain_dir "$_toolchain"
+    local _toolchain_dir="$RETVAL"
+    assert_nz "$_toolchain_dir" "toolchain dir"
+
+    # Iterate through list of installers installing each
+    while [ -n "$_installers" ]; do
+
+	# Pull out the first installer
+	local _installer="$(echo "$_installers" | cut -f1 -d,)"
+	need_ok "failed to parse installer"
+	assert_nz "$_installer" "installer"
+
+	# Remove that installer from the list
+	local _next_installers="$(echo "$_installers" | sed s/[^,]*,//)"
+	need_ok "failed to shift installer list"
+
+	# If that was the last installer...
+	if [ "$_next_installers" = "$_installers" ]; then
+	    _next_installers=""
+	fi
+
+	_installers="$_next_installers"
+
+	case "$_installer" in
+	    *://* )
+		(cd "$_workdir" && curl -f -O "$_installer")
+		if [ $? != 0 ]; then
+		    rm -R "$_workdir"
+		    rm -Rf "$_toolchain_dir"
+		    err "failed to download toolchain"
+		fi
+		local _local_installer="$_workdir/$(basename "$_installer")"
+		;;
+
+	    * )
+		local _local_installer="$_installer"
+		;;
+	esac
+
+	install_toolchain "$_toolchain" "$_local_installer" "$_workdir"
+	if [ $? != 0 ]; then
+	    rm -R "$_workdir"
+	    rm -Rf "$_toolchain_dir"
+	    err "failed to install toolchain"
+	fi
+    done
+
+    rm -R "$_workdir"
+    need_ok "failed to remomve work dir"
+}
+
+# When updating custom toolchains always blow away whatever already
+# exists. If we don't do this then raw 'directory' toolchains that
+# don't use the installer could end up breaking things.
+maybe_remove_existing_custom_toolchain() {
+    local _toolchain="$1"
+
+    is_toolchain_installed "$_toolchain"
+    local _is_installed="$RETVAL"
+
+    if [ "$_is_installed" = true ]; then
+	say "removing existing toolchain before the update"
+	remove_toolchain "$_toolchain"
+    fi
+}
+
+check_custom_toolchain_name() {
+    local _toolchain="$1"
+
+    case "$_toolchain" in
+	nightly | beta | stable | \
+	nightly-20[0-9][0-9]-[0-9][0-9]-[0-9][0-9] | \
+	beta-20[0-9][0-9]-[0-9][0-9]-[0-9][0-9] | \
+	stable-20[0-9][0-9]-[0-9][0-9]-[0-9][0-9] )
+	    err "invalid custom toolchain name: '$_toolchain'"
+	    ;;
+    esac
+}
+
+
+# Default and override
+
+find_override_toolchain_or_default() {
+    if find_override; then
+	RETVAL="$RETVAL_TOOLCHAIN"
+	return
+    fi
+
+    find_default
+    RETVAL="$RETVAL_TOOLCHAIN"
+}
+
+find_default() {
+    if [ ! -e "$default_file" ]; then
+	err 'no default toolchain configured. run `multirust help default`'
+    fi
+
+    local _default="$(cat "$default_file")"
+    assert_nz "$_default" "default file is empty"
+
+    get_toolchain_dir "$_default"
+    local _sysroot="$RETVAL"
+    assert_nz "$_sysroot" "sysroot"
+
+    if [ ! -e "$_sysroot" ]; then
+	err "toolchain '$_default' not installed. run \`multirust update $_default\` to install"
+    fi
+
+    RETVAL_TOOLCHAIN="$_default"
+    RETVAL_SYSROOT="$_sysroot"
+}
+
+find_override() {
+    if [ ! -e "$override_db" ]; then
+	return 1
+    fi
+
+    local _dir="$(pwd)"
+    assert_nz "$_dir" "empty starting dir"
+
+    # Go up the directory hierarchy looking for overrides
+    while [ "$_dir" != "/" -a "$_dir" != "." ]; do
+	while read _line; do
+	    local _ovrdir="$(echo "$_line" | cut -d $delim -f1)"
+	    need_ok "extracting record from db failed"
+	    assert_nz "$_ovrdir" "empty dir in override db"
+	    local _toolchain="$(echo "$_line" | cut -d $delim -f2)"
+	    need_ok "extracting record from db failed"
+	    assert_nz "$_toolchain" "empty toolchain in override db"
+
+	    if [ "$_dir" = "$_ovrdir" ]; then
+		RETVAL_OVRDIR="$_ovrdir"
+		RETVAL_TOOLCHAIN="$_toolchain"
+		get_toolchain_dir "$_toolchain"
+		RETVAL_SYSROOT="$RETVAL"
+		if [ ! -e "$RETVAL_SYSROOT" ]; then
+		    err "toolchain '$_toolchain' not installed. run \`multirust update $_toolchain\` to install"
+		fi
+		return
+	    fi
+	done < "$override_db"
+
+	local _dir="$(dirname $_dir)"
+    done
+
+    return 1
+}
+
+set_default() {
+    local _toolchain="$1"
+
+    make_temp
+    local _workfile="$RETVAL"
+    assert_nz "$_workfile" "workfile"
+
+    echo "$_toolchain" > "$_workfile"
+    if [ $? != 0 ]; then
+	rm -R "$_workfile"
+	err "couldn't write default toolchain to tempfile"
+    fi
+
+    mv -f "$_workfile" "$default_file"
+    if [ $? != 0 ]; then
+	rm -R "$_workfile"
+	err "couldn't set default toolchain"
+    fi
+
+    say "default toolchain set to '$_toolchain'"
+}
+
+set_override() {
+    local _toolchain="$1"
+
+    local _override_dir="$(pwd)"
+    assert_nz "$_override_dir" "empty pwd?"
+
+    # Escape forward-slashes
+    local _escaped_override_dir=`echo "$_override_dir" | sed s/\\\//\\\\\\\\\\\//g`
+
+    make_temp
+    local _workfile="$RETVAL"
+    assert_nz "$_workfile" "workfile"
+
+    # Copy the current db to a new file, removing any existing override
+    if [ -e "$override_db" ]; then
+	# Escape the tab because OS X sed won't
+	sed "/^$_escaped_override_dir$delim/d" "$override_db" > "$_workfile"
+	if [ $? != 0 ]; then
+	    rm -R "$_workfile"
+	    err "unable to edit override db"
+	fi
+    fi
+
+    # Append the new override
+    echo "$_override_dir$delim$_toolchain" >> "$_workfile"
+    if [ $? != 0 ]; then
+	rm -R "$_workfile"
+	err "unable to edit override db"
+    fi
+
+    # Move it back to the database
+    mv -f "$_workfile" "$override_db"
+    need_ok "unable to edit override db"
+
+    say "override toolchain for '$_override_dir' set to '$_toolchain'"
+}
+
+remove_override() {
+    local _override_dir="$(pwd)"
+    assert_nz "$_override_dir" "empty pwd?"
+
+    # Escape forward-slashes
+    local _escaped_override_dir=`echo "$_override_dir" | sed s/\\\//\\\\\\\\\\\//g`
+
+    make_temp
+    local _workfile="$RETVAL"
+    assert_nz "$_workfile" "workfile"
+
+    # Check if the override exists
+    local _have_override=false
+    if [ -e "$override_db" ]; then
+	# Get an actual tab character because grep doesn't interpret \t
+	egrep "^$_escaped_override_dir$delim" "$override_db" > /dev/null
+	if [ $? = 0 ]; then
+	    local _have_override=true
+	fi
+    fi
+    if [ $_have_override = false ]; then
+	say "no override for current directory '$_override_dir'"
+	return
+    fi
+
+    # Copy the current db to a new file, removing any existing override
+    if [ -e "$override_db" ]; then
+	sed "/^$_escaped_override_dir$delim/d" "$override_db" > "$_workfile"
+	if [ $? != 0 ]; then
+	    rm -R "$_workfile"
+	    err "unable to edit override db"
+	fi
+    fi
+
+    # Move it back to the database
+    mv -f "$_workfile" "$override_db"
+    need_ok "unable to edit override db"
+
+    say "override toolchain for '$_override_dir' removed"
+}
+
+
+# Management of data in the MULTIRUST_HOME directory
+
+delete_data() {
+    if [ ! "$flag_yes" = true ]; then
+	read -p "This will delete all toolchains, overrides, aliases, and other multirust data associated with this user. Continue? (y/n) " yn
+
+	case "$yn" in
+	    [Nn] )
+		exit 0
+		;;
+	esac
+    fi
+
+    # Need -f for Cargo's write-protected git directories
+    rm -Rf "$multirust_dir"
+    need_ok "failed to delete '$multirust_dir'"
+}
+
+
+# Reporting
+
+show_default() {
+    if find_default; then
+	local _toolchain="$RETVAL_TOOLCHAIN"
+	local _sysroot="$RETVAL_SYSROOT"
+
+	say "default toolchain: $_toolchain"
+	say "default location: $_sysroot"
+
+	push_toolchain_ldpath "$_toolchain"
+
+	echo
+
+	"$_sysroot/bin/rustc" --version
+	"$_sysroot/bin/cargo" --version
+
+	pop_toolchain_ldpath
+    else
+	say "no default"
+    fi
+}
+
+show_override() {
+    if find_override; then
+	local _ovrdir="$RETVAL_OVRDIR"
+	local _toolchain="$RETVAL_TOOLCHAIN"
+	local _sysroot="$RETVAL_SYSROOT"
+
+	say "override directory: $_ovrdir"
+	say "override toolchain: $_toolchain"
+	say "override location: $_sysroot"
+
+	push_toolchain_ldpath "$_toolchain"
+
+	echo
+
+	"$_sysroot/bin/rustc" --version
+	"$_sysroot/bin/cargo" --version
+
+	pop_toolchain_ldpath
+    else
+	say "no override"
+    fi
+}
+
+list_overrides() {
+    if [ -e "$override_db" ]; then
+	local _overrides="$(cat "$override_db" | sort)"
+	if [ -n "$_overrides" ]; then
+	    echo "$_overrides"
+	else
+	    say "no overrides"
+	fi
+    else
+	say "no overrides"
+    fi
+}
+
+list_toolchains() {
+    if [ -e "$toolchains_dir" ]; then
+	local _toolchains="$(cd "$toolchains_dir" && ls | sort)"
+	if [ -n "$_toolchains" ]; then
+	    echo "$_toolchains"
+	else
+	    say "no installed toolchains"
+	fi
+    else
+	say "no installed toolchains"
+    fi
+}
+
+# The multirustproxy control interface
+
+ctl_print_override_toolchain_or_default() {
+    find_override_toolchain_or_default
+    echo "$RETVAL"
+}
+
+ctl_print_toolchain_sysroot() {
+    local _toolchain="$1"
+
+    get_toolchain_dir "$_toolchain"
+    echo "$RETVAL"
+}
+
+ctl_maybe_print_update_notice_for_toolchain() {
+    local _toolchain="$1"
+
+    if [ -e "$update_list_file" ]; then
+	if grep -q "$_toolchain" "$update_list_file" ; then
+	    say "a new version of '$_toolchain' is available. run \`multirust update $_toolchain\` to install it"
+	fi
+    fi
+}
+
+ctl_maybe_check_for_updates_async() {
+    local _now="$(date +%F)"
+    local _need_update=true
+    if [ -e "$update_stamp_file" ]; then
+	local _update_time="$(cat "$update_stamp_file")"
+	if [ "$_now" = "$_update_time" ]; then
+	    local _need_update=false
+	fi
+    fi
+
+    # This is so the test runner can disable this non-deterministic
+    # behavior and avoid tripping over other processes writing to .multirust
+    if [ -n "${MULTIRUST_DISABLE_UPDATE_CHECKS-}" ]; then
+	verbose_say "update checks disabled"
+	return
+    fi
+
+    if [ "$_need_update" = true ]; then
+	verbose_say "update timestamp out of date. checking for updates"
+	echo "$_now" > "$update_stamp_file"
+	# Call multirust recursively in background to look for updates
+	call_multirust ctl check-updates-sync > /dev/null 2>&1 &
+    else
+	verbose_say "update timestamp up to date. not checking for updates"
+    fi
+}
+
+# Checks whether the checksums of the available nightly/beta/stable installers differ
+# from the installed toolchains, and if so adds the channel to the update list so
+# later invocations of multirust can notify the user.
+ctl_check_for_updates_sync() {
+    for _channel in nightly beta stable; do
+	if [ -e "$update_list_file" ]; then
+	    if grep -q "$_channel" "$update_list_file"; then
+		verbose_say "channel '$_channel' already needs update. skipping"
+		continue
+	    fi
+	fi
+
+	determine_remote_rust_installer_location "$_channel"
+	local _remote_rust_installer="$RETVAL"
+	assert_nz "$_remote_rust_installer" "remote rust installer"
+
+	local _local_sumfile="$channel_sums_dir/$_channel.sha256"
+	local _remote_sumfile="$_remote_rust_installer.sha256"
+	verbose_say "local sumfile: $_local_sumfile"
+	verbose_say "remote sumfile: $_remote_sumfile"
+	if [ -e "$_local_sumfile" ]; then
+	    verbose_say "checking for updates on $_channel"
+	    make_temp_dir
+	    local _workdir="$RETVAL"
+	    assert_nz "$_workdir" "workdir"
+	    verbose_say "update work dir: $_workdir"
+
+	    (cd "$_workdir" && curl -f -O "$_remote_sumfile" > /dev/null 2>&1)
+	    if [ $? != 0 ]; then
+		verbose_say "couldn't download checksums for $_channel"
+	    else
+		local _local_sum="$(cat "$_local_sumfile")"
+		local _new_sum="$(cat "$_workdir/$(basename "$_remote_sumfile")")"
+
+		if [ "$_local_sum" != "$_new_sum" ]; then
+		    if [ -e "$update_list_file" ]; then
+			local _newlist="$_workdir/newlist"
+			cp "$update_list_file" "$_newlist"
+			if [ $? != 0 ]; then
+			    rm -R "$_workdir"
+			    err "couldn't delete copy update list"
+			fi
+
+			if ! grep -q "$_channel" "$_newlist"; then
+			    verbose_say "adding $_channel to existing update list"
+			    echo "$_channel" >> "$_newlist"
+			    if [ $? != 0 ]; then
+				rm -R "$_workdir"
+				err "couldn't append update list"
+			    fi
+			    mv -f "$_newlist" "$update_list_file"
+			    if [ $? != 0 ]; then
+				rm -R "$_workdir"
+				err "couldn't replace update list"
+			    fi
+			else
+			    # This should be rare since we've already avoided doing the download
+			    # if the channel was in the list. But could be possible with races
+			    # in multiple invocations.
+			    verbose_say "channel $_channel already in update list"
+			fi
+		    else # Update list does not exist
+			verbose_say "adding $_channel to new update list"
+			local _newlist="$_workdir/newlist"
+			echo "$_channel" > "$_newlist"
+			if [ $? != 0 ]; then
+			    rm -R "$_workdir"
+			    err "couldn't append update list"
+			fi
+			mv -f "$_newlist" "$update_list_file"
+			if [ $? != 0 ]; then
+			    rm -R "$_workdir"
+			    err "couldn't replace update list"
+			fi
+		    fi
+		fi
+
+		rm -R "$_workdir"
+		need_ok "couldn't delete workdir"
+	    fi
+	else # Channel not installed
+	    verbose_say "channel '$_channel' not installed. not checking for updates"
+	fi
+    done
+}
+
+
+# Manifest interface
+
+determine_remote_rust_installer_location() {
+    local _toolchain="$1"
+
+    verbose_say "determining remote rust installer for '$_toolchain'"
+
+    case "$_toolchain" in
+	nightly | beta | stable | nightly-* | beta-* | stable-* )
+	    download_rust_manifest "$_toolchain"
+	    get_local_rust_manifest_name "$_toolchain"
+	    local _manifest_file="$RETVAL"
+	    assert_nz "$_manifest_file" "manifest file"
+	    get_remote_installer_location_from_manifest "$_toolchain" "$_manifest_file" rust "$rust_dist_dir"
+	    return
+	    ;;
+
+	* )
+	    say "interpreting toolchain spec as explicit version"
+	    get_architecture
+	    local _arch="$RETVAL"
+	    assert_nz "$_arch" "arch"
+
+	    local _file_name="rust-$_toolchain-$_arch.tar.gz"
+	    RETVAL="$dist_server/$rust_dist_dir/$_file_name"
+	    return
+	    ;;
+    esac
+}
+
+download_rust_manifest() {
+    local _toolchain="$1"
+
+    case "$_toolchain" in
+	nightly | beta | stable )
+	    local _remote_rust_manifest="$dist_server/$rust_dist_dir/channel-rust-$_toolchain"
+	    ;;
+
+	nightly-* | beta-* | stable-* )
+	    extract_channel_and_date_from_toolchain "$_toolchain"
+	    local _channel="$RETVAL_CHANNEL"
+	    local _date="$RETVAL_DATE"
+	    assert_nz "$_channel" "channel"
+	    assert_nz "$_date" "date"
+	    local _remote_rust_manifest="$dist_server/$rust_dist_dir/$_date/channel-rust-$_channel"
+	    ;;
+
+	*)
+	    err "unrecognized toolchain spec: $_toolchain"
+	    ;;
+
+    esac
+
+    get_local_rust_manifest_name "$_toolchain"
+    local _local_rust_manifest="$RETVAL"
+    assert_nz "$_local_rust_manifest" "local rust manifest"
+
+    download_manifest "$_toolchain" "rust" "$_remote_rust_manifest" "$_local_rust_manifest"
+}
+
+download_manifest()  {
+    local _toolchain="$1"
+    local _name="$2"
+    local _remote_manifest="$3"
+    local _local_manifest="$4"
+
+    verbose_say "remote $_name manifest: $_remote_manifest"
+    verbose_say "local $_name manifest: $_local_manifest"
+
+    verbose_say "creating manifests dir '$manifests_dir'"
+    mkdir -p "$manifests_dir"
+    need_ok "couldn't create manifests dir"
+
+    say "downloading $_name manifest for '$_toolchain'"
+    download_and_check "$_remote_manifest" "$_local_manifest"
+}
+
+get_remote_installer_location_from_manifest() {
+    local _toolchain="$1"
+    local _manifest_file="$2"
+    local _package_name="$3"
+    local _dist_dir="$4"
+
+    if [ ! -e "$_manifest_file" ]; then
+	err "manifest file '$_manifest_file' does not exist"
+    fi
+
+    get_architecture
+    local _arch="$RETVAL"
+    assert_nz "$_arch" "arch"
+
+    while read _line; do
+	# This regex checks for the version in addition to the package name because there
+	# are package names that are substrings of other packages, 'rust-docs' vs. 'rust'.
+	echo "$_line" | egrep "^$_package_name-(nightly|beta|alpha|[0-9]).*$_arch\.tar\.gz" > /dev/null
+	if [ $? = 0 ]; then
+	    case "$_toolchain" in
+		nightly | beta | stable )
+		    RETVAL="$dist_server/$_dist_dir/$_line"
+		    ;;
+
+		nightly-* | beta-* | stable-* )
+		    extract_channel_and_date_from_toolchain "$_toolchain"
+		    local _channel="$RETVAL_CHANNEL"
+		    local _date="$RETVAL_DATE"
+		    assert_nz "$_channel" "channel"
+		    assert_nz "$_date" "date"
+		    RETVAL="$dist_server/$_dist_dir/$_date/$_line"
+		    ;;
+
+		*)
+		    err "unrecognized toolchain spec: $_toolchain"
+		    ;;
+	    esac
+	    return
+	fi
+    done < "$_manifest_file"
+
+    err "couldn't find remote installer for '$_arch' in manifest"
+}
+
+extract_channel_and_date_from_toolchain() {
+    local _toolchain="$1"
+
+    case "$_toolchain" in
+	nightly-20[0-9][0-9]-[0-9][0-9]-[0-9][0-9] | \
+	beta-20[0-9][0-9]-[0-9][0-9]-[0-9][0-9] | \
+	stable-20[0-9][0-9]-[0-9][0-9]-[0-9][0-9] )
+	    local _channel="$(echo "$_toolchain" | cut -d- -f1)"
+	    local _date="$(echo "$_toolchain" | cut -d- -f2,3,4)"
+	    RETVAL_CHANNEL="$_channel"
+	    RETVAL_DATE="$_date"
+	    ;;
+
+	*)
+	    err "unrecognized toolchain spec: $_toolchain"
+	    ;;
+
+    esac
+}
+
+get_local_rust_manifest_name() {
+    local _toolchain="$1"
+
+    RETVAL="$manifests_dir/channel-rust-$_toolchain"
+}
+
+
+# Tools
 
 call_multirust() {
     "$multirust_cmd" "$@"
@@ -464,28 +1496,6 @@ check_sums() {
     need_ok "couldn't delete workdir '$_workdir'"
 
     return $_sum_retval
-}
-
-# Verifies that ~/.multirust exists and uses the correct format
-check_metadata_version() {
-    verbose_say "checking metadata version"
-
-    if [ ! -e "$multirust_dir" ]; then
-	verbose_say "creating .multirust directory at \`$multirust_dir\`"
-	mkdir -p "$multirust_dir"
-	need_ok "failed to create multirust directory"
-    fi
-
-    if [ ! -e "$version_file" ]; then
-	verbose_say "writing metadata version $metadata_version"
-	echo "$metadata_version" > "$version_file"
-    else
-	local _current_version="$(cat "$version_file")"
-	verbose_say "got metadata version $_current_version"
-	if [ "$_current_version" != "$metadata_version" ]; then
-	    err "metadata version is $_current_version, need $metadata_version. run \`multirust upgrade-data\`"
-	fi
-    fi
 }
 
 get_architecture() {
@@ -714,639 +1724,6 @@ download_and_check() {
     need_ok "couldn't delete workdir '$_workdir'"
 }
 
-get_local_rust_manifest_name() {
-    local _toolchain="$1"
-
-    RETVAL="$manifests_dir/channel-rust-$_toolchain"
-}
-
-download_manifest()  {
-    local _toolchain="$1"
-    local _name="$2"
-    local _remote_manifest="$3"
-    local _local_manifest="$4"
-
-    verbose_say "remote $_name manifest: $_remote_manifest"
-    verbose_say "local $_name manifest: $_local_manifest"
-
-    verbose_say "creating manifests dir '$manifests_dir'"
-    mkdir -p "$manifests_dir"
-    need_ok "couldn't create manifests dir"
-
-    say "downloading $_name manifest for '$_toolchain'"
-    download_and_check "$_remote_manifest" "$_local_manifest"
-}
-
-extract_channel_and_date_from_toolchain() {
-    local _toolchain="$1"
-
-    case "$_toolchain" in
-	nightly-20[0-9][0-9]-[0-9][0-9]-[0-9][0-9] | \
-	beta-20[0-9][0-9]-[0-9][0-9]-[0-9][0-9] | \
-	stable-20[0-9][0-9]-[0-9][0-9]-[0-9][0-9] )
-	    local _channel="$(echo "$_toolchain" | cut -d- -f1)"
-	    local _date="$(echo "$_toolchain" | cut -d- -f2,3,4)"
-	    RETVAL_CHANNEL="$_channel"
-	    RETVAL_DATE="$_date"
-	    ;;
-
-	*)
-	    err "unrecognized toolchain spec: $_toolchain"
-	    ;;
-
-    esac
-}
-
-download_rust_manifest() {
-    local _toolchain="$1"
-
-    case "$_toolchain" in
-	nightly | beta | stable )
-	    local _remote_rust_manifest="$dist_server/$rust_dist_dir/channel-rust-$_toolchain"
-	    ;;
-
-	nightly-* | beta-* | stable-* )
-	    extract_channel_and_date_from_toolchain "$_toolchain"
-	    local _channel="$RETVAL_CHANNEL"
-	    local _date="$RETVAL_DATE"
-	    assert_nz "$_channel" "channel"
-	    assert_nz "$_date" "date"
-	    local _remote_rust_manifest="$dist_server/$rust_dist_dir/$_date/channel-rust-$_channel"
-	    ;;
-
-	*)
-	    err "unrecognized toolchain spec: $_toolchain"
-	    ;;
-
-    esac
-
-    get_local_rust_manifest_name "$_toolchain"
-    local _local_rust_manifest="$RETVAL"
-    assert_nz "$_local_rust_manifest" "local rust manifest"
-
-    download_manifest "$_toolchain" "rust" "$_remote_rust_manifest" "$_local_rust_manifest"
-}
-
-get_remote_installer_location_from_manifest() {
-    local _toolchain="$1"
-    local _manifest_file="$2"
-    local _package_name="$3"
-    local _dist_dir="$4"
-
-    if [ ! -e "$_manifest_file" ]; then
-	err "manifest file '$_manifest_file' does not exist"
-    fi
-
-    get_architecture
-    local _arch="$RETVAL"
-    assert_nz "$_arch" "arch"
-
-    while read _line; do
-	# This regex checks for the version in addition to the package name because there
-	# are package names that are substrings of other packages, 'rust-docs' vs. 'rust'.
-	echo "$_line" | egrep "^$_package_name-(nightly|beta|alpha|[0-9]).*$_arch\.tar\.gz" > /dev/null
-	if [ $? = 0 ]; then
-	    case "$_toolchain" in
-		nightly | beta | stable )
-		    RETVAL="$dist_server/$_dist_dir/$_line"
-		    ;;
-
-		nightly-* | beta-* | stable-* )
-		    extract_channel_and_date_from_toolchain "$_toolchain"
-		    local _channel="$RETVAL_CHANNEL"
-		    local _date="$RETVAL_DATE"
-		    assert_nz "$_channel" "channel"
-		    assert_nz "$_date" "date"
-		    RETVAL="$dist_server/$_dist_dir/$_date/$_line"
-		    ;;
-
-		*)
-		    err "unrecognized toolchain spec: $_toolchain"
-		    ;;
-	    esac
-	    return
-	fi
-    done < "$_manifest_file"
-
-    err "couldn't find remote installer for '$_arch' in manifest"
-}
-
-determine_remote_rust_installer_location() {
-    local _toolchain="$1"
-
-    verbose_say "determining remote rust installer for '$_toolchain'"
-
-    case "$_toolchain" in
-	nightly | beta | stable | nightly-* | beta-* | stable-* )
-	    download_rust_manifest "$_toolchain"
-	    get_local_rust_manifest_name "$_toolchain"
-	    local _manifest_file="$RETVAL"
-	    assert_nz "$_manifest_file" "manifest file"
-	    get_remote_installer_location_from_manifest "$_toolchain" "$_manifest_file" $rust_package_name "$rust_dist_dir"
-	    return
-	    ;;
-
-	* )
-	    say "interpreting toolchain spec as explicit version"
-	    get_architecture
-	    local _arch="$RETVAL"
-	    assert_nz "$_arch" "arch"
-
-	    local _file_name="rust-$_toolchain-$_arch.tar.gz"
-	    RETVAL="$dist_server/$rust_dist_dir/$_file_name"
-	    return
-	    ;;
-    esac
-}
-
-get_toolchain_dir() {
-    local _toolchain="$1"
-
-    if [ ! -e "$toolchains_dir" ]; then
-	verbose_say "creating toolchains dir '$toolchains_dir'"
-	mkdir -p "$toolchains_dir"
-	need_ok "failed to make toolchain dir"
-    fi
-
-    RETVAL="$toolchains_dir/$_toolchain"
-}
-
-is_toolchain_installed() {
-    local _toolchain="$1"
-
-    verbose_say "looking for installed toolchain '$_toolchain'"
-
-    get_toolchain_dir "$_toolchain"
-    local _toolchain_dir="$RETVAL"
-    assert_nz "$_toolchain_dir" "toolchain dir"
-
-    if [ -e "$_toolchain_dir" ]; then
-	RETVAL=true
-	return
-    fi
-
-    RETVAL=false
-}
-
-install_toolchain() {
-    local _toolchain="$1"
-    local _installer="$2"
-    local _workdir="$3"
-
-    local _installer_dir="$_workdir/$(basename "$_installer" | sed s/.tar.gz$//)"
-
-    # Extract the toolchain
-    tar xzf "$_installer" -C "$_workdir"
-    if [ $? != 0 ]; then
-	verbose_say "failed to extract installer"
-	return 1
-    fi
-
-    # Install the toolchain
-    get_toolchain_dir "$_toolchain"
-    local _toolchain_dir="$RETVAL"
-    assert_nz "$_toolchain_dir" "toolchain dir"
-    verbose_say "installing toolchain to '$_toolchain_dir'"
-    say "installing toolchain for '$_toolchain'"
-
-    mkdir -p "$_toolchain_dir"
-    if [ $? != 0 ]; then
-	verbose_say "failed to create toolchain install dir"
-	return 1
-    fi
-
-    sh "$_installer_dir/install.sh" --prefix="$_toolchain_dir" --disable-ldconfig
-    if [ $? != 0 ]; then
-	rm -R "$_toolchain_dir"
-	verbose_say "failed to install toolchain"
-	return 1
-    fi
-
-}
-
-install_toolchain_from_dist() {
-    local _toolchain="$1"
-
-    if [ "$using_insecure_dist_server" = "true" ]; then
-	say "gpg available. disabling https (avoids rust#21293)"
-    fi
-
-    determine_remote_rust_installer_location "$_toolchain"
-    local _remote_rust_installer="$RETVAL"
-    assert_nz "$_remote_rust_installer" "remote rust installer"
-    verbose_say "remote rust installer location: $_remote_rust_installer"
-
-    local _rust_installer_name="$(basename "$_remote_rust_installer")"
-    assert_nz "$_rust_installer_name" "rust installer name"
-
-    # Create a temp directory to put the downloaded toolchain
-    make_temp_dir
-    local _workdir="$RETVAL"
-    assert_nz "$_workdir" "workdir"
-    verbose_say "download work dir: $_workdir"
-
-    # Download and install toolchain
-    say "downloading rust installer from '$_remote_rust_installer'"
-    download_and_check "$_remote_rust_installer" "$_workdir/$_rust_installer_name"
-
-    local _installer_file="$_workdir/$_rust_installer_name"
-    install_toolchain "$_toolchain" "$_installer_file" "$_workdir"
-    if [ $? != 0 ]; then
-	rm -R "$_workdir"
-	err "failed to install toolchain"
-    fi
-
-    # Remove this toolchain from the update list
-    if [ -e "$update_list_file" ]; then
-	verbose_say "removing $_toolchain from update list"
-	sed /^"$_toolchain"$/d "$update_list_file" > "$_workdir/newlist"
-	if [ $? != 0 ]; then
-	    rm -R "$_workdir"
-	    err "failed to modify update list"
-	fi
-	mv -f "$_workdir/newlist" "$update_list_file"
-	if [ $? != 0 ]; then
-	    rm -R "$_workdir"
-	    err "failed to modify update list"
-	fi
-    fi
-
-    # If this is from a release channel save the installer checksum for
-    # use in checking for updates later
-    case "$_toolchain" in
-	nightly | beta | stable )
-	    local _saved_sumfile="$channel_sums_dir/$_toolchain.sha256"
-	    verbose_say "saving checksums to $_saved_sumfile"
-	    mkdir -p "$channel_sums_dir"
-	    need_ok "failed to crate channel sums dir"
-	    cp "$_workdir/$_rust_installer_name.sha256" "$_saved_sumfile"
-	    need_ok "failed to save channel checksums"
-	    ;;
-    esac
-
-    rm -R "$_workdir"
-    need_ok "couldn't delete workdir"
-}
-
-install_toolchain_if_not_installed() {
-    local _toolchain="$1"
-
-    is_toolchain_installed "$_toolchain"
-    if [ "$RETVAL" = true ]; then
-	say "using existing install for '$_toolchain'"
-	return 0
-    fi
-
-    update_toolchain "$_toolchain"
-}
-
-update_toolchain() {
-    local _toolchain="$1"
-
-    is_toolchain_installed "$_toolchain"
-    local _is_installed="$RETVAL"
-
-    if [ "$_is_installed" = true ]; then
-	say "updating existing install for '$_toolchain'"
-    else
-	say "installing toolchain '$_toolchain'"
-    fi
-
-    install_toolchain_from_dist "$_toolchain"
-}
-
-check_custom_toolchain_name() {
-    local _toolchain="$1"
-
-    case "$_toolchain" in
-	nightly | beta | stable | \
-	nightly-20[0-9][0-9]-[0-9][0-9]-[0-9][0-9] | \
-	beta-20[0-9][0-9]-[0-9][0-9]-[0-9][0-9] | \
-	stable-20[0-9][0-9]-[0-9][0-9]-[0-9][0-9] )
-	    err "invalid custom toolchain name: '$_toolchain'"
-	    ;;
-    esac
-}
-
-# When updating custom toolchains always blow away whatever already
-# exists. If we don't do this then raw 'directory' toolchains that
-# don't use the installer could end up breaking things.
-maybe_remove_existing_custom_toolchain() {
-    local _toolchain="$1"
-
-    is_toolchain_installed "$_toolchain"
-    local _is_installed="$RETVAL"
-
-    if [ "$_is_installed" = true ]; then
-	say "removing existing toolchain before the update"
-	remove_toolchain "$_toolchain"
-    fi
-}
-
-update_custom_toolchain_from_dir_common() {
-    local _toolchain="$1"
-    local _custom_toolchain="$2"
-    local _create_link="$3"
-
-    check_custom_toolchain_name "$_toolchain"
-
-    if [ ! -e "$_custom_toolchain" ]; then
-	err "specified path does not exist $_custom_toolchain"
-    fi
-
-    local _expected_rustc="$_custom_toolchain/bin/rustc"
-    if [ ! -e "$_expected_rustc" ]; then
-	err "no rustc in custom toolchain at '$_expected_rustc'"
-    fi
-
-    maybe_remove_existing_custom_toolchain "$_toolchain"
-
-    get_toolchain_dir "$_toolchain"
-    local _toolchain_dir="$RETVAL"
-    local _custom_toolchain_dir="$(cd $_custom_toolchain && pwd)"
-
-    if [ "$_create_link" = true ]; then
-	say "creating link from $_custom_toolchain_dir"
-	ln -s "$_custom_toolchain_dir" "$_toolchain_dir"
-	need_ok "failed to create link to toolchain"
-    else
-	say "copying from $_custom_toolchain_dir"
-	cp -R "$_custom_toolchain_dir" "$_toolchain_dir"
-	need_ok "failed to copy toolchain direcotry"
-    fi
-}
-
-update_custom_toolchain_from_dir() {
-    local _toolchain="$1"
-    local _custom_toolchain="$2"
-    update_custom_toolchain_from_dir_common "$_toolchain" "$_custom_toolchain" false
-}
-
-update_custom_toolchain_from_link() {
-    local _toolchain="$1"
-    local _custom_toolchain="$2"
-    update_custom_toolchain_from_dir_common "$_toolchain" "$_custom_toolchain" false
-}
-
-update_custom_toolchain_from_installers() {
-    local _toolchain="$1"
-    local _installers="$2"
-
-    check_custom_toolchain_name "$_toolchain"
-
-    maybe_remove_existing_custom_toolchain "$_toolchain"
-
-    make_temp_dir
-    local _workdir="$RETVAL"
-    assert_nz "$_workdir" "workdir"
-    verbose_say "download work dir: $_workdir"
-
-    # Used for cleanup
-    get_toolchain_dir "$_toolchain"
-    local _toolchain_dir="$RETVAL"
-    assert_nz "$_toolchain_dir" "toolchain dir"
-
-    # Iterate through list of installers installing each
-    while [ -n "$_installers" ]; do
-
-	# Pull out the first installer
-	local _installer="$(echo "$_installers" | cut -f1 -d,)"
-	need_ok "failed to parse installer"
-	assert_nz "$_installer" "installer"
-
-	# Remove that installer from the list
-	local _next_installers="$(echo "$_installers" | sed s/[^,]*,//)"
-	need_ok "failed to shift installer list"
-
-	# If that was the last installer...
-	if [ "$_next_installers" = "$_installers" ]; then
-	    _next_installers=""
-	fi
-
-	_installers="$_next_installers"
-
-	case "$_installer" in
-	    *://* )
-		(cd "$_workdir" && curl -f -O "$_installer")
-		if [ $? != 0 ]; then
-		    rm -R "$_workdir"
-		    rm -Rf "$_toolchain_dir"
-		    err "failed to download toolchain"
-		fi
-		local _local_installer="$_workdir/$(basename "$_installer")"
-		;;
-
-	    * )
-		local _local_installer="$_installer"
-		;;
-	esac
-
-	install_toolchain "$_toolchain" "$_local_installer" "$_workdir"
-	if [ $? != 0 ]; then
-	    rm -R "$_workdir"
-	    rm -Rf "$_toolchain_dir"
-	    err "failed to install toolchain"
-	fi
-    done
-
-    rm -R "$_workdir"
-    need_ok "failed to remomve work dir"
-}
-
-remove_toolchain() {
-    local _toolchain="$1"
-
-    local _toolchain_dir="$toolchains_dir/$_toolchain"
-
-    if [ -e "$_toolchain_dir" ]; then
-	verbose_say "removing directory '$_toolchain_dir'"
-	# Need to use -f because it contains Cargo's git directories
-	rm -Rf "$_toolchain_dir"
-	need_ok "failed to remove toolchain"
-	say "toolchain '$_toolchain' uninstalled"
-    else
-	say "no toolchain installed for '$_toolchain'"
-    fi
-}
-
-find_default() {
-    if [ ! -e "$default_file" ]; then
-	err 'no default toolchain configured. run `multirust help default`'
-    fi
-
-    local _default="$(cat "$default_file")"
-    assert_nz "$_default" "default file is empty"
-
-    get_toolchain_dir "$_default"
-    local _sysroot="$RETVAL"
-    assert_nz "$_sysroot" "sysroot"
-
-    if [ ! -e "$_sysroot" ]; then
-	err "toolchain '$_default' not installed. run \`multirust update $_default\` to install"
-    fi
-
-    RETVAL_TOOLCHAIN="$_default"
-    RETVAL_SYSROOT="$_sysroot"
-}
-
-find_override() {
-    if [ ! -e "$override_db" ]; then
-	return 1
-    fi
-
-    local _dir="$(pwd)"
-    assert_nz "$_dir" "empty starting dir"
-
-    # Go up the directory hierarchy looking for overrides
-    while [ "$_dir" != "/" -a "$_dir" != "." ]; do
-	while read _line; do
-	    local _ovrdir="$(echo "$_line" | cut -d $delim -f1)"
-	    need_ok "extracting record from db failed"
-	    assert_nz "$_ovrdir" "empty dir in override db"
-	    local _toolchain="$(echo "$_line" | cut -d $delim -f2)"
-	    need_ok "extracting record from db failed"
-	    assert_nz "$_toolchain" "empty toolchain in override db"
-
-	    if [ "$_dir" = "$_ovrdir" ]; then
-		RETVAL_OVRDIR="$_ovrdir"
-		RETVAL_TOOLCHAIN="$_toolchain"
-		get_toolchain_dir "$_toolchain"
-		RETVAL_SYSROOT="$RETVAL"
-		if [ ! -e "$RETVAL_SYSROOT" ]; then
-		    err "toolchain '$_toolchain' not installed. run \`multirust update $_toolchain\` to install"
-		fi
-		return
-	    fi
-	done < "$override_db"
-
-	local _dir="$(dirname $_dir)"
-    done
-
-    return 1
-}
-
-find_override_toolchain_or_default() {
-    if find_override; then
-	RETVAL="$RETVAL_TOOLCHAIN"
-	return
-    fi
-
-    find_default
-    RETVAL="$RETVAL_TOOLCHAIN"
-}
-
-print_override_toolchain_or_default() {
-    find_override_toolchain_or_default
-    echo "$RETVAL"
-}
-
-print_toolchain_sysroot() {
-    local _toolchain="$1"
-
-    get_toolchain_dir "$_toolchain"
-    echo "$RETVAL"
-}
-
-set_default() {
-    local _toolchain="$1"
-
-    make_temp
-    local _workfile="$RETVAL"
-    assert_nz "$_workfile" "workfile"
-
-    echo "$_toolchain" > "$_workfile"
-    if [ $? != 0 ]; then
-	rm -R "$_workfile"
-	err "couldn't write default toolchain to tempfile"
-    fi
-
-    mv -f "$_workfile" "$default_file"
-    if [ $? != 0 ]; then
-	rm -R "$_workfile"
-	err "couldn't set default toolchain"
-    fi
-
-    say "default toolchain set to '$_toolchain'"
-}
-
-set_override() {
-    local _toolchain="$1"
-
-    local _override_dir="$(pwd)"
-    assert_nz "$_override_dir" "empty pwd?"
-
-    # Escape forward-slashes
-    local _escaped_override_dir=`echo "$_override_dir" | sed s/\\\//\\\\\\\\\\\//g`
-
-    make_temp
-    local _workfile="$RETVAL"
-    assert_nz "$_workfile" "workfile"
-
-    # Copy the current db to a new file, removing any existing override
-    if [ -e "$override_db" ]; then
-	# Escape the tab because OS X sed won't
-	sed "/^$_escaped_override_dir$delim/d" "$override_db" > "$_workfile"
-	if [ $? != 0 ]; then
-	    rm -R "$_workfile"
-	    err "unable to edit override db"
-	fi
-    fi
-
-    # Append the new override
-    echo "$_override_dir$delim$_toolchain" >> "$_workfile"
-    if [ $? != 0 ]; then
-	rm -R "$_workfile"
-	err "unable to edit override db"
-    fi
-
-    # Move it back to the database
-    mv -f "$_workfile" "$override_db"
-    need_ok "unable to edit override db"
-
-    say "override toolchain for '$_override_dir' set to '$_toolchain'"
-}
-
-remove_override() {
-    local _override_dir="$(pwd)"
-    assert_nz "$_override_dir" "empty pwd?"
-
-    # Escape forward-slashes
-    local _escaped_override_dir=`echo "$_override_dir" | sed s/\\\//\\\\\\\\\\\//g`
-
-    make_temp
-    local _workfile="$RETVAL"
-    assert_nz "$_workfile" "workfile"
-
-    # Check if the override exists
-    local _have_override=false
-    if [ -e "$override_db" ]; then
-	# Get an actual tab character because grep doesn't interpret \t
-	egrep "^$_escaped_override_dir$delim" "$override_db" > /dev/null
-	if [ $? = 0 ]; then
-	    local _have_override=true
-	fi
-    fi
-    if [ $_have_override = false ]; then
-	say "no override for current directory '$_override_dir'"
-	return
-    fi
-
-    # Copy the current db to a new file, removing any existing override
-    if [ -e "$override_db" ]; then
-	sed "/^$_escaped_override_dir$delim/d" "$override_db" > "$_workfile"
-	if [ $? != 0 ]; then
-	    rm -R "$_workfile"
-	    err "unable to edit override db"
-	fi
-    fi
-
-    # Move it back to the database
-    mv -f "$_workfile" "$override_db"
-    need_ok "unable to edit override db"
-
-    say "override toolchain for '$_override_dir' removed"
-}
-
 push_toolchain_ldpath() {
     local _toolchain="$1"
 
@@ -1370,426 +1747,8 @@ pop_toolchain_ldpath() {
     export DYLD_LIBRARY_PATH
 }
 
-show_default() {
-    if find_default; then
-	local _toolchain="$RETVAL_TOOLCHAIN"
-	local _sysroot="$RETVAL_SYSROOT"
 
-	say "default toolchain: $_toolchain"
-	say "default location: $_sysroot"
-
-	push_toolchain_ldpath "$_toolchain"
-
-	echo
-
-	"$_sysroot/bin/rustc" --version
-	"$_sysroot/bin/cargo" --version
-
-	pop_toolchain_ldpath
-    else
-	say "no default"
-    fi
-}
-
-show_override() {
-    if find_override; then
-	local _ovrdir="$RETVAL_OVRDIR"
-	local _toolchain="$RETVAL_TOOLCHAIN"
-	local _sysroot="$RETVAL_SYSROOT"
-
-	say "override directory: $_ovrdir"
-	say "override toolchain: $_toolchain"
-	say "override location: $_sysroot"
-
-	push_toolchain_ldpath "$_toolchain"
-
-	echo
-
-	"$_sysroot/bin/rustc" --version
-	"$_sysroot/bin/cargo" --version
-
-	pop_toolchain_ldpath
-    else
-	say "no override"
-    fi
-}
-
-list_overrides() {
-    if [ -e "$override_db" ]; then
-	local _overrides="$(cat "$override_db" | sort)"
-	if [ -n "$_overrides" ]; then
-	    echo "$_overrides"
-	else
-	    say "no overrides"
-	fi
-    else
-	say "no overrides"
-    fi
-}
-
-list_toolchains() {
-    if [ -e "$toolchains_dir" ]; then
-	local _toolchains="$(cd "$toolchains_dir" && ls | sort)"
-	if [ -n "$_toolchains" ]; then
-	    echo "$_toolchains"
-	else
-	    say "no installed toolchains"
-	fi
-    else
-	say "no installed toolchains"
-    fi
-}
-
-delete_data() {
-    if [ ! "$flag_yes" = true ]; then
-	read -p "This will delete all toolchains, overrides, aliases, and other multirust data associated with this user. Continue? (y/n) " yn
-
-	case "$yn" in
-	    [Nn] )
-		exit 0
-		;;
-	esac
-    fi
-
-    # Need -f for Cargo's write-protected git directories
-    rm -Rf "$multirust_dir"
-    need_ok "failed to delete '$multirust_dir'"
-}
-
-maybe_print_update_notice_for_toolchain() {
-    local _toolchain="$1"
-
-    if [ -e "$update_list_file" ]; then
-	if grep -q "$_toolchain" "$update_list_file" ; then
-	    say "a new version of '$_toolchain' is available. run \`multirust update $_toolchain\` to install it"
-	fi
-    fi
-}
-
-maybe_check_for_updates_async() {
-    local _now="$(date +%F)"
-    local _need_update=true
-    if [ -e "$update_stamp_file" ]; then
-	local _update_time="$(cat "$update_stamp_file")"
-	if [ "$_now" = "$_update_time" ]; then
-	    local _need_update=false
-	fi
-    fi
-
-    # This is so the test runner can disable this non-deterministic
-    # behavior and avoid tripping over other processes writing to .multirust
-    if [ -n "${MULTIRUST_DISABLE_UPDATE_CHECKS-}" ]; then
-	verbose_say "update checks disabled"
-	return
-    fi
-
-    if [ "$_need_update" = true ]; then
-	verbose_say "update timestamp out of date. checking for updates"
-	echo "$_now" > "$update_stamp_file"
-	# Call multirust recursively in background to look for updates
-	call_multirust ctl check-updates-sync > /dev/null 2>&1 &
-    else
-	verbose_say "update timestamp up to date. not checking for updates"
-    fi
-}
-
-# Checks whether the checksums of the available nightly/beta/stable installers differ
-# from the installed toolchains, and if so adds the channel to the update list so
-# later invocations of multirust can notify the user.
-check_for_updates_sync() {
-    for _channel in nightly beta stable; do
-	if [ -e "$update_list_file" ]; then
-	    if grep -q "$_channel" "$update_list_file"; then
-		verbose_say "channel '$_channel' already needs update. skipping"
-		continue
-	    fi
-	fi
-
-	determine_remote_rust_installer_location "$_channel"
-	local _remote_rust_installer="$RETVAL"
-	assert_nz "$_remote_rust_installer" "remote rust installer"
-
-	local _local_sumfile="$channel_sums_dir/$_channel.sha256"
-	local _remote_sumfile="$_remote_rust_installer.sha256"
-	verbose_say "local sumfile: $_local_sumfile"
-	verbose_say "remote sumfile: $_remote_sumfile"
-	if [ -e "$_local_sumfile" ]; then
-	    verbose_say "checking for updates on $_channel"
-	    make_temp_dir
-	    local _workdir="$RETVAL"
-	    assert_nz "$_workdir" "workdir"
-	    verbose_say "update work dir: $_workdir"
-
-	    (cd "$_workdir" && curl -f -O "$_remote_sumfile" > /dev/null 2>&1)
-	    if [ $? != 0 ]; then
-		verbose_say "couldn't download checksums for $_channel"
-	    else
-		local _local_sum="$(cat "$_local_sumfile")"
-		local _new_sum="$(cat "$_workdir/$(basename "$_remote_sumfile")")"
-
-		if [ "$_local_sum" != "$_new_sum" ]; then
-		    if [ -e "$update_list_file" ]; then
-			local _newlist="$_workdir/newlist"
-			cp "$update_list_file" "$_newlist"
-			if [ $? != 0 ]; then
-			    rm -R "$_workdir"
-			    err "couldn't delete copy update list"
-			fi
-
-			if ! grep -q "$_channel" "$_newlist"; then
-			    verbose_say "adding $_channel to existing update list"
-			    echo "$_channel" >> "$_newlist"
-			    if [ $? != 0 ]; then
-				rm -R "$_workdir"
-				err "couldn't append update list"
-			    fi
-			    mv -f "$_newlist" "$update_list_file"
-			    if [ $? != 0 ]; then
-				rm -R "$_workdir"
-				err "couldn't replace update list"
-			    fi
-			else
-			    # This should be rare since we've already avoided doing the download
-			    # if the channel was in the list. But could be possible with races
-			    # in multiple invocations.
-			    verbose_say "channel $_channel already in update list"
-			fi
-		    else # Update list does not exist
-			verbose_say "adding $_channel to new update list"
-			local _newlist="$_workdir/newlist"
-			echo "$_channel" > "$_newlist"
-			if [ $? != 0 ]; then
-			    rm -R "$_workdir"
-			    err "couldn't append update list"
-			fi
-			mv -f "$_newlist" "$update_list_file"
-			if [ $? != 0 ]; then
-			    rm -R "$_workdir"
-			    err "couldn't replace update list"
-			fi
-		    fi
-		fi
-
-		rm -R "$_workdir"
-		need_ok "couldn't delete workdir"
-	    fi
-	else # Channel not installed
-	    verbose_say "channel '$_channel' not installed. not checking for updates"
-	fi
-    done
-}
-
-print_home() {
-    echo "$multirust_dir"
-}
-
-# Disable https if we can gpg because cloudfront often gets our files out of sync
-if [ "$dist_server" = "$default_dist_server" ]; then
-    if command -v gpg > /dev/null 2>&1; then
-	dist_server="$insecure_dist_server"
-	using_insecure_dist_server=true
-    fi
-fi
-
-# Check for some global options
-for opt in "$@"; do
-    case "$opt" in
-	--verbose)
-	    flag_verbose=true
-	    ;;
-
-	-y | --yes)
-	    flag_yes=true
-	    ;;
-
-	--version)
-	    echo "multirust $version ($commit_version)"
-	    exit 0
-	    ;;
-
-    esac
-done
-
-if [ -n "${MULTIRUST_VERBOSE-}" ]; then
-    flag_verbose=true
-fi
-
-# Make sure our data is in the correct format
-check_metadata_version
-
-main() {
-    local _cmd_arg="${1-}"
-
-    case "$_cmd_arg" in
-	default | override )
-	    # For distribution builds install only if not installed
-	    # For custom builds always install toolchain
-	    handle_common_install_args install_toolchain_if_not_installed "$@"
-
-	    # Run either set_default or set_override to turn it on
-	    toolchain="${2-}"
-	    "set_$_cmd_arg" "$toolchain"
-	    ;;
-
-	update)
-	    # For distribution builds always install
-	    # For custom builds always install toolchain
-	    handle_common_install_args update_toolchain "$@"
-	    ;;
-
-	show-default)
-	    show_default
-	    ;;
-
-	show-override)
-	    show_override
-	    ;;
-
-	list-overrides)
-	    list_overrides
-	    ;;
-
-	list-toolchains)
-	    list_toolchains
-	    ;;
-
-	remove-override)
-	    remove_override
-	    ;;
-
-	remove-toolchain)
-	    if [ -z "${2-}" ]; then
-		err 'unspecified toolchain. try `multirust help remove-toolchain`'
-	    fi
-	    remove_toolchain "$2"
-	    ;;
-
-	delete-data)
-	    delete_data
-	    ;;
-
-	upgrade-data)
-	    err "unimplemented"
-	    ;;
-
-	ctl)
-	    case "${2-}" in
-		home)
-		    print_home
-		    ;;
-
-		override-toolchain)
-		    print_override_toolchain_or_default
-		    ;;
-
-		toolchain-sysroot)
-		    if [ -z "${3-}" ]; then
-			err "unspecified toolchain"
-		    fi
-		    print_toolchain_sysroot "$3"
-		    ;;
-
-		check-updates)
-		    if [ -z "${3-}" ]; then
-			err "unspecified toolchain"
-		    fi
-		    maybe_print_update_notice_for_toolchain "$3"
-		    maybe_check_for_updates_async
-		    ;;
-
-		check-updates-sync)
-		    check_for_updates_sync
-		    ;;
-
-		"")
-		    err 'empty ctl command. try `multirust help ctl`'
-		    ;;
-
-		*)
-		    err "unrecognized ctl comand \`$2\`. try \`multirust help ctl\`"
-		    ;;
-	    esac
-	    ;;
-
-	help)
-	    case "${2-}" in
-		"" )
-		    display_topic help
-		    ;;
-		* )
-		    display_topic help-"${2-}"
-		    ;;
-	    esac
-	    ;;
-
-	*)
-	    display_topic help
-	    ;;
-    esac
-}
-
-# Run commands for --installer, --copy-local, --link-local
-handle_common_install_args() {
-    local _else_cmd="$1"
-    local _cmd="$2"
-
-    local _toolchain_arg="${3-}"
-
-    if [ -z "$_toolchain_arg" ]; then
-	err "unspecified $_cmd toolchain. try \`multirust help $_cmd\`"
-    fi
-
-    local _option_name_arg="${4-}"
-    local _option_value_arg="${5-}"
-
-    verbose_say "cmd: $_cmd"
-    verbose_say "toolchain: $_toolchain_arg"
-    verbose_say "option_name: $_option_name_arg"
-    verbose_say "option_value: $_option_value_arg"
-
-    case "$_option_name_arg" in
-	--installer )
-	    handle_install_option "$_cmd" "installer" \
-		update_custom_toolchain_from_installers \
-		"$_toolchain_arg" "$_option_value_arg"
-	    ;;
-
-	--copy-local )
-	    handle_install_option "$_cmd" "toolchain path" \
-		update_custom_toolchain_from_dir \
-		"$_toolchain_arg" "$_option_value_arg"
-	    ;;
-
-	--link-local )
-	    handle_install_option "$_cmd" "toolchain path" \
-		update_custom_toolchain_from_link \
-		"$_toolchain_arg" "$_option_value_arg"
-	    ;;
-
-	"" )
-	    "$_else_cmd" "$_toolchain_arg"
-	    ;;
-
-	*)
-	    err "unrecognized option $_option_name_arg"
-	    ;;
-    esac
-}
-
-handle_install_option() {
-    local _cmd="$1"
-    local _what="$2"
-    local _update_cmd="$3"
-    local _toolchain="$4"
-
-    local _install_source_arg="$5"
-
-    if [ -z "$_install_source_arg" ]; then
-	err "unspecified $_what. try \`multirust help $_cmd\`"
-    fi
-
-    "$_update_cmd" "$_toolchain" "$_install_source_arg"
-}
+# The help system
 
 display_topic() {
     local _topic="$1"
@@ -1822,5 +1781,60 @@ extract_topic_from_source() {
 
     return 0
 }
+
+
+# Standard utilities
+
+say() {
+    echo "multirust: $1"
+}
+
+verbose_say() {
+    if [ "$flag_verbose" = true ]; then
+	say "$1"
+    fi
+}
+
+err() {
+    say "$1" >&2
+    exit 1
+}
+
+need_cmd() {
+    if ! command -v $1 > /dev/null 2>&1
+    then err "need $1"
+    fi
+}
+
+need_ok() {
+    if [ $? != 0 ]; then err "$1"; fi
+}
+
+assert_nz() {
+    if [ -z "$1" ]; then err "assert_nz $2"; fi
+}
+
+# Ensure various commands exist
+need_cmd dirname
+need_cmd basename
+need_cmd mkdir
+need_cmd cat
+need_cmd curl
+need_cmd mktemp
+need_cmd rm
+need_cmd egrep
+need_cmd grep
+need_cmd file
+need_cmd uname
+need_cmd tar
+need_cmd sed
+need_cmd sh
+need_cmd mv
+need_cmd awk
+need_cmd cut
+need_cmd sort
+need_cmd shasum
+need_cmd date
+need_cmd head
 
 main "$@"
