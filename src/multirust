@@ -757,7 +757,7 @@ update_custom_toolchain_from_dir() {
 update_custom_toolchain_from_link() {
     local _toolchain="$1"
     local _custom_toolchain="$2"
-    update_custom_toolchain_from_dir_common "$_toolchain" "$_custom_toolchain" false
+    update_custom_toolchain_from_dir_common "$_toolchain" "$_custom_toolchain" true
 }
 
 update_custom_toolchain_from_dir_common() {
