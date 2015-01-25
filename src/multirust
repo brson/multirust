@@ -401,11 +401,8 @@ Mve696B5tlHyc1KxjHR6w9GRsh4=
 check_metadata_version() {
     verbose_say "checking metadata version"
 
-    if [ ! -e "$multirust_dir" ]; then
-	verbose_say "creating .multirust directory at \`$multirust_dir\`"
-	mkdir -p "$multirust_dir"
-	need_ok "failed to create multirust directory"
-    fi
+    test -e "$multirust_dir"
+    need_ok "multirust_dir must exist"
 
     if [ ! -e "$version_file" ]; then
 	verbose_say "writing metadata version $metadata_version"
@@ -1059,235 +1056,6 @@ remove_override() {
 }
 
 
-# Management of data in the MULTIRUST_HOME directory
-
-delete_data() {
-    if [ ! "$flag_yes" = true ]; then
-	read -p "This will delete all toolchains, overrides, aliases, and other multirust data associated with this user. Continue? (y/n) " yn
-
-	case "$yn" in
-	    [Nn] )
-		exit 0
-		;;
-	esac
-    fi
-
-    # Need -f for Cargo's write-protected git directories
-    rm -Rf "$multirust_dir"
-    need_ok "failed to delete '$multirust_dir'"
-}
-
-
-# Reporting
-
-show_default() {
-    if find_default; then
-	local _toolchain="$RETVAL_TOOLCHAIN"
-	local _sysroot="$RETVAL_SYSROOT"
-
-	say "default toolchain: $_toolchain"
-	say "default location: $_sysroot"
-
-	push_toolchain_ldpath "$_toolchain"
-
-	echo
-
-	"$_sysroot/bin/rustc" --version
-	"$_sysroot/bin/cargo" --version
-
-	pop_toolchain_ldpath
-    else
-	say "no default"
-    fi
-}
-
-show_override() {
-    if find_override; then
-	local _ovrdir="$RETVAL_OVRDIR"
-	local _toolchain="$RETVAL_TOOLCHAIN"
-	local _sysroot="$RETVAL_SYSROOT"
-
-	say "override directory: $_ovrdir"
-	say "override toolchain: $_toolchain"
-	say "override location: $_sysroot"
-
-	push_toolchain_ldpath "$_toolchain"
-
-	echo
-
-	"$_sysroot/bin/rustc" --version
-	"$_sysroot/bin/cargo" --version
-
-	pop_toolchain_ldpath
-    else
-	say "no override"
-    fi
-}
-
-list_overrides() {
-    if [ -e "$override_db" ]; then
-	local _overrides="$(cat "$override_db" | sort)"
-	if [ -n "$_overrides" ]; then
-	    echo "$_overrides"
-	else
-	    say "no overrides"
-	fi
-    else
-	say "no overrides"
-    fi
-}
-
-list_toolchains() {
-    if [ -e "$toolchains_dir" ]; then
-	local _toolchains="$(cd "$toolchains_dir" && ls | sort)"
-	if [ -n "$_toolchains" ]; then
-	    echo "$_toolchains"
-	else
-	    say "no installed toolchains"
-	fi
-    else
-	say "no installed toolchains"
-    fi
-}
-
-# The multirustproxy control interface
-
-ctl_print_override_toolchain_or_default() {
-    find_override_toolchain_or_default
-    echo "$RETVAL"
-}
-
-ctl_print_toolchain_sysroot() {
-    local _toolchain="$1"
-
-    get_toolchain_dir "$_toolchain"
-    echo "$RETVAL"
-}
-
-ctl_maybe_print_update_notice_for_toolchain() {
-    local _toolchain="$1"
-
-    if [ -e "$update_list_file" ]; then
-	if grep -q "$_toolchain" "$update_list_file" ; then
-	    say "a new version of '$_toolchain' is available. run \`multirust update $_toolchain\` to install it"
-	fi
-    fi
-}
-
-ctl_maybe_check_for_updates_async() {
-    local _now="$(date +%F)"
-    local _need_update=true
-    if [ -e "$update_stamp_file" ]; then
-	local _update_time="$(cat "$update_stamp_file")"
-	if [ "$_now" = "$_update_time" ]; then
-	    local _need_update=false
-	fi
-    fi
-
-    # This is so the test runner can disable this non-deterministic
-    # behavior and avoid tripping over other processes writing to .multirust
-    if [ -n "${MULTIRUST_DISABLE_UPDATE_CHECKS-}" ]; then
-	verbose_say "update checks disabled"
-	return
-    fi
-
-    if [ "$_need_update" = true ]; then
-	verbose_say "update timestamp out of date. checking for updates"
-	echo "$_now" > "$update_stamp_file"
-	# Call multirust recursively in background to look for updates
-	call_multirust ctl check-updates-sync > /dev/null 2>&1 &
-    else
-	verbose_say "update timestamp up to date. not checking for updates"
-    fi
-}
-
-# Checks whether the checksums of the available nightly/beta/stable installers differ
-# from the installed toolchains, and if so adds the channel to the update list so
-# later invocations of multirust can notify the user.
-ctl_check_for_updates_sync() {
-    for _channel in nightly beta stable; do
-	if [ -e "$update_list_file" ]; then
-	    if grep -q "$_channel" "$update_list_file"; then
-		verbose_say "channel '$_channel' already needs update. skipping"
-		continue
-	    fi
-	fi
-
-	determine_remote_rust_installer_location "$_channel"
-	local _remote_rust_installer="$RETVAL"
-	assert_nz "$_remote_rust_installer" "remote rust installer"
-
-	local _local_sumfile="$channel_sums_dir/$_channel.sha256"
-	local _remote_sumfile="$_remote_rust_installer.sha256"
-	verbose_say "local sumfile: $_local_sumfile"
-	verbose_say "remote sumfile: $_remote_sumfile"
-	if [ -e "$_local_sumfile" ]; then
-	    verbose_say "checking for updates on $_channel"
-	    make_temp_dir
-	    local _workdir="$RETVAL"
-	    assert_nz "$_workdir" "workdir"
-	    verbose_say "update work dir: $_workdir"
-
-	    (cd "$_workdir" && curl -f -O "$_remote_sumfile" > /dev/null 2>&1)
-	    if [ $? != 0 ]; then
-		verbose_say "couldn't download checksums for $_channel"
-	    else
-		local _local_sum="$(cat "$_local_sumfile")"
-		local _new_sum="$(cat "$_workdir/$(basename "$_remote_sumfile")")"
-
-		if [ "$_local_sum" != "$_new_sum" ]; then
-		    if [ -e "$update_list_file" ]; then
-			local _newlist="$_workdir/newlist"
-			cp "$update_list_file" "$_newlist"
-			if [ $? != 0 ]; then
-			    rm -R "$_workdir"
-			    err "couldn't delete copy update list"
-			fi
-
-			if ! grep -q "$_channel" "$_newlist"; then
-			    verbose_say "adding $_channel to existing update list"
-			    echo "$_channel" >> "$_newlist"
-			    if [ $? != 0 ]; then
-				rm -R "$_workdir"
-				err "couldn't append update list"
-			    fi
-			    mv -f "$_newlist" "$update_list_file"
-			    if [ $? != 0 ]; then
-				rm -R "$_workdir"
-				err "couldn't replace update list"
-			    fi
-			else
-			    # This should be rare since we've already avoided doing the download
-			    # if the channel was in the list. But could be possible with races
-			    # in multiple invocations.
-			    verbose_say "channel $_channel already in update list"
-			fi
-		    else # Update list does not exist
-			verbose_say "adding $_channel to new update list"
-			local _newlist="$_workdir/newlist"
-			echo "$_channel" > "$_newlist"
-			if [ $? != 0 ]; then
-			    rm -R "$_workdir"
-			    err "couldn't append update list"
-			fi
-			mv -f "$_newlist" "$update_list_file"
-			if [ $? != 0 ]; then
-			    rm -R "$_workdir"
-			    err "couldn't replace update list"
-			fi
-		    fi
-		fi
-
-		rm -R "$_workdir"
-		need_ok "couldn't delete workdir"
-	    fi
-	else # Channel not installed
-	    verbose_say "channel '$_channel' not installed. not checking for updates"
-	fi
-    done
-}
-
-
 # Manifest interface
 
 determine_remote_rust_installer_location() {
@@ -1433,6 +1201,236 @@ get_local_rust_manifest_name() {
     local _toolchain="$1"
 
     RETVAL="$manifests_dir/channel-rust-$_toolchain"
+}
+
+
+# Reporting
+
+show_default() {
+    if find_default; then
+	local _toolchain="$RETVAL_TOOLCHAIN"
+	local _sysroot="$RETVAL_SYSROOT"
+
+	say "default toolchain: $_toolchain"
+	say "default location: $_sysroot"
+
+	push_toolchain_ldpath "$_toolchain"
+
+	echo
+
+	"$_sysroot/bin/rustc" --version
+	"$_sysroot/bin/cargo" --version
+
+	pop_toolchain_ldpath
+    else
+	say "no default"
+    fi
+}
+
+show_override() {
+    if find_override; then
+	local _ovrdir="$RETVAL_OVRDIR"
+	local _toolchain="$RETVAL_TOOLCHAIN"
+	local _sysroot="$RETVAL_SYSROOT"
+
+	say "override directory: $_ovrdir"
+	say "override toolchain: $_toolchain"
+	say "override location: $_sysroot"
+
+	push_toolchain_ldpath "$_toolchain"
+
+	echo
+
+	"$_sysroot/bin/rustc" --version
+	"$_sysroot/bin/cargo" --version
+
+	pop_toolchain_ldpath
+    else
+	say "no override"
+    fi
+}
+
+list_overrides() {
+    if [ -e "$override_db" ]; then
+	local _overrides="$(cat "$override_db" | sort)"
+	if [ -n "$_overrides" ]; then
+	    echo "$_overrides"
+	else
+	    say "no overrides"
+	fi
+    else
+	say "no overrides"
+    fi
+}
+
+list_toolchains() {
+    if [ -e "$toolchains_dir" ]; then
+	local _toolchains="$(cd "$toolchains_dir" && ls | sort)"
+	if [ -n "$_toolchains" ]; then
+	    echo "$_toolchains"
+	else
+	    say "no installed toolchains"
+	fi
+    else
+	say "no installed toolchains"
+    fi
+}
+
+
+# Management of data in the MULTIRUST_HOME directory
+
+delete_data() {
+    if [ ! "$flag_yes" = true ]; then
+	read -p "This will delete all toolchains, overrides, aliases, and other multirust data associated with this user. Continue? (y/n) " yn
+
+	case "$yn" in
+	    [Nn] )
+		exit 0
+		;;
+	esac
+    fi
+
+    # Need -f for Cargo's write-protected git directories
+    rm -Rf "$multirust_dir"
+    need_ok "failed to delete '$multirust_dir'"
+}
+
+
+# The multirustproxy control interface
+
+ctl_print_override_toolchain_or_default() {
+    find_override_toolchain_or_default
+    echo "$RETVAL"
+}
+
+ctl_print_toolchain_sysroot() {
+    local _toolchain="$1"
+
+    get_toolchain_dir "$_toolchain"
+    echo "$RETVAL"
+}
+
+ctl_maybe_print_update_notice_for_toolchain() {
+    local _toolchain="$1"
+
+    if [ -e "$update_list_file" ]; then
+	if grep -q "$_toolchain" "$update_list_file" ; then
+	    say "a new version of '$_toolchain' is available. run \`multirust update $_toolchain\` to install it"
+	fi
+    fi
+}
+
+ctl_maybe_check_for_updates_async() {
+    local _now="$(date +%F)"
+    local _need_update=true
+    if [ -e "$update_stamp_file" ]; then
+	local _update_time="$(cat "$update_stamp_file")"
+	if [ "$_now" = "$_update_time" ]; then
+	    local _need_update=false
+	fi
+    fi
+
+    # This is so the test runner can disable this non-deterministic
+    # behavior and avoid tripping over other processes writing to .multirust
+    if [ -n "${MULTIRUST_DISABLE_UPDATE_CHECKS-}" ]; then
+	verbose_say "update checks disabled"
+	return
+    fi
+
+    if [ "$_need_update" = true ]; then
+	verbose_say "update timestamp out of date. checking for updates"
+	echo "$_now" > "$update_stamp_file"
+	# Call multirust recursively in background to look for updates
+	call_multirust ctl check-updates-sync > /dev/null 2>&1 &
+    else
+	verbose_say "update timestamp up to date. not checking for updates"
+    fi
+}
+
+# Checks whether the checksums of the available nightly/beta/stable installers differ
+# from the installed toolchains, and if so adds the channel to the update list so
+# later invocations of multirust can notify the user.
+ctl_check_for_updates_sync() {
+    for _channel in nightly beta stable; do
+	if [ -e "$update_list_file" ]; then
+	    if grep -q "$_channel" "$update_list_file"; then
+		verbose_say "channel '$_channel' already needs update. skipping"
+		continue
+	    fi
+	fi
+
+	determine_remote_rust_installer_location "$_channel"
+	local _remote_rust_installer="$RETVAL"
+	assert_nz "$_remote_rust_installer" "remote rust installer"
+
+	local _local_sumfile="$channel_sums_dir/$_channel.sha256"
+	local _remote_sumfile="$_remote_rust_installer.sha256"
+	verbose_say "local sumfile: $_local_sumfile"
+	verbose_say "remote sumfile: $_remote_sumfile"
+	if [ -e "$_local_sumfile" ]; then
+	    verbose_say "checking for updates on $_channel"
+	    make_temp_dir
+	    local _workdir="$RETVAL"
+	    assert_nz "$_workdir" "workdir"
+	    verbose_say "update work dir: $_workdir"
+
+	    (cd "$_workdir" && curl -f -O "$_remote_sumfile" > /dev/null 2>&1)
+	    if [ $? != 0 ]; then
+		verbose_say "couldn't download checksums for $_channel"
+	    else
+		local _local_sum="$(cat "$_local_sumfile")"
+		local _new_sum="$(cat "$_workdir/$(basename "$_remote_sumfile")")"
+
+		if [ "$_local_sum" != "$_new_sum" ]; then
+		    if [ -e "$update_list_file" ]; then
+			local _newlist="$_workdir/newlist"
+			cp "$update_list_file" "$_newlist"
+			if [ $? != 0 ]; then
+			    rm -R "$_workdir"
+			    err "couldn't delete copy update list"
+			fi
+
+			if ! grep -q "$_channel" "$_newlist"; then
+			    verbose_say "adding $_channel to existing update list"
+			    echo "$_channel" >> "$_newlist"
+			    if [ $? != 0 ]; then
+				rm -R "$_workdir"
+				err "couldn't append update list"
+			    fi
+			    mv -f "$_newlist" "$update_list_file"
+			    if [ $? != 0 ]; then
+				rm -R "$_workdir"
+				err "couldn't replace update list"
+			    fi
+			else
+			    # This should be rare since we've already avoided doing the download
+			    # if the channel was in the list. But could be possible with races
+			    # in multiple invocations.
+			    verbose_say "channel $_channel already in update list"
+			fi
+		    else # Update list does not exist
+			verbose_say "adding $_channel to new update list"
+			local _newlist="$_workdir/newlist"
+			echo "$_channel" > "$_newlist"
+			if [ $? != 0 ]; then
+			    rm -R "$_workdir"
+			    err "couldn't append update list"
+			fi
+			mv -f "$_newlist" "$update_list_file"
+			if [ $? != 0 ]; then
+			    rm -R "$_workdir"
+			    err "couldn't replace update list"
+			fi
+		    fi
+		fi
+
+		rm -R "$_workdir"
+		need_ok "couldn't delete workdir"
+	    fi
+	else # Channel not installed
+	    verbose_say "channel '$_channel' not installed. not checking for updates"
+	fi
+    done
 }
 
 
