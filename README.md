@@ -143,8 +143,8 @@ multirust update my-rust --installer rustc-1.0.0-dev-x86_64-unknown-linux-gnu.ta
 ```
 
 These three options can also be supplied to the `default` and
-`override` commands, in which case the toolchain is installed prior to
-being configured for use.
+`override` commands, in which case the toolchain is also
+activated after installation.
 
 # Implementation Details
 
