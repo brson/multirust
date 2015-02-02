@@ -622,14 +622,48 @@ install_toolchain_from_dist() {
     verbose_say "download work dir: $_workdir"
 
     # Download and install toolchain
-    say "downloading rust installer from '$_remote_rust_installer'"
-    download_and_check "$_remote_rust_installer" "$_workdir/$_rust_installer_name"
-
-    local _installer_file="$_workdir/$_rust_installer_name"
-    install_toolchain "$_toolchain" "$_installer_file" "$_workdir"
+    say "downloading checksums for rust installer from '$_remote_rust_installer'"
+    download_checksum_for "$_remote_rust_installer" "$_workdir/$_rust_installer_name"
     if [ $? != 0 ]; then
 	rm -R "$_workdir"
-	err "failed to install toolchain"
+	exit 1
+    fi
+
+    # If the checksum of the available installer is the same as the one we've got
+    # then don't reinstall.
+    local _need_install=true
+    case "$_toolchain" in
+	nightly | beta | stable )
+	    # NB: This 'cat' may fail since channel_sums_dir may not exist
+	    local _existing_checksum="$(cat "$channel_sums_dir/$_toolchain.sha256")"
+	    local _new_checksum="$(cat "$_workdir/$_rust_installer_name.sha256")"
+	    if [ "$_existing_checksum" = "$_new_checksum" ]; then
+		_need_install=false
+	    fi
+	    ;;
+    esac
+
+    if [ "$_need_install" = true ]; then
+	say "downloading rust installer from '$_remote_rust_installer'"
+	download_file_and_sig "$_remote_rust_installer" "$_workdir/$_rust_installer_name"
+	if [ $? != 0 ]; then
+	    rm -R "$_workdir"
+	    exit 1
+	fi
+	check_file_and_sig "$_workdir/$_rust_installer_name"
+	if [ $? != 0 ]; then
+	    rm -R "$_workdir"
+	    exit 1
+	fi
+
+	local _installer_file="$_workdir/$_rust_installer_name"
+	install_toolchain "$_toolchain" "$_installer_file" "$_workdir"
+	if [ $? != 0 ]; then
+	    rm -R "$_workdir"
+	    err "failed to install toolchain"
+	fi
+    else
+	say "toolchain '$_toolchain' is already up to date"
     fi
 
     # Remove this toolchain from the update list
@@ -1624,12 +1658,49 @@ download_and_check() {
     local _remote_sums="$_remote_name.sha256"
     local _local_sums="$_local_name.sha256"
 
-    local _remote_sig="$_remote_name.asc"
-    local _local_sig="$_local_name.asc"
+    local _remote_basename="$(basename "$_remote_name")"
+
+    make_temp_dir
+    local _workdir="$RETVAL"
+    assert_nz "$_workdir" "workdir"
+    verbose_say "download work dir: $_workdir"
+
+    download_checksum_for "$_remote_name" "$_workdir/$_remote_basename"
+    if [ $? != 0 ]; then
+	rm -R "$_workdir"
+	exit 1
+    fi
+    download_file_and_sig "$_remote_name" "$_workdir/$_remote_basename"
+    if [ $? != 0 ]; then
+	rm -R "$_workdir"
+	exit 1
+    fi
+    check_file_and_sig "$_workdir/$_remote_basename"
+    if [ $? != 0 ]; then
+	rm -R "$_workdir"
+	exit 1
+    fi
+
+    mv -f "$_workdir/$_remote_basename" "$_local_name"
+    need_ok "failed to mv $_local_name"
+    mv -f "$_workdir/$_remote_basename.sha256" "$_local_name.sha256"
+    need_ok "failed to mv $_local_name.sha256"
+    mv -f "$_workdir/$_remote_basename.asc" "$_local_name.asc"
+    need_ok "failed to mv $_local_name.asc"
+
+    rm -R "$_workdir"
+    need_ok "couldn't delete workdir '$_workdir'"
+}
+
+download_checksum_for() {
+    local _remote_name="$1"
+    local _local_name="$2"
+
+    local _remote_sums="$_remote_name.sha256"
+    local _local_sums="$_local_name.sha256"
 
     local _remote_basename="$(basename "$_remote_name")"
     local _remote_sums_basename="$_remote_basename.sha256"
-    local _remote_sig_basename="$_remote_basename.asc"
     assert_nz "$_remote_basename" "remote basename"
 
     make_temp_dir
@@ -1641,19 +1712,59 @@ download_and_check() {
     (cd "$_workdir" && curl -f -O "$_remote_sums")
     if [ $? != 0 ]; then
 	rm -R "$_workdir"
-	err "couldn't download checksum file '$_remote_sums'"
+	say_err "couldn't download checksum file '$_remote_sums'"
+	return 1
     fi
+
+    verbose_say "moving '$_workdir/$_remote_sums_basename' to '$_local_sums'"
+    mv -f "$_workdir/$_remote_sums_basename" "$_local_sums"
+    if [ $? != 0 ]; then
+	rm -R "$_workdir"
+	err "couldn't move '$_workdir/$_remote_sums_basename' to '$_local_sums'"
+    fi
+
+    rm -R "$_workdir"
+    need_ok "couldn't delete workdir '$_workdir'"
+}
+
+download_file_and_sig() {
+    local _remote_name="$1"
+    local _local_name="$2"
+
+    local _remote_sums="$_remote_name.sha256"
+    local _local_sums="$_local_name.sha256"
+
+    local _remote_sig="$_remote_name.asc"
+    local _local_sig="$_local_name.asc"
+
+    local _remote_basename="$(basename "$_remote_name")"
+    local _remote_sums_basename="$_remote_basename.sha256"
+    local _remote_sig_basename="$_remote_basename.asc"
+    assert_nz "$_remote_basename" "remote basename"
+
+    local _local_basename="$(basename "$_local_name")"
+    assert_nz "$_local_basename" "local basename"
+
+    make_temp_dir
+    local _workdir="$RETVAL"
+    assert_nz "$_workdir" "workdir"
+    verbose_say "download work dir: $_workdir"
 
     say "downloading '$_remote_sig' to '$_workdir'"
     (cd "$_workdir" && curl -f -O "$_remote_sig")
     if [ $? != 0 ]; then
 	rm -R "$_workdir"
-	err "couldn't download signature file '$_remote_sig'"
+	say_err "couldn't download signature file '$_remote_sig'"
+	return 1
     fi
 
     # Create the dl directory for this artifact based
     # on the checksum so we can find it to resume later.
-    local _dl_dir="$(cat "$_workdir/$_remote_sums_basename" | shasum -a 256 | head -c 10)"
+    verbose_say "local checksums: $_local_name.sha256"
+    if [ ! -e "$_local_name.sha256" ]; then
+	err "local checksum for remote file not in expected location"
+    fi
+    local _dl_dir="$(cat "$_local_name.sha256" | shasum -a 256 | head -c 10)"
     need_ok "failed to calculate temporary download file name"
     verbose_say "dl dir: $dl_dir/$_dl_dir"
     mkdir -p "$dl_dir/$_dl_dir"
@@ -1665,7 +1776,8 @@ download_and_check() {
     if [ $? != 0 ]; then
 	rm -R "$_workdir"
 	rm -R "$dl_dir/$_dl_dir"
-	err "couldn't download '$_remote_name'"
+	say_err "couldn't download '$_remote_name'"
+	return 1
     fi
 
     mv "$dl_dir/$_dl_dir/$_remote_basename" "$_workdir/$_remote_basename"
@@ -1681,19 +1793,6 @@ download_and_check() {
 	err "failed to remove dl dir"
     fi
 
-    say "verifying checksums for '$_remote_basename'"
-    check_sums "$_workdir/$_remote_sums_basename"
-    if [ $? != 0 ]; then
-	rm -R "$_workdir"
-	err "checksum failed for '$_remote_name'"
-    fi
-
-    check_sig "$_workdir/$_remote_sig_basename"
-    if [ $? != 0 ]; then
-	rm -R "$_workdir"
-	err "signature check failed for '$_remote_name'"
-    fi
-
     verbose_say "moving '$_workdir/$_remote_basename' to '$_local_name'"
     mv -f "$_workdir/$_remote_basename" "$_local_name"
     if [ $? != 0 ]; then
@@ -1701,25 +1800,36 @@ download_and_check() {
 	err "couldn't move '$_workdir/$_remote_basename' to '$_local_name'"
     fi
 
-    verbose_say "moving '$_workdir/$_remote_sums_basename' to '$_local_sums'"
-    mv -f "$_workdir/$_remote_sums_basename" "$_local_sums"
-    if [ $? != 0 ]; then
-	rm "$_local_name"
-	rm -R "$_workdir"
-	err "couldn't move '$_workdir/$_remote_sums_basename' to '$_local_sums'"
-    fi
-
     verbose_say "moving '$_workdir/$_remote_sig_basename' to '$_local_sig'"
     mv -f "$_workdir/$_remote_sig_basename" "$_local_sig"
     if [ $? != 0 ]; then
 	rm "$_local_name"
-	rm "$_local_sums"
 	rm -R "$_workdir"
 	err "couldn't move '$_workdir/$_remote_sig_basename' to '$_local_sig'"
     fi
 
     rm -R "$_workdir"
     need_ok "couldn't delete workdir '$_workdir'"
+}
+
+check_file_and_sig() {
+    local _local_name="$1"
+
+    local _local_sums="$_local_name.sha256"
+    local _local_sig="$_local_name.asc"
+
+    say "verifying checksums for '$_local_name'"
+    check_sums "$_local_sums"
+    if [ $? != 0 ]; then
+	say_err "checksum failed for '$_local_name'"
+	return 1
+    fi
+
+    check_sig "$_local_sig"
+    if [ $? != 0 ]; then
+	say_err "signature failed for '$_local_name'"
+	return 1
+    fi
 }
 
 push_toolchain_ldpath() {
@@ -1785,6 +1895,10 @@ extract_topic_from_source() {
 
 say() {
     echo "multirust: $1"
+}
+
+say_err() {
+    say "$1"
 }
 
 verbose_say() {

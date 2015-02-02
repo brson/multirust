@@ -847,3 +847,16 @@ rm "$CUSTOM_TOOLCHAINS/broken/bin/rustc"
 expect_output_fail "no rustc in custom toolchain at " \
     multirust update custom --copy-local "$CUSTOM_TOOLCHAINS/broken"
 rm -Rf "$CUSTOM_TOOLCHAINS/broken"
+
+pre "no update on channel when data has not changed"
+try multirust update nightly
+expect_output_ok "'nightly' is already up to date" multirust update nightly
+
+pre "update on channel when data has changed"
+set_current_dist_date 2015-01-01
+try multirust default nightly
+expect_output_ok "hash-nightly-1" rustc --version
+set_current_dist_date 2015-01-02
+try multirust update nightly
+expect_output_ok "hash-nightly-2" rustc --version
+
