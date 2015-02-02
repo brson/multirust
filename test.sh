@@ -760,6 +760,37 @@ expect_not_output_ok "a new version of 'nightly' is available" rustc --print
 expect_not_output_ok "a new version of 'nightly' is available" rustc --print=crate-name
 export MULTIRUST_DISABLE_UPDATE_CHECKS=1
 
+pre "update checks are not recursive"
+unset MULTIRUST_DISABLE_UPDATE_CHECKS
+set_current_dist_date 2015-01-01
+try multirust default nightly
+try rustc
+try sleep 0.1
+echo "not todays date" > "$MULTIRUST_HOME/update-stamp"
+set_current_dist_date 2015-01-02
+try rustc
+try sleep 0.1
+outputfile="$TMP_DIR/update-checks-are-not-recursive"
+try rustc --recurse 2
+rustc --recurse 2 > "$outputfile"
+if [ -n "${VERBOSE-}" ]; then
+    cat "$outputfile"
+fi
+seen=false
+while read line; do
+    if echo "$line" | grep -q "a new version of 'nightly' is available"; then
+	if [ "$seen" = true ]; then
+	    fail "recursive update notice"
+	fi
+	seen=true
+    fi
+done < "$outputfile"
+rm "$outputfile"
+if [ "$seen" = false ]; then
+    fail "no update notice"
+fi
+export MULTIRUST_DISABLE_UPDATE_CHECKS=1
+
 pre "custom no installer specified"
 expect_output_fail "unspecified installer" multirust update nightly --installer
 

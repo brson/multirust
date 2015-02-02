@@ -88,7 +88,9 @@ case "$rust_cmd" in
 	;;
 esac
 
-disable_updates=
+# If this is a recursive multirust call then don't check for
+# updates to avoid lots of redundant notices. Issue #16.
+disable_updates="${MULTIRUST_ENGAGED-}"
 for arg in "$@"; do
     case "$arg" in
 	--version | -V )
@@ -155,11 +157,15 @@ MULTIRUST_TOOLCHAIN="$toolchain"
 # somewhere crazy (Cargo's test suite does this...)
 MULTIRUST_HOME="$multirust_home"
 
+# This is just a flag for detecting recursion
+MULTIRUST_ENGAGED=true
+
 export LD_LIBRARY_PATH
 export DYLD_LIBRARY_PATH
 export CARGO_HOME
 export MULTIRUST_TOOLCHAIN
 export MULTIRUST_HOME
+export MULTIRUST_ENGAGED
 
 "$sysroot/bin/$rust_cmd" $extra_flags "$@"
 exit_code=$?
