@@ -216,6 +216,18 @@ expect_not_output_ok() {
     set -e
 }
 
+runtest() {
+    local _testname="$1"
+    if [ -n "${TESTNAME-}" ]; then
+        if ! echo "$_testname" | grep -q "$TESTNAME"; then
+            return 0
+        fi
+    fi
+
+    pre "$_testname"
+    "$_testname"
+}
+
 get_architecture() {
 
     local _ostype="$(uname -s)"
@@ -497,414 +509,534 @@ remote_custom_rust="$MULTIRUST_DIST_SERVER/dist/rust-nightly-$arch.tar.gz"
 remote_custom_rustc="$MULTIRUST_DIST_SERVER/dist/rustc-nightly-$arch.tar.gz"
 remote_custom_cargo="$MULTIRUST_DIST_SERVER/dist/cargo-nightly-$arch.tar.gz"
 
-pre "no args"
-expect_output_ok "Usage" multirust
+no_args() {
+    expect_output_ok "Usage" multirust
+}
+runtest no_args
 
-pre "uninitialized"
-expect_fail rustc
-expect_output_fail "no default toolchain configured" rustc
-# FIXME: This should succeed and say 'no default'
-expect_output_fail "no default toolchain configured" multirust show-default
+uninitialized() {
+    expect_fail rustc
+    expect_output_fail "no default toolchain configured" rustc
+    # FIXME: This should succeed and say 'no default'
+    expect_output_fail "no default toolchain configured" multirust show-default
+}
+runtest uninitialized
 
-pre "default toolchain"
-try multirust default nightly
-expect_output_ok "nightly" multirust show-default
+default_toolchain() {
+    try multirust default nightly
+    expect_output_ok "nightly" multirust show-default
+}
+runtest default_toolchain
 
-pre "expected bins exist"
-try multirust default nightly
-expect_output_ok "1.1.0" rustc --version
-expect_output_ok "1.1.0" rustdoc --version
-expect_output_ok "1.1.0" cargo --version
+expected_bins_exist() {
+    try multirust default nightly
+    expect_output_ok "1.1.0" rustc --version
+    expect_output_ok "1.1.0" rustdoc --version
+    expect_output_ok "1.1.0" cargo --version
+}
+runtest expected_bins_exist
 
-pre "install toolchain from channel"
-try multirust default nightly
-expect_output_ok "hash-nightly-2" rustc --version
-try multirust default beta
-expect_output_ok "hash-beta-2" rustc --version
-try multirust default stable
-expect_output_ok "hash-stable-2" rustc --version
+install_toolchain_from_channel() {
+    try multirust default nightly
+    expect_output_ok "hash-nightly-2" rustc --version
+    try multirust default beta
+    expect_output_ok "hash-beta-2" rustc --version
+    try multirust default stable
+    expect_output_ok "hash-stable-2" rustc --version
+}
+runtest install_toolchain_from_channel
 
-pre "install toolchain from archive"
-try multirust default nightly-2015-01-01
-expect_output_ok "hash-nightly-1" rustc --version
-try multirust default beta-2015-01-01
-expect_output_ok "hash-beta-1" rustc --version
-try multirust default stable-2015-01-01
-expect_output_ok "hash-stable-1" rustc --version
+install_toolchain_from_archive() {
+    try multirust default nightly-2015-01-01
+    expect_output_ok "hash-nightly-1" rustc --version
+    try multirust default beta-2015-01-01
+    expect_output_ok "hash-beta-1" rustc --version
+    try multirust default stable-2015-01-01
+    expect_output_ok "hash-stable-1" rustc --version
+}
+runtest install_toolchain_from_archive
 
-pre "install toolchain linking from path"
-try multirust default default-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-01"
-expect_output_ok "hash-stable-1" rustc --version
+install_toolchain_linking_from_path() {
+    try multirust default default-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+    expect_output_ok "hash-stable-1" rustc --version
+}
+runtest install_toolchain_linking_from_path
 
-pre "install toolchain from path"
-try multirust default default-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
-expect_output_ok "hash-stable-1" rustc --version
+install_toolchain_from_path() {
+    try multirust default default-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+    expect_output_ok "hash-stable-1" rustc --version
+}
+runtest install_toolchain_from_path
 
-pre "install toolchain linking from path again"
-try multirust default default-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-01"
-expect_output_ok "hash-stable-1" rustc --version
-try multirust default default-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-02"
-expect_output_ok "hash-stable-2" rustc --version
+install_toolchain_linking_from_path_again() {
+    try multirust default default-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+    expect_output_ok "hash-stable-1" rustc --version
+    try multirust default default-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-02"
+    expect_output_ok "hash-stable-2" rustc --version
+}
+runtest install_toolchain_linking_from_path_again
 
-pre "install toolchain from path again"
-try multirust default default-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
-expect_output_ok "hash-stable-1" rustc --version
-try multirust default default-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-02"
-expect_output_ok "hash-stable-2" rustc --version
+install_toolchain_from_path_again() {
+    try multirust default default-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+    expect_output_ok "hash-stable-1" rustc --version
+    try multirust default default-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-02"
+    expect_output_ok "hash-stable-2" rustc --version
+}
+runtest install_toolchain_from_path_again
 
-pre "install toolchain change from copy to link"
-try multirust default default-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
-expect_output_ok "hash-stable-1" rustc --version
-try multirust default default-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-02"
-expect_output_ok "hash-stable-2" rustc --version
+install_toolchain_change_from_copy_to_link() {
+    try multirust default default-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+    expect_output_ok "hash-stable-1" rustc --version
+    try multirust default default-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-02"
+    expect_output_ok "hash-stable-2" rustc --version
+}
+runtest install_toolchain_change_from_copy_to_link
 
-pre "install toolchain change from link to copy"
-try multirust default default-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-01"
-expect_output_ok "hash-stable-1" rustc --version
-try multirust default default-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-02"
-expect_output_ok "hash-stable-2" rustc --version
+install_toolchain_change_from_link_to_copy() {
+    try multirust default default-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+    expect_output_ok "hash-stable-1" rustc --version
+    try multirust default default-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-02"
+    expect_output_ok "hash-stable-2" rustc --version
+}
+runtest install_toolchain_change_from_link_to_copy
 
-pre "install toolchain from custom"
-try multirust default custom --installer "$local_custom_rust"
-expect_output_ok nightly rustc --version
+install_toolchain_from_custom() {
+    try multirust default custom --installer "$local_custom_rust"
+    expect_output_ok nightly rustc --version
+}
+runtest install_toolchain_from_custom
 
-pre "install toolchain from version"
-try multirust default 1.1.0
-expect_output_ok "hash-stable-2" rustc --version
+install_toolchain_from_version() {
+    try multirust default 1.1.0
+    expect_output_ok "hash-stable-2" rustc --version
+}
+runtest install_toolchain_from_version
 
-pre "default existing toolchain"
-try multirust update nightly
-expect_output_ok "using existing install for 'nightly'" multirust default nightly
+default_existing_toolchain() {
+    try multirust update nightly
+    expect_output_ok "using existing install for 'nightly'" multirust default nightly
+}
+runtest default_existing_toolchain
 
-pre "update channel"
-set_current_dist_date 2015-01-01
-try multirust default nightly
-expect_output_ok "hash-nightly-1" rustc --version
-set_current_dist_date 2015-01-02
-try multirust update nightly
-expect_output_ok "hash-nightly-2" rustc --version
+update_channel() {
+    set_current_dist_date 2015-01-01
+    try multirust default nightly
+    expect_output_ok "hash-nightly-1" rustc --version
+    set_current_dist_date 2015-01-02
+    try multirust update nightly
+    expect_output_ok "hash-nightly-2" rustc --version
+}
+runtest update_channel
 
-pre "list toolchains"
-try multirust update nightly
-try multirust update beta-2015-01-01
-expect_output_ok "nightly" multirust list-toolchains
-expect_output_ok "beta-2015-01-01" multirust list-toolchains
+list_toolchains() {
+    try multirust update nightly
+    try multirust update beta-2015-01-01
+    expect_output_ok "nightly" multirust list-toolchains
+    expect_output_ok "beta-2015-01-01" multirust list-toolchains
+}
+runtest list_toolchains
 
-pre "list toolchain with none"
-try multirust list-toolchains
-expect_output_ok "no installed toolchains" multirust list-toolchains
+list_toolchain_with_none() {
+    try multirust list-toolchains
+    expect_output_ok "no installed toolchains" multirust list-toolchains
+}
+runtest list_toolchain_with_none
 
-pre "remove toolchain"
-try multirust update nightly
-try multirust remove-toolchain nightly
-try multirust list-toolchains
-expect_output_ok "no installed toolchains" multirust list-toolchains
+remove_toolchain() {
+    try multirust update nightly
+    try multirust remove-toolchain nightly
+    try multirust list-toolchains
+    expect_output_ok "no installed toolchains" multirust list-toolchains
+}
+runtest remove_toolchain
 
-pre "remove active toolchain error handling"
-try multirust default nightly
-try multirust remove-toolchain nightly
-expect_output_fail "toolchain 'nightly' not installed" rustc
+remove_active_toolchain_error_handling() {
+    try multirust default nightly
+    try multirust remove-toolchain nightly
+    expect_output_fail "toolchain 'nightly' not installed" rustc
+}
+runtest remove_active_toolchain_error_handling
 
-pre "bad sha on manifest"
-manifest_hash="$MOCK_DIST_DIR/dist/channel-rust-nightly.sha256"
-sha=`cat "$manifest_hash"`
-echo "$sha" | sed s/^......../aaaaaaaa/ >  "$manifest_hash"
-expect_output_fail "checksum failed" multirust default nightly
-set_current_dist_date 2015-01-02
+bad_sha_on_manifest() {
+    manifest_hash="$MOCK_DIST_DIR/dist/channel-rust-nightly.sha256"
+    sha=`cat "$manifest_hash"`
+    echo "$sha" | sed s/^......../aaaaaaaa/ >  "$manifest_hash"
+    expect_output_fail "checksum failed" multirust default nightly
+    set_current_dist_date 2015-01-02
+}
+runtest bad_sha_on_manifest
 
-pre "bad sha on installer"
-for i in "$MOCK_DIST_DIR/dist"/*.sha256; do
-    sha=`cat "$i"`
-    echo "$sha" | sed s/^......../aaaaaaaa/ > "$i"
-done
-expect_output_fail "checksum failed" multirust default 1.0.0
-set_current_dist_date 2015-01-02
+bad_sha_on_installer() {
+    for i in "$MOCK_DIST_DIR/dist"/*.sha256; do
+	sha=`cat "$i"`
+	echo "$sha" | sed s/^......../aaaaaaaa/ > "$i"
+    done
+    expect_output_fail "checksum failed" multirust default 1.0.0
+    set_current_dist_date 2015-01-02
+}
+runtest bad_sha_on_installer
 
-pre "delete data"
-try multirust default nightly
-if [ ! -d "$MULTIRUST_HOME" ]; then
-    fail "no multirust dir"
-fi
-try multirust delete-data -y
-if [ -d "$MULTIRUST_HOME" ]; then
-    fail "multirust dir not removed"
-fi
-
-pre "install override toolchain from channel"
-try multirust override nightly
-expect_output_ok "hash-nightly-2" rustc --version
-try multirust override beta
-expect_output_ok "hash-beta-2" rustc --version
-try multirust override stable
-expect_output_ok "hash-stable-2" rustc --version
-
-pre "install override toolchain from archive"
-try multirust override nightly-2015-01-01
-expect_output_ok "hash-nightly-1" rustc --version
-try multirust override beta-2015-01-01
-expect_output_ok "hash-beta-1" rustc --version
-try multirust override stable-2015-01-01
-expect_output_ok "hash-stable-1" rustc --version
-
-pre "install override toolchain linking path"
-try multirust override stable-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-01"
-expect_output_ok "hash-stable-1" rustc --version
-
-pre "install override toolchain from path"
-try multirust override stable-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
-expect_output_ok "hash-stable-1" rustc --version
-
-pre "install override toolchain linking path again"
-try multirust override stable-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-01"
-expect_output_ok "hash-stable-1" rustc --version
-try multirust override stable-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-02"
-expect_output_ok "hash-stable-2" rustc --version
-
-pre "install override toolchain from path again"
-try multirust override stable-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
-expect_output_ok "hash-stable-1" rustc --version
-try multirust override stable-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-02"
-expect_output_ok "hash-stable-2" rustc --version
-
-pre "install override toolchain change from copy to link"
-try multirust override stable-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
-expect_output_ok "hash-stable-1" rustc --version
-try multirust override stable-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-02"
-expect_output_ok "hash-stable-2" rustc --version
-
-pre "install override toolchain change from link to copy"
-try multirust override stable-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-01"
-expect_output_ok "hash-stable-1" rustc --version
-try multirust override stable-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-02"
-expect_output_ok "hash-stable-2" rustc --version
-
-pre "install override toolchain from version"
-try multirust override 1.1.0
-expect_output_ok "hash-stable-2" rustc --version
-
-pre "override overrides default"
-try multirust default nightly
-try multirust override beta
-expect_output_ok "beta" rustc --version
-
-pre "multiple overrides"
-mkdir -p "$WORK_DIR/dir1"
-mkdir -p "$WORK_DIR/dir2"
-try multirust default nightly
-(cd "$WORK_DIR/dir1" && try multirust override beta)
-(cd "$WORK_DIR/dir2" && try multirust override stable)
-expect_output_ok "nightly" rustc --version
-(cd "$WORK_DIR/dir1" && expect_output_ok "beta" rustc --version)
-(cd "$WORK_DIR/dir2" && expect_output_ok "stable" rustc --version)
-
-pre "change override"
-try multirust override nightly
-try multirust override beta
-expect_output_ok "beta" rustc --version
-
-pre "show override"
-try multirust override nightly
-expect_output_ok "override toolchain: nightly" multirust show-override
-expect_output_ok "override directory: `pwd`" multirust show-override
-expect_output_ok "override location: $MULTIRUST_HOME/toolchains/nightly" multirust show-override
-expect_output_ok "hash-nightly-2" multirust show-override
-
-pre "show override no override"
-try multirust default nightly
-expect_output_ok "no override" multirust show-override
-
-pre "show override no override no default"
-expect_output_ok "no override" multirust show-override
-
-pre "remove override no default"
-try multirust override nightly
-try multirust remove-override
-expect_output_fail "no default toolchain configured" rustc
-
-pre "remove override with default"
-try multirust default nightly
-try multirust override beta
-try multirust remove-override
-expect_output_ok "nightly" rustc --version
-
-pre "remove override with multiple overrides"
-mkdir -p "$WORK_DIR/dir1"
-mkdir -p "$WORK_DIR/dir2"
-try multirust default nightly
-(cd "$WORK_DIR/dir1" && try multirust override beta)
-(cd "$WORK_DIR/dir2" && try multirust override stable)
-expect_output_ok "nightly" rustc --version
-(cd "$WORK_DIR/dir1" && try multirust remove-override)
-(cd "$WORK_DIR/dir1" && expect_output_ok "nightly" rustc --version)
-(cd "$WORK_DIR/dir2" && expect_output_ok "stable" rustc --version)
-
-pre "update checks"
-unset MULTIRUST_DISABLE_UPDATE_CHECKS
-set_current_dist_date 2015-01-01
-try multirust default nightly
-try rustc
-try sleep 0.1
-echo "not todays date" > "$MULTIRUST_HOME/update-stamp"
-set_current_dist_date 2015-01-02
-try rustc
-try sleep 0.1
-expect_output_ok "a new version of 'nightly' is available" rustc
-expect_output_ok "a new version of 'nightly' is available" cargo
-expect_output_ok "a new version of 'nightly' is available" rustdoc
-try multirust update nightly
-expect_not_output_ok "a new version of 'nightly' is available" rustc
-expect_not_output_ok "a new version of 'nightly' is available" cargo
-expect_not_output_ok "a new version of 'nightly' is available" rustdoc
-export MULTIRUST_DISABLE_UPDATE_CHECKS=1
-
-pre "update notifications not displayed for version flags"
-unset MULTIRUST_DISABLE_UPDATE_CHECKS
-set_current_dist_date 2015-01-01
-try multirust default nightly
-try rustc --version
-try sleep 0.1
-echo "not todays date" > "$MULTIRUST_HOME/update-stamp"
-set_current_dist_date 2015-01-02
-try rustc --version
-try sleep 0.1
-expect_not_output_ok "a new version of 'nightly' is available" rustc --version
-expect_not_output_ok "a new version of 'nightly' is available" rustc -V
-expect_not_output_ok "a new version of 'nightly' is available" cargo --version
-expect_not_output_ok "a new version of 'nightly' is available" cargo -V
-expect_not_output_ok "a new version of 'nightly' is available" rustdoc --version
-expect_not_output_ok "a new version of 'nightly' is available" rustdoc -V
-expect_not_output_ok "a new version of 'nightly' is available" rustc --print
-expect_not_output_ok "a new version of 'nightly' is available" rustc --print=crate-name
-export MULTIRUST_DISABLE_UPDATE_CHECKS=1
-
-pre "update checks are not recursive"
-unset MULTIRUST_DISABLE_UPDATE_CHECKS
-set_current_dist_date 2015-01-01
-try multirust default nightly
-try rustc
-try sleep 0.1
-echo "not todays date" > "$MULTIRUST_HOME/update-stamp"
-set_current_dist_date 2015-01-02
-try rustc
-try sleep 0.1
-outputfile="$TMP_DIR/update-checks-are-not-recursive"
-try rustc --recurse 2
-rustc --recurse 2 > "$outputfile"
-if [ -n "${VERBOSE-}" ]; then
-    cat "$outputfile"
-fi
-seen=false
-while read line; do
-    if echo "$line" | grep -q "a new version of 'nightly' is available"; then
-	if [ "$seen" = true ]; then
-	    fail "recursive update notice"
-	fi
-	seen=true
+delete_data() {
+    try multirust default nightly
+    if [ ! -d "$MULTIRUST_HOME" ]; then
+	fail "no multirust dir"
     fi
-done < "$outputfile"
-rm "$outputfile"
-if [ "$seen" = false ]; then
-    fail "no update notice"
-fi
-export MULTIRUST_DISABLE_UPDATE_CHECKS=1
+    try multirust delete-data -y
+    if [ -d "$MULTIRUST_HOME" ]; then
+	fail "multirust dir not removed"
+    fi
+}
+runtest delete_data
 
-pre "custom no installer specified"
-expect_output_fail "unspecified installer" multirust update nightly --installer
+install_override_toolchain_from_channel() {
+    try multirust override nightly
+    expect_output_ok "hash-nightly-2" rustc --version
+    try multirust override beta
+    expect_output_ok "hash-beta-2" rustc --version
+    try multirust override stable
+    expect_output_ok "hash-stable-2" rustc --version
+}
+runtest install_override_toolchain_from_channel
 
-pre "custom invalid names"
-expect_output_fail "invalid custom toolchain name: 'nightly'" \
-    multirust update nightly --installer "$local_custom_rust"
-expect_output_fail "invalid custom toolchain name: 'beta'" \
-    multirust update beta --installer "$local_custom_rust"
-expect_output_fail "invalid custom toolchain name: 'stable'" \
-    multirust update stable --installer "$local_custom_rust"
+install_override_toolchain_from_archive() {
+    try multirust override nightly-2015-01-01
+    expect_output_ok "hash-nightly-1" rustc --version
+    try multirust override beta-2015-01-01
+    expect_output_ok "hash-beta-1" rustc --version
+    try multirust override stable-2015-01-01
+    expect_output_ok "hash-stable-1" rustc --version
+}
+runtest install_override_toolchain_from_archive
 
-pre "custom invalid names with archive dates"
-expect_output_fail "invalid custom toolchain name: 'nightly-2015-01-01'" \
-    multirust update nightly-2015-01-01 --installer "$local_custom_rust"
-expect_output_fail "invalid custom toolchain name: 'beta-2015-01-01'" \
-    multirust update beta-2015-01-01 --installer "$local_custom_rust"
-expect_output_fail "invalid custom toolchain name: 'stable-2015-01-01'" \
-    multirust update stable-2015-01-01 --installer "$local_custom_rust"
+install_override_toolchain_linking_path() {
+    try multirust override stable-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+    expect_output_ok "hash-stable-1" rustc --version
+}
+runtest install_override_toolchain_linking_path
 
-pre "custom local"
-try multirust update custom --installer "$local_custom_rust"
-try multirust default custom
-expect_output_ok nightly rustc --version
+install_override_toolchain_from_path() {
+    try multirust override stable-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+    expect_output_ok "hash-stable-1" rustc --version
+}
+runtest install_override_toolchain_from_path
 
-pre "custom remote"
-try multirust update custom --installer "$remote_custom_rust"
-try multirust default custom
-expect_output_ok nightly rustc --version
+install_override_toolchain_linking_path_again() {
+    try multirust override stable-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+    expect_output_ok "hash-stable-1" rustc --version
+    try multirust override stable-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-02"
+    expect_output_ok "hash-stable-2" rustc --version
+}
+runtest install_override_toolchain_linking_path_again
 
-pre "custom multiple local"
-try multirust update custom --installer "$local_custom_rustc,$local_custom_cargo"
-try multirust default custom
-expect_output_ok nightly rustc --version
-expect_output_ok nightly cargo --version
+install_override_toolchain_from_path_again() {
+    try multirust override stable-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+    expect_output_ok "hash-stable-1" rustc --version
+    try multirust override stable-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-02"
+    expect_output_ok "hash-stable-2" rustc --version
+}
+runtest install_override_toolchain_from_path_again
 
-pre "custom multiple remote"
-try multirust update custom --installer "$remote_custom_rustc,$remote_custom_cargo"
-try multirust default custom
-expect_output_ok nightly rustc --version
-expect_output_ok nightly cargo --version
+install_override_toolchain_change_from_copy_to_link() {
+    try multirust override stable-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+    expect_output_ok "hash-stable-1" rustc --version
+    try multirust override stable-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-02"
+    expect_output_ok "hash-stable-2" rustc --version
+}
+runtest install_override_toolchain_change_from_copy_to_link
 
-pre "remove custom"
-try multirust update custom --installer "$remote_custom_rustc,$remote_custom_cargo"
-try multirust remove-toolchain custom
-expect_output_ok "no installed toolchains" multirust list-toolchains
+install_override_toolchain_change_from_link_to_copy() {
+    try multirust override stable-from-path --link-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+    expect_output_ok "hash-stable-1" rustc --version
+    try multirust override stable-from-path --copy-local "$CUSTOM_TOOLCHAINS/2015-01-02"
+    expect_output_ok "hash-stable-2" rustc --version
+}
+runtest install_override_toolchain_change_from_link_to_copy
 
-pre "update toolchain linking path"
-try multirust update custom --link-local "$CUSTOM_TOOLCHAINS/2015-01-01"
-try multirust default custom
-expect_output_ok "hash-stable-1" rustc --version
+install_override_toolchain_from_version() {
+    try multirust override 1.1.0
+    expect_output_ok "hash-stable-2" rustc --version
+}
+runtest install_override_toolchain_from_version
 
-pre "update toolchain from path"
-try multirust update custom --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
-try multirust default custom
-expect_output_ok "hash-stable-1" rustc --version
+override_overrides_default() {
+    try multirust default nightly
+    try multirust override beta
+    expect_output_ok "beta" rustc --version
+}
+runtest override_overrides_default
 
-pre "update toolchain change from copy to link"
-try multirust update custom --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
-try multirust default custom
-expect_output_ok "hash-stable-1" rustc --version
-try multirust update custom --link-local "$CUSTOM_TOOLCHAINS/2015-01-02"
-try multirust default custom
-expect_output_ok "hash-stable-2" rustc --version
+multiple_overrides() {
+    mkdir -p "$WORK_DIR/dir1"
+    mkdir -p "$WORK_DIR/dir2"
+    try multirust default nightly
+    (cd "$WORK_DIR/dir1" && try multirust override beta)
+    (cd "$WORK_DIR/dir2" && try multirust override stable)
+    expect_output_ok "nightly" rustc --version
+    (cd "$WORK_DIR/dir1" && expect_output_ok "beta" rustc --version)
+    (cd "$WORK_DIR/dir2" && expect_output_ok "stable" rustc --version)
+}
+runtest multiple_overrides
 
-pre "update toolchain change from link to copy"
-try multirust update custom --link-local "$CUSTOM_TOOLCHAINS/2015-01-01"
-try multirust default custom
-expect_output_ok "hash-stable-1" rustc --version
-try multirust update custom --copy-local "$CUSTOM_TOOLCHAINS/2015-01-02"
-try multirust default custom
-expect_output_ok "hash-stable-2" rustc --version
+change_override() {
+    try multirust override nightly
+    try multirust override beta
+    expect_output_ok "beta" rustc --version
+}
+runtest change_override
 
-pre "custom dir invalid names"
-expect_output_fail "invalid custom toolchain name: 'nightly'" \
-    multirust update nightly --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
-expect_output_fail "invalid custom toolchain name: 'beta'" \
-    multirust update beta --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
-expect_output_fail "invalid custom toolchain name: 'stable'" \
-    multirust update stable --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+show_override() {
+    try multirust override nightly
+    expect_output_ok "override toolchain: nightly" multirust show-override
+    expect_output_ok "override directory: `pwd`" multirust show-override
+    expect_output_ok "override location: $MULTIRUST_HOME/toolchains/nightly" multirust show-override
+    expect_output_ok "hash-nightly-2" multirust show-override
+}
+runtest show_override
 
-pre "custom without rustc"
-rm -Rf "$CUSTOM_TOOLCHAINS/broken"
-cp -R "$CUSTOM_TOOLCHAINS/2015-01-01" "$CUSTOM_TOOLCHAINS/broken"
-rm "$CUSTOM_TOOLCHAINS/broken/bin/rustc"
-expect_output_fail "no rustc in custom toolchain at " \
-    multirust update custom --copy-local "$CUSTOM_TOOLCHAINS/broken"
-rm -Rf "$CUSTOM_TOOLCHAINS/broken"
+show_override_no_override() {
+    try multirust default nightly
+    expect_output_ok "no override" multirust show-override
+}
+runtest show_override_no_override
 
-pre "no update on channel when data has not changed"
-try multirust update nightly
-expect_output_ok "'nightly' is already up to date" multirust update nightly
+show_override_no_override_no_default() {
+    expect_output_ok "no override" multirust show-override
+}
+runtest show_override_no_override_no_default
 
-pre "update on channel when data has changed"
-set_current_dist_date 2015-01-01
-try multirust default nightly
-expect_output_ok "hash-nightly-1" rustc --version
-set_current_dist_date 2015-01-02
-try multirust update nightly
-expect_output_ok "hash-nightly-2" rustc --version
+remove_override_no_default() {
+    try multirust override nightly
+    try multirust remove-override
+    expect_output_fail "no default toolchain configured" rustc
+}
+runtest remove_override_no_default
+
+remove_override_with_default() {
+    try multirust default nightly
+    try multirust override beta
+    try multirust remove-override
+    expect_output_ok "nightly" rustc --version
+}
+runtest remove_override_with_default
+
+remove_override_with_multiple_overrides() {
+    mkdir -p "$WORK_DIR/dir1"
+    mkdir -p "$WORK_DIR/dir2"
+    try multirust default nightly
+    (cd "$WORK_DIR/dir1" && try multirust override beta)
+    (cd "$WORK_DIR/dir2" && try multirust override stable)
+    expect_output_ok "nightly" rustc --version
+    (cd "$WORK_DIR/dir1" && try multirust remove-override)
+    (cd "$WORK_DIR/dir1" && expect_output_ok "nightly" rustc --version)
+    (cd "$WORK_DIR/dir2" && expect_output_ok "stable" rustc --version)
+}
+runtest remove_override_with_multiple_overrides
+
+update_checks() {
+    unset MULTIRUST_DISABLE_UPDATE_CHECKS
+    set_current_dist_date 2015-01-01
+    try multirust default nightly
+    try rustc
+    try sleep 0.1
+    echo "not todays date" > "$MULTIRUST_HOME/update-stamp"
+    set_current_dist_date 2015-01-02
+    try rustc
+    try sleep 0.1
+    expect_output_ok "a new version of 'nightly' is available" rustc
+    expect_output_ok "a new version of 'nightly' is available" cargo
+    expect_output_ok "a new version of 'nightly' is available" rustdoc
+    try multirust update nightly
+    expect_not_output_ok "a new version of 'nightly' is available" rustc
+    expect_not_output_ok "a new version of 'nightly' is available" cargo
+    expect_not_output_ok "a new version of 'nightly' is available" rustdoc
+    export MULTIRUST_DISABLE_UPDATE_CHECKS=1
+}
+runtest update_checks
+
+update_notifications_not_displayed_for_version_flags() {
+    unset MULTIRUST_DISABLE_UPDATE_CHECKS
+    set_current_dist_date 2015-01-01
+    try multirust default nightly
+    try rustc --version
+    try sleep 0.1
+    echo "not todays date" > "$MULTIRUST_HOME/update-stamp"
+    set_current_dist_date 2015-01-02
+    try rustc --version
+    try sleep 0.1
+    expect_not_output_ok "a new version of 'nightly' is available" rustc --version
+    expect_not_output_ok "a new version of 'nightly' is available" rustc -V
+    expect_not_output_ok "a new version of 'nightly' is available" cargo --version
+    expect_not_output_ok "a new version of 'nightly' is available" cargo -V
+    expect_not_output_ok "a new version of 'nightly' is available" rustdoc --version
+    expect_not_output_ok "a new version of 'nightly' is available" rustdoc -V
+    expect_not_output_ok "a new version of 'nightly' is available" rustc --print
+    expect_not_output_ok "a new version of 'nightly' is available" rustc --print=crate-name
+    export MULTIRUST_DISABLE_UPDATE_CHECKS=1
+}
+runtest update_notifications_not_displayed_for_version_flags
+
+update_checks_are_not_recursive() {
+    unset MULTIRUST_DISABLE_UPDATE_CHECKS
+    set_current_dist_date 2015-01-01
+    try multirust default nightly
+    try rustc
+    try sleep 0.1
+    echo "not todays date" > "$MULTIRUST_HOME/update-stamp"
+    set_current_dist_date 2015-01-02
+    try rustc
+    try sleep 0.1
+    outputfile="$TMP_DIR/update-checks-are-not-recursive"
+    try rustc --recurse 2
+    rustc --recurse 2 > "$outputfile"
+    if [ -n "${VERBOSE-}" ]; then
+	cat "$outputfile"
+    fi
+    seen=false
+    while read line; do
+	if echo "$line" | grep -q "a new version of 'nightly' is available"; then
+	    if [ "$seen" = true ]; then
+		fail "recursive update notice"
+	    fi
+	    seen=true
+	fi
+    done < "$outputfile"
+    rm "$outputfile"
+    if [ "$seen" = false ]; then
+	fail "no update notice"
+    fi
+    export MULTIRUST_DISABLE_UPDATE_CHECKS=1
+}
+runtest update_checks_are_not_recursive
+
+custom_no_installer_specified() {
+    expect_output_fail "unspecified installer" multirust update nightly --installer
+}
+runtest custom_no_installer_specified
+
+custom_invalid_names() {
+    expect_output_fail "invalid custom toolchain name: 'nightly'" \
+	multirust update nightly --installer "$local_custom_rust"
+    expect_output_fail "invalid custom toolchain name: 'beta'" \
+	multirust update beta --installer "$local_custom_rust"
+    expect_output_fail "invalid custom toolchain name: 'stable'" \
+	multirust update stable --installer "$local_custom_rust"
+}
+runtest custom_invalid_names
+
+custom_invalid_names_with_archive_dates() {
+    expect_output_fail "invalid custom toolchain name: 'nightly-2015-01-01'" \
+	multirust update nightly-2015-01-01 --installer "$local_custom_rust"
+    expect_output_fail "invalid custom toolchain name: 'beta-2015-01-01'" \
+	multirust update beta-2015-01-01 --installer "$local_custom_rust"
+    expect_output_fail "invalid custom toolchain name: 'stable-2015-01-01'" \
+	multirust update stable-2015-01-01 --installer "$local_custom_rust"
+}
+runtest custom_invalid_names_with_archive_dates
+
+custom_local() {
+    try multirust update custom --installer "$local_custom_rust"
+    try multirust default custom
+    expect_output_ok nightly rustc --version
+}
+runtest custom_local
+
+custom_remote() {
+    try multirust update custom --installer "$remote_custom_rust"
+    try multirust default custom
+    expect_output_ok nightly rustc --version
+}
+runtest custom_remote
+
+custom_multiple_local() {
+    try multirust update custom --installer "$local_custom_rustc,$local_custom_cargo"
+    try multirust default custom
+    expect_output_ok nightly rustc --version
+    expect_output_ok nightly cargo --version
+}
+runtest custom_multiple_local
+
+custom_multiple_remote() {
+    try multirust update custom --installer "$remote_custom_rustc,$remote_custom_cargo"
+    try multirust default custom
+    expect_output_ok nightly rustc --version
+    expect_output_ok nightly cargo --version
+}
+runtest custom_multiple_remote
+
+remove_custom() {
+    try multirust update custom --installer "$remote_custom_rustc,$remote_custom_cargo"
+    try multirust remove-toolchain custom
+    expect_output_ok "no installed toolchains" multirust list-toolchains
+}
+runtest remove_custom
+
+update_toolchain_linking_path() {
+    try multirust update custom --link-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+    try multirust default custom
+    expect_output_ok "hash-stable-1" rustc --version
+}
+runtest update_toolchain_linking_path
+
+update_toolchain_from_path() {
+    try multirust update custom --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+    try multirust default custom
+    expect_output_ok "hash-stable-1" rustc --version
+}
+runtest update_toolchain_from_path
+
+update_toolchain_change_from_copy_to_link() {
+    try multirust update custom --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+    try multirust default custom
+    expect_output_ok "hash-stable-1" rustc --version
+    try multirust update custom --link-local "$CUSTOM_TOOLCHAINS/2015-01-02"
+    try multirust default custom
+    expect_output_ok "hash-stable-2" rustc --version
+}
+runtest update_toolchain_change_from_copy_to_link
+
+update_toolchain_change_from_link_to_copy() {
+    try multirust update custom --link-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+    try multirust default custom
+    expect_output_ok "hash-stable-1" rustc --version
+    try multirust update custom --copy-local "$CUSTOM_TOOLCHAINS/2015-01-02"
+    try multirust default custom
+    expect_output_ok "hash-stable-2" rustc --version
+}
+runtest update_toolchain_change_from_link_to_copy
+
+custom_dir_invalid_names() {
+    expect_output_fail "invalid custom toolchain name: 'nightly'" \
+	multirust update nightly --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+    expect_output_fail "invalid custom toolchain name: 'beta'" \
+	multirust update beta --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+    expect_output_fail "invalid custom toolchain name: 'stable'" \
+	multirust update stable --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+}
+runtest custom_dir_invalid_names
+
+custom_without_rustc() {
+    rm -Rf "$CUSTOM_TOOLCHAINS/broken"
+    cp -R "$CUSTOM_TOOLCHAINS/2015-01-01" "$CUSTOM_TOOLCHAINS/broken"
+    rm "$CUSTOM_TOOLCHAINS/broken/bin/rustc"
+    expect_output_fail "no rustc in custom toolchain at " \
+	multirust update custom --copy-local "$CUSTOM_TOOLCHAINS/broken"
+    rm -Rf "$CUSTOM_TOOLCHAINS/broken"
+}
+runtest custom_without_rustc
+
+no_update_on_channel_when_data_has_not_changed() {
+    try multirust update nightly
+    expect_output_ok "'nightly' is already up to date" multirust update nightly
+}
+runtest no_update_on_channel_when_data_has_not_changed
+
+update_on_channel_when_data_has_changed() {
+    set_current_dist_date 2015-01-01
+    try multirust default nightly
+    expect_output_ok "hash-nightly-1" rustc --version
+    set_current_dist_date 2015-01-02
+    try multirust update nightly
+    expect_output_ok "hash-nightly-2" rustc --version
+}
+runtest update_on_channel_when_data_has_changed
 
