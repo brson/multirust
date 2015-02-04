@@ -77,9 +77,13 @@ try() {
 	echo "TEST FAILED!"
 	echo
 	exit 1
-    elif [ -n "${VERBOSE-}" ]; then
-	echo \$ "$_cmd"
-	/bin/echo "$_output"
+    else
+	if [ -n "${VERBOSE-}" -o -n "${VERBOSE_CMD-}" ]; then
+	    echo \$ "$_cmd"
+	fi
+	if [ -n "${VERBOSE-}" -o -n "${VERBOSE_OUTPUT-}" ]; then
+	    /bin/echo "$_output"
+	fi
     fi
     set -e
 }
@@ -96,9 +100,13 @@ expect_fail() {
 	echo "TEST FAILED!"
 	echo
 	exit 1
-    elif [ -n "${VERBOSE-}" ]; then
-	echo \$ "$_cmd"
-	/bin/echo "$_output"
+    else
+	if [ -n "${VERBOSE-}" -o -n "${VERBOSE_CMD-}" ]; then
+	    echo \$ "$_cmd"
+	fi
+	if [ -n "${VERBOSE-}" -o -n "${VERBOSE_OUTPUT-}" ]; then
+	    /bin/echo "$_output"
+	fi
     fi
     set -e
 }
@@ -127,10 +135,13 @@ expect_output_ok() {
 	echo "TEST FAILED!"
 	echo
 	exit 1
-    elif [ -n "${VERBOSE-}" ]; then
-	echo \$ "$_cmd"
-	/bin/echo "$_output"
-	echo
+    else
+	if [ -n "${VERBOSE-}" -o -n "${VERBOSE_CMD-}" ]; then
+	    echo \$ "$_cmd"
+	fi
+	if [ -n "${VERBOSE-}" -o -n "${VERBOSE_OUTPUT-}" ]; then
+	    /bin/echo "$_output"
+	fi
     fi
     set -e
 }
@@ -159,10 +170,13 @@ expect_output_fail() {
 	echo "TEST FAILED!"
 	echo
 	exit 1
-    elif [ -n "${VERBOSE-}" ]; then
-	echo \$ "$_cmd"
-	/bin/echo "$_output"
-	echo
+    else
+	if [ -n "${VERBOSE-}" -o -n "${VERBOSE_CMD-}" ]; then
+	    echo \$ "$_cmd"
+	fi
+	if [ -n "${VERBOSE-}" -o -n "${VERBOSE_OUTPUT-}" ]; then
+	    /bin/echo "$_output"
+	fi
     fi
     set -e
 }
@@ -191,10 +205,13 @@ expect_not_output_ok() {
 	echo "TEST FAILED!"
 	echo
 	exit 1
-    elif [ -n "${VERBOSE-}" ]; then
-	echo \$ "$_cmd"
-	/bin/echo "$_output"
-	echo
+    else
+	if [ -n "${VERBOSE-}" -o -n "${VERBOSE_CMD-}" ]; then
+	    echo \$ "$_cmd"
+	fi
+	if [ -n "${VERBOSE-}" -o -n "${VERBOSE_OUTPUT-}" ]; then
+	    /bin/echo "$_output"
+	fi
     fi
     set -e
 }
