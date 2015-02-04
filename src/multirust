@@ -1898,7 +1898,7 @@ say() {
 }
 
 say_err() {
-    say "$1"
+    say "$1" >&2
 }
 
 verbose_say() {
