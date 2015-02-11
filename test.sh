@@ -452,9 +452,9 @@ build_mock_channel() {
 
     mkdir -p "$CUSTOM_TOOLCHAINS/$_date"
 
-    for t in "$MOCK_BUILD_DIR/pkg"/*.tar.gz;
+    for t in "$MOCK_BUILD_DIR/work/"*;
     do
-	tar xzf "$t" --strip 1 -C "$CUSTOM_TOOLCHAINS/$_date/"
+	sh "$t/install.sh" --prefix="$CUSTOM_TOOLCHAINS/$_date/" 2> /dev/null 1> /dev/null
     done
 }
 

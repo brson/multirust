@@ -15,7 +15,8 @@ cp src/multirustproxy build/image/bin/rustc
 cp src/multirustproxy build/image/bin/cargo
 cp src/multirustproxy build/image/bin/rustdoc
 cp src/multirustproxy build/image/bin/rust-gdb
-cp README.md build/image/
+mkdir build/overlay
+cp README.md build/overlay
 
 if [ "$(uname -s)" = Darwin ]; then
     cp src/multirustproxy build/image/bin/rust-lldb
@@ -30,7 +31,7 @@ src/rust-installer/gen-installer.sh \
     --image-dir=./build/image \
     --work-dir=./build/work \
     --output-dir=./build \
-    --non-installed-prefixes=README.md \
+    --non-installed-overlay=./build/overlay \
     --component-name=multirust \
     --legacy-manifest-dirs=rustlib,cargo
 
