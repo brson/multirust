@@ -64,8 +64,8 @@ run() {
 
     if [ -z "$UNINSTALL" ]; then
 	echo "This script will download, build, install and configure multirust with the most common options."
-	echo "It may prompt for your password for installation via 'sudo'. Running this same script again"
-	echo "with the --uninstall flag will uninstall multirust."
+	echo "It may prompt for your password for installation via 'sudo'. Run /usr/local/lib/rustlib/uninstall.sh"
+	echo "to uninstall multirust."
     else
 	echo "This script will uninstall multirust. It may prompt for your password via 'sudo'."
     fi
