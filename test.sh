@@ -33,7 +33,7 @@ WORK_DIR="$S/tmp/work"
 MOCK_BUILD_DIR="$S/tmp/mock-build"
 MULTIRUST_HOME="$(cd "$TMP_DIR" && pwd)/multirust"
 VERSION=0.0.2
-MULTIRUST_BIN_DIR="$S/build/work/multirust-$VERSION/bin"
+MULTIRUST_BIN_DIR="$S/build/work/multirust-$VERSION/multirust/bin"
 
 say() {
     echo "test: $1"
@@ -494,6 +494,7 @@ export MULTIRUST_DIST_SERVER
 # Set up the PATH to find multirust
 PATH="$MULTIRUST_BIN_DIR:$PATH"
 export PATH
+try test -e "$MULTIRUST_BIN_DIR/multirust"
 
 # Don't run the async updates. Otherwise the extra process
 # may futz with our files and break subsequent tests.
