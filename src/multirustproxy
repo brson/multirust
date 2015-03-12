@@ -167,6 +167,4 @@ export MULTIRUST_TOOLCHAIN
 export MULTIRUST_HOME
 export MULTIRUST_ENGAGED
 
-"$sysroot/bin/$rust_cmd" $extra_flags "$@"
-exit_code=$?
-exit $exit_code
+exec "$sysroot/bin/$rust_cmd" $extra_flags "$@"
