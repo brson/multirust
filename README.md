@@ -43,6 +43,10 @@ curl -sf https://raw.githubusercontent.com/brson/multirust/master/blastoff.sh | 
 
 # Manual build, install and configure
 
+A manual build and install allows one to tailor `multirust` to meet specific needs.
+
+The basic template is:
+
 ```
 git clone --recursive https://github.com/brson/multirust && cd multirust
 git submodule update --init
@@ -53,6 +57,17 @@ Run `sudo ./install.sh --uninstall` to uninstall.
 
 Run `multirust default nightly` to download and install the nightly
 compiler and package manager and configure it as the default.
+
+As an example customization, to install with underneath your home
+directory in e.g. `~/my_stuff/bin/multirust`, you could use:
+
+```
+./build.sh && ./install.sh --prefix=~/my_stuff/
+```
+
+(In this scenario, `./install.sh --prefix=~/my_stuff/ --uninstall` to uninstall.)
+
+Run `./build.sh && ./install.sh --help` to see a list of available options.
 
 # Usage
 
