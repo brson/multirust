@@ -635,7 +635,7 @@ install_toolchain_from_dist() {
     case "$_toolchain" in
 	nightly | beta | stable )
 	    # NB: This 'cat' may fail since channel_sums_dir may not exist
-	    local _existing_checksum="$(cat "$channel_sums_dir/$_toolchain.sha256")"
+	    local _existing_checksum="$(cat "$channel_sums_dir/$_toolchain.sha256" 2> /dev/null)"
 	    local _new_checksum="$(cat "$_workdir/$_rust_installer_name.sha256")"
 	    if [ "$_existing_checksum" = "$_new_checksum" ]; then
 		_need_install=false
