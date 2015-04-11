@@ -1120,8 +1120,14 @@ delete_data() {
     if [ ! "$flag_yes" = true ]; then
 	read -p "This will delete all toolchains, overrides, aliases, and other multirust data associated with this user. Continue? (y/n) " yn
 
+	echo
+
 	case "$yn" in
-	    [Nn] )
+	    [Yy] )
+		# Do nothing
+		;;
+	    * )
+		say "aborting"
 		exit 0
 		;;
 	esac
@@ -1130,6 +1136,8 @@ delete_data() {
     # Need -f for Cargo's write-protected git directories
     rm -Rf "$multirust_dir"
     need_ok "failed to delete '$multirust_dir'"
+
+    say "deleted $multirust_dir"
 }
 
 # The multirustproxy control interface
