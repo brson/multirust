@@ -496,10 +496,6 @@ PATH="$MULTIRUST_BIN_DIR:$PATH"
 export PATH
 try test -e "$MULTIRUST_BIN_DIR/multirust"
 
-# Don't run the async updates. Otherwise the extra process
-# may futz with our files and break subsequent tests.
-export MULTIRUST_DISABLE_UPDATE_CHECKS=1
-
 # Names of custom installers
 get_architecture
 arch="$RETVAL"
@@ -832,82 +828,6 @@ remove_override_with_multiple_overrides() {
     (cd "$WORK_DIR/dir2" && expect_output_ok "stable" rustc --version)
 }
 runtest remove_override_with_multiple_overrides
-
-update_checks() {
-    unset MULTIRUST_DISABLE_UPDATE_CHECKS
-    set_current_dist_date 2015-01-01
-    try multirust default nightly
-    try rustc
-    try sleep 0.1
-    echo "not todays date" > "$MULTIRUST_HOME/update-stamp"
-    set_current_dist_date 2015-01-02
-    try rustc
-    try sleep 0.1
-    expect_output_ok "a new version of 'nightly' is available" rustc
-    expect_output_ok "a new version of 'nightly' is available" cargo
-    expect_output_ok "a new version of 'nightly' is available" rustdoc
-    try multirust update nightly
-    expect_not_output_ok "a new version of 'nightly' is available" rustc
-    expect_not_output_ok "a new version of 'nightly' is available" cargo
-    expect_not_output_ok "a new version of 'nightly' is available" rustdoc
-    export MULTIRUST_DISABLE_UPDATE_CHECKS=1
-}
-runtest update_checks
-
-update_notifications_not_displayed_for_version_flags() {
-    unset MULTIRUST_DISABLE_UPDATE_CHECKS
-    set_current_dist_date 2015-01-01
-    try multirust default nightly
-    try rustc --version
-    try sleep 0.1
-    echo "not todays date" > "$MULTIRUST_HOME/update-stamp"
-    set_current_dist_date 2015-01-02
-    try rustc --version
-    try sleep 0.1
-    expect_not_output_ok "a new version of 'nightly' is available" rustc --version
-    expect_not_output_ok "a new version of 'nightly' is available" rustc -V
-    expect_not_output_ok "a new version of 'nightly' is available" cargo --version
-    expect_not_output_ok "a new version of 'nightly' is available" cargo -V
-    expect_not_output_ok "a new version of 'nightly' is available" rustdoc --version
-    expect_not_output_ok "a new version of 'nightly' is available" rustdoc -V
-    expect_not_output_ok "a new version of 'nightly' is available" rustc --print
-    expect_not_output_ok "a new version of 'nightly' is available" rustc --print=crate-name
-    export MULTIRUST_DISABLE_UPDATE_CHECKS=1
-}
-runtest update_notifications_not_displayed_for_version_flags
-
-update_checks_are_not_recursive() {
-    unset MULTIRUST_DISABLE_UPDATE_CHECKS
-    set_current_dist_date 2015-01-01
-    try multirust default nightly
-    try rustc
-    try sleep 0.1
-    echo "not todays date" > "$MULTIRUST_HOME/update-stamp"
-    set_current_dist_date 2015-01-02
-    try rustc
-    try sleep 0.1
-    outputfile="$TMP_DIR/update-checks-are-not-recursive"
-    try rustc --recurse 2
-    rustc --recurse 2 > "$outputfile"
-    if [ -n "${VERBOSE-}" ]; then
-	cat "$outputfile"
-    fi
-    seen=false
-    while read line; do
-	if echo "$line" | grep -q "a new version of 'nightly' is available"; then
-	    if [ "$seen" = true ]; then
-		fail "recursive update notice"
-	    fi
-	    seen=true
-	fi
-    done < "$outputfile"
-    rm "$outputfile"
-    if [ "$seen" = false ]; then
-	fail "no update notice"
-    fi
-    export MULTIRUST_DISABLE_UPDATE_CHECKS=1
-}
-runtest update_checks_are_not_recursive
 
 custom_no_installer_specified() {
     expect_output_fail "unspecified installer" multirust update nightly --installer
