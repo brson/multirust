@@ -1,3 +1,6 @@
 [submodule "src/rust-installer"]
 	path = src/rust-installer
 	url = https://github.com/rust-lang/rust-installer
+[submodule "src/rustup"]
+	path = src/rustup
+	url = git://github.com/rust-lang/rustup

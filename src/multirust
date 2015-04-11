@@ -241,10 +241,8 @@ set_globals() {
     multirust_cmd="$0"
     cmd_dirname="$(dirname "$0")"
     cmd_basename="$(basename "$0")"
-    abs_cmd_basename="$(cd "$cmd_dirname" && pwd)"
     assert_nz "$cmd_dirname" "cmd_dirname"
     assert_nz "$cmd_basename" "cmd_basename"
-    assert_nz "$abs_cmd_basename" "abs_cmd_basename"
 
     # Set up the multirust data dir
     multirust_dir="${MULTIRUST_HOME-$HOME/.multirust}"
@@ -394,6 +392,11 @@ Mve696B5tlHyc1KxjHR6w9GRsh4=
 
     if [ -n "${MULTIRUST_VERBOSE-}" ]; then
 	flag_verbose=true
+    fi
+
+    # Sanity check. Where's rustup.sh?
+    if [ ! -e "$cmd_dirname/rustup.sh" ]; then
+	err "rustup.sh not found at $cmd_dirname/rustup.sh"
     fi
 }
 
@@ -1469,6 +1472,10 @@ ctl_check_for_updates_sync() {
 
 
 # Tools
+
+call_rustup() {
+    "$cmd_dirname/rustup.sh" "$@"
+}
 
 call_multirust() {
     "$multirust_cmd" "$@"
