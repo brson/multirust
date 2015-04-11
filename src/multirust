@@ -264,11 +264,8 @@ set_globals() {
     override_db="$multirust_dir/overrides"
     default_file="$multirust_dir/default"
     toolchains_dir="$multirust_dir/toolchains"
-    manifests_dir="$multirust_dir/manifests"
-    installer_dir="$multirust_dir/installers"
     channel_sums_dir="$multirust_dir/channel-sums"
     temp_dir="$multirust_dir/tmp"
-    dl_dir="$multirust_dir/dl"
 
     # Used for delimiting fields in override_db
     delim=";"
