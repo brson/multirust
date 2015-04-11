@@ -238,7 +238,6 @@ set_globals() {
     rust_dist_dir=dist
 
     # Useful values pulled from the name of the invoked process
-    multirust_cmd="$0"
     cmd_dirname="$(dirname "$0")"
     cmd_basename="$(basename "$0")"
     assert_nz "$cmd_dirname" "cmd_dirname"
@@ -1322,10 +1321,6 @@ ctl_print_toolchain_sysroot() {
 
 call_rustup() {
     "$cmd_dirname/rustup.sh" "$@"
-}
-
-call_multirust() {
-    "$multirust_cmd" "$@"
 }
 
 make_temp_name() {
