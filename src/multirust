@@ -1112,6 +1112,8 @@ upgrade_data() {
 	    err "unknown metadata version: $_current_version"
 	    ;;
     esac
+
+    say "success"
 }
 
 delete_data() {
