@@ -205,7 +205,6 @@ set -u
 
 main() {
     set_globals "$@"
-    check_metadata_version
     handle_command_line_args "$@"
 }
 
@@ -215,7 +214,7 @@ set_globals() {
     assert_nz "$0" "\$0 is undefined"
 
     # Some constants
-    version=0.0.2
+    version=0.0.3
     # NB: This will be replaced by the build script
     commit_version=
     metadata_version=2
@@ -398,27 +397,18 @@ Mve696B5tlHyc1KxjHR6w9GRsh4=
     fi
 }
 
-# Verifies that ~/.multirust exists and uses the correct format
-check_metadata_version() {
-    verbose_say "checking metadata version"
-
-    test -e "$multirust_dir"
-    need_ok "multirust_dir must exist"
-
-    if [ ! -e "$version_file" ]; then
-	verbose_say "writing metadata version $metadata_version"
-	echo "$metadata_version" > "$version_file"
-    else
-	local _current_version="$(cat "$version_file")"
-	verbose_say "got metadata version $_current_version"
-	if [ "$_current_version" != "$metadata_version" ]; then
-	    err "metadata version is $_current_version, need $metadata_version. run \`multirust upgrade-data\`"
-	fi
-    fi
-}
-
 handle_command_line_args() {
     local _cmd_arg="${1-}"
+
+    # Make sure we're working with an up-to-date metadata format
+    case "$_cmd_arg" in
+	upgrade-data | delete-data | help )
+	    # Don't need consistent metadata for these commands
+	    ;;
+	* )
+	    check_metadata_version
+	;;
+    esac
 
     case "$_cmd_arg" in
 	update)
@@ -450,6 +440,7 @@ handle_command_line_args() {
 	    remove_toolchain "$2"
 	    ;;
 
+	upgrade-data) upgrade_data;;
 	delete-data) delete_data;;
 
 	ctl)
@@ -1074,6 +1065,55 @@ list_toolchains() {
 
 # Management of data in the MULTIRUST_HOME directory
 
+# Verifies that ~/.multirust exists and uses the correct format
+check_metadata_version() {
+    verbose_say "checking metadata version"
+
+    test -e "$multirust_dir"
+    need_ok "multirust_dir must exist"
+
+    if [ ! -e "$version_file" ]; then
+	verbose_say "writing metadata version $metadata_version"
+	echo "$metadata_version" > "$version_file"
+	need_ok "failed to write metadata version"
+    else
+	local _current_version="$(cat "$version_file")"
+	verbose_say "got metadata version $_current_version"
+	if [ "$_current_version" != "$metadata_version" ]; then
+	    err "metadata version is $_current_version, need $metadata_version. run \`multirust upgrade-data\`"
+	fi
+    fi
+}
+
+upgrade_data() {
+
+    if [ ! -e "$version_file" ]; then
+	say "no need to upgrade. $multirust_dir does not exist"
+	return
+    fi
+
+    local _current_version="$(cat "$version_file")"
+    say "upgrading metadata from version $_current_version to $metadata_version"
+    case "$_current_version" in
+	2 )
+	    # Current version. Do nothing
+	    say "metadata is updated to version $_current_version"
+	    ;;
+	1 )
+	    # Ignore errors. These files may not exist.
+	    rm "$multirust_dir/available-updates" > /dev/null 2>&1
+	    rm "$multirust_dir/update-stamp" > /dev/null 2>&1
+	    rm -R "$multirust_dir/channel-sums" > /dev/null 2>&1
+	    rm -R "$multirust_dir/manifests" > /dev/null 2>&1
+	    echo "$metadata_version" > "$version_file"
+	    need_ok "failed to write metadata version"
+	    ;;
+	* )
+	    err "unknown metadata version: $_current_version"
+	    ;;
+    esac
+}
+
 delete_data() {
     if [ ! "$flag_yes" = true ]; then
 	read -p "This will delete all toolchains, overrides, aliases, and other multirust data associated with this user. Continue? (y/n) " yn
@@ -1089,7 +1129,6 @@ delete_data() {
     rm -Rf "$multirust_dir"
     need_ok "failed to delete '$multirust_dir'"
 }
-
 
 # The multirustproxy control interface
 

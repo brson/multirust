@@ -4,3 +4,6 @@
 [submodule "src/rustup"]
 	path = src/rustup
 	url = git://github.com/rust-lang/rustup
+[submodule "test/multirust-v1"]
+	path = test/multirust-v1
+	url = https://github.com/brson/multirust

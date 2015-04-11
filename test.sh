@@ -32,8 +32,9 @@ MULTIRUST_GPG_KEY="$TEST_DIR/public-key.asc"
 WORK_DIR="$S/tmp/work"
 MOCK_BUILD_DIR="$S/tmp/mock-build"
 MULTIRUST_HOME="$(cd "$TMP_DIR" && pwd)/multirust"
-VERSION=0.0.2
+VERSION=0.0.3
 MULTIRUST_BIN_DIR="$S/build/work/multirust-$VERSION/multirust/bin"
+MULTIRUST_BIN_DIR_V1="$S/test/multirust-v1/build/work/multirust-0.0.2/multirust/bin"
 
 say() {
     echo "test: $1"
@@ -481,6 +482,9 @@ build_mocks
 # Build bultirust
 say "building multirust"
 try sh "$S/build.sh"
+
+# Build old-multirusts
+cd "$S/test/multirust-v1" && try sh ./build.sh
 
 # Tell multirust where to put .multirust
 export MULTIRUST_HOME
@@ -962,6 +966,19 @@ update_on_channel_when_data_has_changed() {
     expect_output_ok "hash-nightly-2" rustc --version
 }
 runtest update_on_channel_when_data_has_changed
+
+with_multirust_from_v1_error() {
+    try "$MULTIRUST_BIN_DIR_V1/multirust" default nightly
+    expect_output_fail "metadata version is 1, need 2" multirust default nightly
+}
+runtest with_multirust_from_v1_error
+
+upgrade_from_v1_to_v2() {
+    try "$MULTIRUST_BIN_DIR_V1/multirust" default nightly
+    try multirust upgrade-data
+    try multirust default nightly
+}
+runtest upgrade_from_v1_to_v2
 
 echo
 echo "SUCCESS!"
