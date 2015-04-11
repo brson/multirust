@@ -264,7 +264,7 @@ set_globals() {
     override_db="$multirust_dir/overrides"
     default_file="$multirust_dir/default"
     toolchains_dir="$multirust_dir/toolchains"
-    channel_sums_dir="$multirust_dir/channel-sums"
+    update_hash_dir="$multirust_dir/update-hashes"
     temp_dir="$multirust_dir/tmp"
 
     # Used for delimiting fields in override_db
@@ -596,45 +596,16 @@ install_toolchain_from_dist() {
     local _toolchain_dir="$RETVAL"
     assert_nz "$_toolchain_dir" "toolchain dir"
 
+    local _update_hash_file="$update_hash_dir/$_toolchain"
+    mkdir -p "$update_hash_dir"
+    need_ok "failed to create update-hash directory"
+
     verbose_say "toolchain dir is $_toolchain_dir"
-    call_rustup --prefix="$_toolchain_dir" --spec="$_toolchain"
+    call_rustup --prefix="$_toolchain_dir" --spec="$_toolchain" --update-hash-file="$_update_hash_file"
+
     if [ $? != 0 ]; then
 	exit 1
     fi
-}
-
-# FIXME: Outline of how to short-circuit installs when already up to date
-install_toolchain_from_dist2() {
-    local _toolchain="$1"
-
-    # If the checksum of the available installer is the same as the one we've got
-    # then don't reinstall.
-    local _have_toolchain_hash=false
-    case "$_toolchain" in
-	nightly | beta | stable )
-	    # NB: This 'cat' may fail since channel_sums_dir may not exist
-	    local _existing_checksum="$(cat "$channel_sums_dir/$_toolchain.sha256" 2> /dev/null)"
-	    if [ "$_existing_checksum" = "$_new_checksum" ]; then
-		_need_install=false
-	    fi
-	    ;;
-    esac
-
-    # Do it here
-
-    # If this is from a release channel save the installer checksum for
-    # use in checking for updates later
-    case "$_toolchain" in
-	nightly | beta | stable )
-	    local _saved_sumfile="$channel_sums_dir/$_toolchain.sha256"
-	    verbose_say "saving checksums to $_saved_sumfile"
-	    mkdir -p "$channel_sums_dir"
-	    need_ok "failed to crate channel sums dir"
-	    cp "$_workdir/$_rust_installer_name.sha256" "$_saved_sumfile"
-	    need_ok "failed to save channel checksums"
-	    ;;
-    esac
-
 }
 
 install_toolchain() {

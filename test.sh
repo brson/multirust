@@ -951,8 +951,7 @@ no_update_on_channel_when_data_has_not_changed() {
     try multirust update nightly
     expect_output_ok "'nightly' is already up to date" multirust update nightly
 }
-# FIXME
-#runtest no_update_on_channel_when_data_has_not_changed
+runtest no_update_on_channel_when_data_has_not_changed
 
 update_on_channel_when_data_has_changed() {
     set_current_dist_date 2015-01-01
@@ -964,3 +963,6 @@ update_on_channel_when_data_has_changed() {
 }
 runtest update_on_channel_when_data_has_changed
 
+echo
+echo "SUCCESS!"
+echo
