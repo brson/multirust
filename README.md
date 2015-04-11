@@ -39,8 +39,6 @@ Uninstallation:
 curl -sf https://raw.githubusercontent.com/brson/multirust/master/blastoff.sh | sh -s -- --uninstall
 ```
 
-**Note: multirust requires the `shasum` program to be available, which comes with perl.**
-
 # Manual build, install and configure
 
 A manual build and install allows one to tailor `multirust` to meet specific needs.
