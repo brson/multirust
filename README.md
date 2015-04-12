@@ -267,6 +267,8 @@ quite meager though so it's unlikely to help.
 * Make blastoff script interactive: require confirmation to start and
   display a notice if gpg is not installed.
 * Add a way to disable signature verification.
+* blastoff.sh shouldn't do a recursive clone. Too much submodule recursion.
+  instead make build.sh check out the submodules it needs.
 
 # License
 
