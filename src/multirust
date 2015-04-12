@@ -1026,16 +1026,7 @@ show_default() {
 	say "default toolchain: $_toolchain"
 	say "default location: $_sysroot"
 
-	push_toolchain_ldpath "$_toolchain"
-
-	echo
-
-	"$_sysroot/bin/rustc" --version
-	"$_sysroot/bin/cargo" --version
-
-	echo
-
-	pop_toolchain_ldpath
+	show_tool_versions "$_toolchain"
     else
 	say 'no default toolchain configured. run `multirust help default`'
     fi
@@ -1051,21 +1042,40 @@ show_override() {
 	say "override toolchain: $_toolchain"
 	say "override location: $_sysroot"
 
-	push_toolchain_ldpath "$_toolchain"
-
-	echo
-
-	"$_sysroot/bin/rustc" --version
-	"$_sysroot/bin/cargo" --version
-
-	echo
-
-	pop_toolchain_ldpath
+	show_tool_versions "$_toolchain"
     else
 	say "no override"
 	show_default
     fi
 
+}
+
+show_tool_versions() {
+    local _toolchain="$1"
+
+    get_toolchain_dir "$_toolchain"
+    local _toolchain_dir="$RETVAL"
+    local _rustc_path="$_toolchain_dir/bin/rustc"
+    local _cargo_path="$_toolchain_dir/bin/cargo"
+
+    push_toolchain_ldpath "$_toolchain"
+
+    echo
+
+    if [ -e "$_rustc_path" ]; then
+	"$_rustc_path" --version
+    else
+	echo "(no rustc command in toolchain?)"
+    fi
+    if [ -e "$_cargo_path" ]; then
+	"$_cargo_path" --version
+    else
+	echo "(no cargo command in toolchain)"
+    fi
+
+    echo
+
+    pop_toolchain_ldpath
 }
 
 list_overrides() {
