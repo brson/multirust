@@ -980,6 +980,27 @@ upgrade_from_v1_to_v2() {
 }
 runtest upgrade_from_v1_to_v2
 
+update_all() {
+    set_current_dist_date 2015-01-01
+    try multirust update-all
+    expect_output_ok "using existing"  multirust default nightly
+    expect_output_ok "hash-nightly-1" rustc --version
+    expect_output_ok "using existing"  multirust default beta
+    expect_output_ok "hash-beta-1" rustc --version
+    expect_output_ok "using existing"  multirust default stable
+    expect_output_ok "hash-stable-1" rustc --version
+    set_current_dist_date 2015-01-02
+    expect_output_ok "updating existing"  multirust update nightly
+    try multirust update-all
+    expect_output_ok "using existing"  multirust default nightly
+    expect_output_ok "hash-nightly-2" rustc --version
+    expect_output_ok "using existing"  multirust default beta
+    expect_output_ok "hash-beta-2" rustc --version
+    expect_output_ok "using existing"  multirust default stable
+    expect_output_ok "hash-stable-2" rustc --version
+}
+runtest update_all
+
 echo
 echo "SUCCESS!"
 echo
