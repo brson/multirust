@@ -62,24 +62,34 @@ run() {
 	esac
     done
 
+    if [ ! -e "/dev/tty" ]; then
+	err "/dev/tty does not exist"
+    fi
+
     if [ -z "$UNINSTALL" ]; then
-	echo "This script will download, build, install and configure multirust with the most common options."
-	echo "It may prompt for your password for installation via 'sudo'. Run /usr/local/lib/rustlib/uninstall.sh"
-	echo "to uninstall multirust."
+	cat <<EOF
+
+This script will download, build, and install multirust as root, then
+configure multirust with the most common options.  It may prompt for
+your password for installation via 'sudo'.
+
+You may run /usr/local/lib/rustlib/uninstall.sh to uninstall multirust.
+EOF
     else
 	echo "This script will uninstall multirust. It may prompt for your password via 'sudo'."
     fi
 
     echo
-    sleep 2
-    echo -n "3... "
-    sleep 1
-    echo -n "2... "
-    sleep 1
-    echo -n "1... "
-    sleep 1.5
+
+    local _yn=""
+
+    read -p "Ready? (y/N) " _yn < /dev/tty
+
     echo
-    echo
+
+    if [ "$_yn" != "y" -a "$_yn" != "Y" ]; then
+	exit 0
+    fi
 
     tmp_dir=$(mktemp -d 2>/dev/null \
 	|| mktemp -d -t 'rustup-tmp-install' 2>/dev/null \
