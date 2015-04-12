@@ -9,6 +9,7 @@
 #     default          Set the default toolchain
 #     override         Set the toolchain override for the current directory tree
 #     update           Update (or install if not present) a given toolchain
+#     update-all       Update stable, beta, and nightly
 #     show-default     Show information about the current default
 #     show-override    Show information about the current override
 #     list-overrides   List all overrides
@@ -131,6 +132,14 @@
 # a single installer through the rust-packaging project.
 #
 # </help-update>
+
+# <help-update-all>
+#
+# Updates the 'stable', 'beta', and 'nightly' toolchains.
+#
+# Usage: multirust update-all
+#
+# </help-update-all>
 
 # <help-show-default>
 #
@@ -414,7 +423,7 @@ handle_command_line_args() {
 	update)
 	    # For distribution builds always install
 	    # For custom builds always install toolchain
-	    handle_common_install_args update_toolchain "$@"
+	    handle_common_install_args handle_update_toolchain "$@"
 	    ;;
 
 	default | override )
@@ -425,6 +434,10 @@ handle_command_line_args() {
 	    # Run either set_default or set_override to turn it on
 	    toolchain="${2-}"
 	    "set_$_cmd_arg" "$toolchain"
+	    ;;
+
+	update-all )
+	    update_all_channels
 	    ;;
 
 	show-default) show_default;;
@@ -550,6 +563,28 @@ handle_install_option() {
     "$_update_cmd" "$_toolchain" "$_install_source_arg"
 }
 
+handle_update_toolchain() {
+    local _toolchain="$1"
+
+    update_toolchain "$1"
+
+    if [ $? != 0 ]; then
+	exit 1
+    fi
+}
+
+install_toolchain_if_not_installed() {
+    local _toolchain="$1"
+
+    is_toolchain_installed "$_toolchain"
+    if [ "$RETVAL" = true ]; then
+	say "using existing install for '$_toolchain'"
+	return 0
+    fi
+
+    handle_update_toolchain "$_toolchain"
+}
+
 
 # Updating toolchains
 
@@ -568,16 +603,11 @@ update_toolchain() {
     install_toolchain_from_dist "$_toolchain"
 }
 
-install_toolchain_if_not_installed() {
-    local _toolchain="$1"
-
-    is_toolchain_installed "$_toolchain"
-    if [ "$RETVAL" = true ]; then
-	say "using existing install for '$_toolchain'"
-	return 0
-    fi
-
-    update_toolchain "$_toolchain"
+update_all_channels() {
+    # Ignoring errors
+    update_toolchain stable
+    update_toolchain beta
+    update_toolchain nightly
 }
 
 install_toolchain_from_dist() {
@@ -593,10 +623,6 @@ install_toolchain_from_dist() {
 
     verbose_say "toolchain dir is $_toolchain_dir"
     call_rustup --prefix="$_toolchain_dir" --spec="$_toolchain" --update-hash-file="$_update_hash_file"
-
-    if [ $? != 0 ]; then
-	exit 1
-    fi
 }
 
 install_toolchain() {
