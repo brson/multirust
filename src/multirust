@@ -856,13 +856,13 @@ find_override_toolchain_or_default() {
 	return
     fi
 
-    find_default
+    find_default || return 1
     RETVAL="$RETVAL_TOOLCHAIN"
 }
 
 find_default() {
     if [ ! -e "$default_file" ]; then
-	err 'no default toolchain configured. run `multirust help default`'
+	return 1
     fi
 
     local _default="$(cat "$default_file")"
@@ -1033,9 +1033,11 @@ show_default() {
 	"$_sysroot/bin/rustc" --version
 	"$_sysroot/bin/cargo" --version
 
+	echo
+
 	pop_toolchain_ldpath
     else
-	say "no default"
+	say 'no default toolchain configured. run `multirust help default`'
     fi
 }
 
@@ -1056,10 +1058,14 @@ show_override() {
 	"$_sysroot/bin/rustc" --version
 	"$_sysroot/bin/cargo" --version
 
+	echo
+
 	pop_toolchain_ldpath
     else
 	say "no override"
+	show_default
     fi
+
 }
 
 list_overrides() {
@@ -1170,6 +1176,10 @@ delete_data() {
 
 ctl_print_override_toolchain_or_default() {
     find_override_toolchain_or_default
+    if [ $? != 0 ]; then
+	say_err "no default toolchain configured"
+	exit 1
+    fi
     echo "$RETVAL"
 }
 

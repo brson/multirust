@@ -520,8 +520,7 @@ runtest no_args
 uninitialized() {
     expect_fail rustc
     expect_output_fail "no default toolchain configured" rustc
-    # FIXME: This should succeed and say 'no default'
-    expect_output_fail "no default toolchain configured" multirust show-default
+    expect_output_ok "no default toolchain configured" multirust show-default
 }
 runtest uninitialized
 
@@ -806,6 +805,13 @@ show_override_no_override_no_default() {
     expect_output_ok "no override" multirust show-override
 }
 runtest show_override_no_override_no_default
+
+show_override_no_override_show_default() {
+    try multirust default nightly
+    expect_output_ok "no override" multirust show-override
+    expect_output_ok "default toolchain: nightly" multirust show-override
+}
+runtest show_override_no_override_show_default
 
 remove_override_no_default() {
     try multirust override nightly
