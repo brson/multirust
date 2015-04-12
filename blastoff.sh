@@ -113,7 +113,7 @@ EOF
 	err "failed to cd to git repo"
     fi
 
-    say "bulding"
+    say "building"
     sh ./build.sh
     if [ $? != 0 ]; then
 	cd "$original_dir" && rm -Rf "$tmp_dir"
