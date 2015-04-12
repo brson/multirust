@@ -3,7 +3,7 @@
 	url = https://github.com/rust-lang/rust-installer
 [submodule "src/rustup"]
 	path = src/rustup
-	url = git://github.com/rust-lang/rustup
+	url = git://github.com/brson/rustup
 [submodule "test/multirust-v1"]
 	path = test/multirust-v1
 	url = https://github.com/brson/multirust
