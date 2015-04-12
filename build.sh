@@ -37,5 +37,4 @@ src/rust-installer/gen-installer.sh \
     --output-dir=./build \
     --non-installed-overlay=./build/overlay \
     --component-name=multirust \
-    --legacy-manifest-dirs=rustlib,cargo
-
+    --legacy-manifest-dirs=rustlib,cargo > /dev/null
