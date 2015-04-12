@@ -102,7 +102,7 @@ EOF
 
     # Clone git repo
     say "cloning multirust git repo"
-    git clone "$GIT_REPO" --recursive
+    git clone "$GIT_REPO"
     if [ $? != 0 ]; then
 	cd "$original_dir" && rm -Rf "$tmp_dir"
 	err "failed to clone git repo $GIT_REPO"
