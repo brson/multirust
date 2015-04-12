@@ -8,8 +8,7 @@
 #
 #     default          Set the default toolchain
 #     override         Set the toolchain override for the current directory tree
-#     update           Update (or install if not present) a given toolchain
-#     update-all       Update stable, beta, and nightly
+#     update           Install or update a given toolchain
 #     show-default     Show information about the current default
 #     show-override    Show information about the current override
 #     list-overrides   List all overrides
@@ -108,10 +107,15 @@
 # yet installed.
 #
 # Usage:
+#     multirust update
 #     multirust update <toolchain> [--copy-local <toolchain-path> |
 #                                   --link-local <toolchain-path> |
 #                                   --installer <installer-path-or-url> |
 #                                   --installer <path-or-url>[,<path-or-url>]]
+#
+# With no toolchain specified, the update command updates each of the
+# stable, beta, and nightly toolchains from the official release
+# channels.
 #
 # Use --copy-local <path> to install by copying a local
 # toolchain. This will copy the toolchain from a local directory to a
@@ -132,14 +136,6 @@
 # a single installer through the rust-packaging project.
 #
 # </help-update>
-
-# <help-update-all>
-#
-# Updates the 'stable', 'beta', and 'nightly' toolchains.
-#
-# Usage: multirust update-all
-#
-# </help-update-all>
 
 # <help-show-default>
 #
@@ -421,9 +417,14 @@ handle_command_line_args() {
 
     case "$_cmd_arg" in
 	update)
-	    # For distribution builds always install
-	    # For custom builds always install toolchain
-	    handle_common_install_args handle_update_toolchain "$@"
+	    if [ -z "${2-}" ]; then
+		# As a special case `multirust update` updates all three release channels
+		update_all_channels
+	    else
+		# For distribution builds always install
+		# For custom builds always install toolchain
+		handle_common_install_args handle_update_toolchain "$@"
+	    fi
 	    ;;
 
 	default | override )
@@ -434,10 +435,6 @@ handle_command_line_args() {
 	    # Run either set_default or set_override to turn it on
 	    toolchain="${2-}"
 	    "set_$_cmd_arg" "$toolchain"
-	    ;;
-
-	update-all )
-	    update_all_channels
 	    ;;
 
 	show-default) show_default;;
@@ -585,6 +582,52 @@ install_toolchain_if_not_installed() {
     handle_update_toolchain "$_toolchain"
 }
 
+update_all_channels() {
+    local _stable_ok=true
+    local _beta_ok=true
+    local _nightly_ok=true
+
+    update_toolchain stable
+    if [ $? != 0 ]; then
+	_stable_ok=false
+    fi
+    update_toolchain beta
+    if [ $? != 0 ]; then
+	_beta_ok=false
+    fi
+    update_toolchain nightly
+    if [ $? != 0 ]; then
+	_nightly_ok=false
+    fi
+
+    if [ "$_stable_ok" = true ]; then
+	say "'stable' update succeeded"
+    else
+	say_err "'stable' update FAILED"
+    fi
+    if [ "$_beta_ok" = true ]; then
+	say "'beta' update succeeded"
+    else
+	say_err "'beta' update FAILED"
+    fi
+    if [ "$_nightly_ok" = true ]; then
+	say "'nightly' update succeeded"
+    else
+	say_err "'nightly' update FAILED"
+    fi
+
+    say "stable revision:"
+    show_tool_versions "stable"
+
+    say "beta revision:"
+    show_tool_versions "beta"
+
+    say "nightly revision:"
+    show_tool_versions "nightly"
+
+    return 0
+}
+
 
 # Updating toolchains
 
@@ -601,13 +644,6 @@ update_toolchain() {
     fi
 
     install_toolchain_from_dist "$_toolchain"
-}
-
-update_all_channels() {
-    # Ignoring errors
-    update_toolchain stable
-    update_toolchain beta
-    update_toolchain nightly
 }
 
 install_toolchain_from_dist() {
@@ -1053,29 +1089,40 @@ show_override() {
 show_tool_versions() {
     local _toolchain="$1"
 
-    get_toolchain_dir "$_toolchain"
-    local _toolchain_dir="$RETVAL"
-    local _rustc_path="$_toolchain_dir/bin/rustc"
-    local _cargo_path="$_toolchain_dir/bin/cargo"
-
-    push_toolchain_ldpath "$_toolchain"
-
     echo
 
-    if [ -e "$_rustc_path" ]; then
-	"$_rustc_path" --version
+    ensure is_toolchain_installed "$_toolchain"
+    local _have_toolchain="$RETVAL"
+
+    if [ "$_have_toolchain" = true ]; then
+
+	get_toolchain_dir "$_toolchain"
+	local _toolchain_dir="$RETVAL"
+	local _rustc_path="$_toolchain_dir/bin/rustc"
+	local _cargo_path="$_toolchain_dir/bin/cargo"
+
+	push_toolchain_ldpath "$_toolchain"
+
+	if [ -e "$_rustc_path" ]; then
+	    "$_rustc_path" --version
+	else
+	    echo "(no rustc command in toolchain?)"
+	fi
+	if [ -e "$_cargo_path" ]; then
+	    "$_cargo_path" --version
+	else
+	    echo "(no cargo command in toolchain)"
+	fi
+
+	pop_toolchain_ldpath
+
     else
-	echo "(no rustc command in toolchain?)"
-    fi
-    if [ -e "$_cargo_path" ]; then
-	"$_cargo_path" --version
-    else
-	echo "(no cargo command in toolchain)"
+
+	echo "(toolchain not installed)"
+
     fi
 
     echo
-
-    pop_toolchain_ldpath
 }
 
 list_overrides() {
@@ -1332,6 +1379,31 @@ need_ok() {
 
 assert_nz() {
     if [ -z "$1" ]; then err "assert_nz $2"; fi
+}
+
+# Run a command that should never fail. If the command fails execution
+# will immediately terminate with an error showing the failing
+# command.
+ensure() {
+    "$@"
+    need_ok "command failed: $*"
+}
+
+# This is just for indicating that commands' results are being
+# intentionally ignored. Usually, because it's being executed
+# as part of error handling.
+ignore() {
+    run "$@"
+}
+
+# Runs a command and prints it to stderr if it fails.
+run() {
+    "$@"
+    local _retval=$?
+    if [ $_retval != 0 ]; then
+	say_err "command failed: $*"
+    fi
+    return $_retval
 }
 
 # Ensure various commands exist

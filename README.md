@@ -109,6 +109,8 @@ multirust: a new version of the 'nightly' release is available. run `multirust u
 In which case the toolchain can be updated with `multirust update
 nightly`.
 
+All three release channels can be updated at once with `multirust update`.
+
 # Toolchain specification
 
 `multirust` supports several ways to indicate the toolchain: 'stable',
@@ -267,6 +269,8 @@ quite meager though so it's unlikely to help.
 * Make blastoff script interactive: require confirmation to start and
   display a notice if gpg is not installed.
 * Add a way to disable signature verification.
+* There are probably ways to cause damage by trusting the user about
+* what is and isn't a 'custom' toolchain.
 
 # License
 
