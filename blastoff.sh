@@ -117,9 +117,11 @@ EOF
 	err "failed to cd to git repo"
     fi
 
-    git checkout -b "origin/${MULTIRUST_BLASTOFF_BRANCH-master}"
+    local _branch="${MULTIRUST_BLASTOFF_BRANCH-master}"
+    git checkout "origin/$_branch" -b "$_branch"
     if [ $? != 0 ]; then
 	cd "$original_dir" && rm -Rf "$tmp_dir"
+	err "failed to checkout branch $_branch"
     fi
 
     say "building"
