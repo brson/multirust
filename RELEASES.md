@@ -7,5 +7,6 @@
   so that multirust will use a specific toolchain.
 * Removed update notifications. Just use `multirust update`, which will be a no-op if there's
   no new revision to install.
+* multirust now can validate hashes with either sha256sum or shasum.
 * Added `multirust upgrade-data` for upgrading metadata.
 * Updated metadata format from version 1 to 2.
