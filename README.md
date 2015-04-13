@@ -256,7 +256,6 @@ quite meager though so it's unlikely to help.
 * Handle temp file cleanup more consistently - always cleaned up on
   error unless requested otherwise.
 * Use wget if curl isn't available?
-* Multiple options for checksums besides 'shasum'?
 * Command to check for and show available updates explicitly.
 * Figure out what to do about command line completions for cargo,
   etc.
