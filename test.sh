@@ -479,6 +479,9 @@ set_current_dist_date() {
 # Build the mock revisions
 build_mocks
 
+say "updating submodules"
+try git submodule update --init --recursive
+
 # Build bultirust
 say "building multirust"
 try sh "$S/build.sh"
