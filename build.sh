@@ -26,8 +26,7 @@ if [ "$(uname -s)" = Darwin ]; then
     cp src/multirustproxy build/image/bin/rust-lldb
 fi
 
-
-src/rust-installer/gen-installer.sh \
+sh src/rust-installer/gen-installer.sh \
     --product-name=multirust \
     --package-name=multirust-0.0.3 \
     --rel-manifest-dir=rustlib \
