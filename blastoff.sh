@@ -117,7 +117,7 @@ EOF
 	err "failed to cd to git repo"
     fi
 
-    git checkout -b "${MULTIRUST_BLASTOFF_BRANCH-master}"
+    git checkout -b "origin/${MULTIRUST_BLASTOFF_BRANCH-master}"
     if [ $? != 0 ]; then
 	cd "$original_dir" && rm -Rf "$tmp_dir"
     fi
