@@ -5,7 +5,7 @@ set -e
 ver_date=$(git log -1 --pretty=format:'%ci')
 ver_hash=$(git rev-parse --short=9 HEAD)
 
-git submodule update --init --depth 1
+git submodule update --init
 
 mkdir -p build
 rm -Rf build/*
