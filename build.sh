@@ -10,7 +10,7 @@ git submodule update --init
 mkdir -p build
 rm -Rf build/*
 mkdir -p build/image/bin
-cat src/multirust | sed "s/^commit_version=$/commit_version=\"$ver_hash $ver_date\"/" > build/image/bin/multirust
+cat src/multirust | sed "s/^ *commit_version=$/commit_version=\"$ver_hash $ver_date\"/" > build/image/bin/multirust
 chmod 0755 build/image/bin/multirust
 cp src/rustup/rustup.sh build/image/bin/rustup.sh
 chmod 0755 build/image/bin/rustup.sh
