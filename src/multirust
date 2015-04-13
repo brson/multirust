@@ -917,6 +917,18 @@ find_default() {
 }
 
 find_override() {
+
+    if [ -n "${MULTIRUST_TOOLCHAIN-}" ]; then
+	RETVAL_REASON="environment override by MULTIRUST_TOOLCHAIN"
+	RETVAL_TOOLCHAIN="${MULTIRUST_TOOLCHAIN-}"
+	get_toolchain_dir "${MULTIRUST_TOOLCHAIN-}"
+	RETVAL_SYSROOT="$RETVAL"
+	if [ ! -e "$RETVAL_SYSROOT" ]; then
+	    err "toolchain '$_toolchain' not installed. run \`multirust update $_toolchain\` to install"
+	fi
+	return
+    fi
+
     if [ ! -e "$override_db" ]; then
 	return 1
     fi
@@ -935,7 +947,7 @@ find_override() {
 	    assert_nz "$_toolchain" "empty toolchain in override db"
 
 	    if [ "$_dir" = "$_ovrdir" ]; then
-		RETVAL_OVRDIR="$_ovrdir"
+		RETVAL_REASON="directory override for '$_ovrdir'"
 		RETVAL_TOOLCHAIN="$_toolchain"
 		get_toolchain_dir "$_toolchain"
 		RETVAL_SYSROOT="$RETVAL"
@@ -1070,13 +1082,13 @@ show_default() {
 
 show_override() {
     if find_override; then
-	local _ovrdir="$RETVAL_OVRDIR"
+	local _reason="$RETVAL_REASON"
 	local _toolchain="$RETVAL_TOOLCHAIN"
 	local _sysroot="$RETVAL_SYSROOT"
 
-	say "override directory: $_ovrdir"
 	say "override toolchain: $_toolchain"
 	say "override location: $_sysroot"
+	say "override reason: $_reason"
 
 	show_tool_versions "$_toolchain"
     else

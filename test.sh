@@ -792,7 +792,7 @@ runtest change_override
 show_override() {
     try multirust override nightly
     expect_output_ok "override toolchain: nightly" multirust show-override
-    expect_output_ok "override directory: `pwd`" multirust show-override
+    expect_output_ok "override reason: directory override for '`pwd`'" multirust show-override
     expect_output_ok "override location: $MULTIRUST_HOME/toolchains/nightly" multirust show-override
     expect_output_ok "hash-nightly-2" multirust show-override
 }
@@ -815,6 +815,18 @@ show_override_no_override_show_default() {
     expect_output_ok "default toolchain: nightly" multirust show-override
 }
 runtest show_override_no_override_show_default
+
+show_override_from_MULTIRUST_TOOLCHAIN() {
+    try multirust update beta
+    try multirust override nightly
+    export MULTIRUST_TOOLCHAIN=beta
+    expect_output_ok "override toolchain: beta" multirust show-override
+    expect_output_ok "override reason: environment override" multirust show-override
+    expect_output_ok "override location: $MULTIRUST_HOME/toolchains/beta" multirust show-override
+    expect_output_ok "hash-beta-2" multirust show-override
+    unset MULTIRUST_TOOLCHAIN
+}
+runtest show_override_from_MULTIRUST_TOOLCHAIN
 
 remove_override_no_default() {
     try multirust override nightly

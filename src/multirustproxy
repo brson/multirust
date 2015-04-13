@@ -100,16 +100,13 @@ if [ -z "$multirust_home" ]; then
 fi
 
 # Get the override toolchain
-toolchain="${MULTIRUST_TOOLCHAIN-}"
-if [ -z "$toolchain" ]; then
-    toolchain="$(call_multirust ctl override-toolchain)"
-    if [ $? != 0 ]; then
-	# If this fails, multirust will display an error,
-	# which looks better than multirustproxy doing so.
-	return 1
-    fi
-    assert_nz "$toolchain" "toolchain is empty"
+toolchain="$(call_multirust ctl override-toolchain)"
+if [ $? != 0 ]; then
+    # If this fails, multirust will display an error,
+    # which looks better than multirustproxy doing so.
+    return 1
 fi
+assert_nz "$toolchain" "toolchain is empty"
 
 # Get the sysroot for the override toolchain
 sysroot="$(call_multirust ctl toolchain-sysroot "$toolchain")"
