@@ -104,9 +104,11 @@ EOF
     cd "$tmp_dir"
     need_ok "failed to cd to temporary install directory"
 
+    local _branch="${MULTIRUST_BLASTOFF_BRANCH-master}"
+
     # Clone git repo
     say "cloning multirust git repo"
-    git clone "$GIT_REPO" --depth 1
+    git clone "$GIT_REPO" -b "$_branch" --depth 1
     if [ $? != 0 ]; then
 	cd "$original_dir" && rm -Rf "$tmp_dir"
 	err "failed to clone git repo $GIT_REPO"
@@ -115,13 +117,6 @@ EOF
     if [ $? != 0 ]; then
 	cd "$original_dir" && rm -Rf "$tmp_dir"
 	err "failed to cd to git repo"
-    fi
-
-    local _branch="${MULTIRUST_BLASTOFF_BRANCH-master}"
-    git reset "origin/$_branch" --hard
-    if [ $? != 0 ]; then
-	cd "$original_dir" && rm -Rf "$tmp_dir"
-	err "failed to checkout branch $_branch"
     fi
 
     say "building"
