@@ -118,7 +118,7 @@ EOF
     fi
 
     local _branch="${MULTIRUST_BLASTOFF_BRANCH-master}"
-    git checkout "origin/$_branch" -b "$_branch"
+    git reset "origin/$_branch" --hard
     if [ $? != 0 ]; then
 	cd "$original_dir" && rm -Rf "$tmp_dir"
 	err "failed to checkout branch $_branch"
