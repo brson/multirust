@@ -97,19 +97,14 @@ show-override`. The current override can be deleted by running
 `multirust remove-override` from the directory where the override was
 created.
 
-When using the 'stable', 'beta', or 'nightly' toolchains, the tools
-will periodically notify you of updates:
+Check for updates with `multirust update nightly`. All three release
+channels can be updated at once with `multirust update`.
 
-```
-cargo build
-multirust: a new version of the 'nightly' release is available. run `multirust update nightly` to install it.
-... normal output ...
-```
-
-In which case the toolchain can be updated with `multirust update
-nightly`.
-
-All three release channels can be updated at once with `multirust update`.
+The `multirust run` command will run an arbitrary in an environment
+configured for a given toolchain, so e.g. `multirust run beta cargo
+build` will run the beta cargo, regardless of the current
+override. This can also be used to e.g. open a beta shell like
+`milturust run beta bash`.
 
 # Toolchain specification
 
