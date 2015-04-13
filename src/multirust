@@ -9,13 +9,15 @@
 #     default          Set the default toolchain
 #     override         Set the toolchain override for the current directory tree
 #     update           Install or update a given toolchain
-#     show-default     Show information about the current default
 #     show-override    Show information about the current override
+#     show-default     Show information about the current default
 #     list-overrides   List all overrides
 #     list-toolchains  List all installed toolchains
 #     remove-override  Remove the current override
 #     remove-toolchain Uninstall a toolchain
+#     run              Run a command in an environment configured for a toolchain
 #     delete-data      Delete all user metadata, including installed toolchains
+#     upgrade-data     Upgrade the ~/.multirust director from previous versions
 #     help             Show help for this command or subcommands
 #
 # Use `multirust help <command>` for detailed help.
@@ -185,6 +187,17 @@
 #
 # </help-remove-toolchain>
 
+# <help-run>
+#
+# Usage: multirust run <toolchain> <command> [arguments]
+#
+# Configures an environment to use the given toolchain and then runs
+# the specified program. The command may be any program, not just
+# rustc or cargo. This can be used for testing arbitrary toolchains
+# without setting an override.
+#
+# </help-run>
+
 # <help-delete-data>
 #
 # Deletes the ~/.multirust directory, removing all installed
@@ -197,6 +210,14 @@
 # Usage: multirust delete-data [-y].
 #
 # </help-delete-data>
+
+# <help-upgrade-data>
+#
+# Usage: multirust upgrade-data
+#
+# Upgrades the ~/.multirust directory from previous versions.
+#
+# </help-upgrade-data>
 
 # <help-help>
 #
@@ -384,11 +405,6 @@ Mve696B5tlHyc1KxjHR6w9GRsh4=
 		flag_yes=true
 		;;
 
-	    --version)
-		echo "multirust $version ($commit_version)"
-		exit 0
-		;;
-
 	esac
     done
 
@@ -450,6 +466,14 @@ handle_command_line_args() {
 	    remove_toolchain "$2"
 	    ;;
 
+	run)
+	    if [ -z "${2-}" ]; then
+		err 'unspecified toolchain. try `multirust help run`'
+	    fi
+	    shift
+	    run_in_environment "$@"
+	    ;;
+
 	upgrade-data) upgrade_data;;
 	delete-data) delete_data;;
 
@@ -489,6 +513,11 @@ handle_command_line_args() {
 		    display_topic help-"${2-}"
 		    ;;
 	    esac
+	    ;;
+
+	--version)
+	    echo "multirust $version ($commit_version)"
+	    exit 0
 	    ;;
 
 	*)
@@ -628,6 +657,27 @@ update_all_channels() {
     return 0
 }
 
+run_in_environment() {
+    local _toolchain="$1"
+
+    shift
+
+    if [ -z "${1-}" ]; then
+	err "command needed. see \`multirust help run\`"
+    fi
+
+    get_toolchain_dir "$_toolchain"
+    local _toolchain_dir="$RETVAL"
+    assert_nz "$_toolchain_dir" "toolchain dir"
+
+    export LD_LIBRARY_PATH="$_toolchain_dir/lib:${LD_LIBRARY_PATH-}"
+    export DYLD_LIBRARY_PATH="$_toolchain_dir/lib:${DYLD_LIBRARY_PATH-}"
+    export CARGO_HOME="$_toolchain_dir/cargo"
+    export MULTIRUST_TOOLCHAIN="$_toolchain"
+    export MULTIRUST_HOME="$multirust_dir"
+
+    exec "$@"
+}
 
 # Updating toolchains
 

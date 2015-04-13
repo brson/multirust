@@ -270,7 +270,8 @@ quite meager though so it's unlikely to help.
   display a notice if gpg is not installed.
 * Add a way to disable signature verification.
 * There are probably ways to cause damage by trusting the user about
-* what is and isn't a 'custom' toolchain.
+  what is and isn't a 'custom' toolchain.
+* Refactor multirustproxy to use 'multirust run'.
 
 # License
 

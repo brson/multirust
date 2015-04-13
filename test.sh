@@ -1022,6 +1022,13 @@ update_no_toolchain_means_update_all() {
 }
 runtest update_no_toolchain_means_update_all
 
+run_command() {
+    try multirust update nightly
+    try multirust default beta
+    expect_output_ok "nightly" multirust run nightly rustc --version
+}
+runtest run_command
+
 echo
 echo "SUCCESS!"
 echo
