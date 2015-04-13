@@ -94,9 +94,13 @@ EOF
     tmp_dir=$(mktemp -d 2>/dev/null \
 	|| mktemp -d -t 'rustup-tmp-install' 2>/dev/null \
 	|| create_tmp_dir)
+    if [ -z "$tmp_dir" ]; then
+	err "empty temp dir"
+    fi
 
     original_dir=`pwd`
 
+    say "working in temporary directory $tmp_dir"
     cd "$tmp_dir"
     need_ok "failed to cd to temporary install directory"
 
@@ -111,6 +115,11 @@ EOF
     if [ $? != 0 ]; then
 	cd "$original_dir" && rm -Rf "$tmp_dir"
 	err "failed to cd to git repo"
+    fi
+
+    git checkout -b "${MULTIRUST_BLASTOFF_BRANCH-master}"
+    if [ $? != 0 ]; then
+	cd "$original_dir" && rm -Rf "$tmp_dir"
     fi
 
     say "building"
