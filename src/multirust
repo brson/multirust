@@ -708,7 +708,7 @@ install_toolchain_from_dist() {
     need_ok "failed to create update-hash directory"
 
     verbose_say "toolchain dir is $_toolchain_dir"
-    call_rustup --prefix="$_toolchain_dir" --spec="$_toolchain" --update-hash-file="$_update_hash_file"
+    call_rustup --prefix="$_toolchain_dir" --spec="$_toolchain" --update-hash-file="$_update_hash_file" --disable-ldconfig
 }
 
 install_toolchain() {
