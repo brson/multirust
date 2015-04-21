@@ -1029,6 +1029,15 @@ run_command() {
 }
 runtest run_command
 
+remove_toolchain_then_add_again() {
+    # Issue 53
+    try multirust default beta
+    try multirust remove-toolchain beta
+    try multirust update beta
+    try rustc --version
+}
+runtest remove_toolchain_then_add_again
+
 echo
 echo "SUCCESS!"
 echo

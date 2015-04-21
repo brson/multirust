@@ -761,6 +761,11 @@ remove_toolchain() {
     else
 	say "no toolchain installed for '$_toolchain'"
     fi
+
+    if [ -e "$update_hash_dir/$_toolchain" ]; then
+	rm "$update_hash_dir/$_toolchain"
+	need_ok "failed to remove update hash"
+    fi
 }
 
 is_toolchain_installed() {
