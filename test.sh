@@ -7,7 +7,16 @@
 
 set -e -u
 
-S="$(cd $(dirname $0) && pwd)"
+# Prints the absolute path of a directory to stdout
+abs_path() {
+    local _path="$1"
+    # Unset CDPATH because it causes havok: it makes the destination unpredictable
+    # and triggers 'cd' to print the path to stdout. Route `cd`'s output to /dev/null
+    # for good measure.
+    (unset CDPATH && cd "$_path" > /dev/null && pwd)
+}
+
+S="$(abs_path $(dirname $0))"
 
 TMP_DIR="$S/tmp"
 MOCK_DIST_DIR="$S/tmp/mock-dist"

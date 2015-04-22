@@ -277,7 +277,7 @@ set_globals() {
     # find our home dir again.
     mkdir -p "$multirust_dir"
     need_ok "failed to create home directory"
-    multirust_dir="$(cd "$multirust_dir" && pwd)"
+    multirust_dir="$(abs_path "$multirust_dir")"
     assert_nz "$multirust_dir" "multirust_dir"
 
     # Export RUSTUP_HOME to configure rustup.sh to store it's stuff
@@ -832,7 +832,7 @@ update_custom_toolchain_from_dir_common() {
 
     get_toolchain_dir "$_toolchain"
     local _toolchain_dir="$RETVAL"
-    local _custom_toolchain_dir="$(cd $_custom_toolchain && pwd)"
+    local _custom_toolchain_dir="$(abs_path $_custom_toolchain)"
 
     if [ "$_create_link" = true ]; then
 	say "creating link from $_custom_toolchain_dir"
@@ -1471,6 +1471,15 @@ run() {
 	say_err "command failed: $*"
     fi
     return $_retval
+}
+
+# Prints the absolute path of a directory to stdout
+abs_path() {
+    local _path="$1"
+    # Unset CDPATH because it causes havok: it makes the destination unpredictable
+    # and triggers 'cd' to print the path to stdout. Route `cd`'s output to /dev/null
+    # for good measure.
+    (unset CDPATH && cd "$_path" > /dev/null && pwd)
 }
 
 # Ensure various commands exist
