@@ -172,6 +172,10 @@ dynamic linking, even though the toolchains live in various places.
 It keeps Cargo's metadata isolated per toolchain via the `CARGO_HOME`
 environment variable.
 
+`multirust` saves settings and toolchains in `~/.multirust`. The directory 
+is initialized when using the `multirust` command to set the default channel,
+or when setting an override or default for first time.
+
 # Can you trust Rust binaries?
 
 Although multirust verifies signatures of its downloads if GPG is
