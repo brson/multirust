@@ -240,7 +240,7 @@ set_globals() {
     assert_nz "$0" "\$0 is undefined"
 
     # Some constants
-    version=0.0.4
+    version=0.0.5
     # NB: This will be replaced by the build script
     commit_version=
     metadata_version=2
