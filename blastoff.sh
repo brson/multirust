@@ -30,7 +30,7 @@ assert_nz() {
 }
 
 create_tmp_dir() {
-    local tmp_dir=`pwd`/multirust-tmp-install
+    local tmp_dir="`pwd`/multirust-tmp-install"
 
     rm -Rf "${tmp_dir}"
     need_ok "failed to remove temporary installation directory"
@@ -38,7 +38,7 @@ create_tmp_dir() {
     mkdir -p "${tmp_dir}"
     need_ok "failed to create create temporary installation directory"
 
-    echo $TMP_DIR
+    echo $tmp_dir
 }
 
 run() {
@@ -69,6 +69,8 @@ run() {
     if [ -z "$UNINSTALL" ]; then
 	cat <<EOF
 
+Welcome to Rust.
+
 This script will download, build, and install multirust as root, then
 configure multirust with the most common options.  It may prompt for
 your password for installation via 'sudo'.
@@ -91,9 +93,9 @@ EOF
 	exit 0
     fi
 
-    tmp_dir=$(mktemp -d 2>/dev/null \
+    tmp_dir="$(mktemp -d 2>/dev/null \
 	|| mktemp -d -t 'rustup-tmp-install' 2>/dev/null \
-	|| create_tmp_dir)
+	|| create_tmp_dir)"
     if [ -z "$tmp_dir" ]; then
 	err "empty temp dir"
     fi
