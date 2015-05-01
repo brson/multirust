@@ -1318,7 +1318,7 @@ ctl_print_toolchain_sysroot() {
 
 call_rustup() {
     assert_nz "$RUSTUP_HOME" "RUSTUP_HOME"
-    "$cmd_dirname/rustup.sh" "$@"
+    "$cmd_dirname/rustup.sh" "$@" -y --disable-sudo
 }
 
 make_temp_name() {
