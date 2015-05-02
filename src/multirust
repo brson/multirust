@@ -17,7 +17,7 @@
 #     remove-toolchain Uninstall a toolchain
 #     run              Run a command in an environment configured for a toolchain
 #     delete-data      Delete all user metadata, including installed toolchains
-#     upgrade-data     Upgrade the ~/.multirust director from previous versions
+#     upgrade-data     Upgrade the ~/.multirust directory from previous versions
 #     help             Show help for this command or subcommands
 #
 # Use `multirust help <command>` for detailed help.
