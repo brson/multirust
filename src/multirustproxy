@@ -104,7 +104,7 @@ toolchain="$(call_multirust ctl override-toolchain)"
 if [ $? != 0 ]; then
     # If this fails, multirust will display an error,
     # which looks better than multirustproxy doing so.
-    return 1
+    exit 1
 fi
 assert_nz "$toolchain" "toolchain is empty"
 
