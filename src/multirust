@@ -245,20 +245,6 @@ set_globals() {
     commit_version=
     metadata_version=2
 
-    # Find the location of the distribution server
-    default_dist_server="https://static.rust-lang.org"
-    insecure_dist_server="http://static-rust-lang-org.s3-website-us-west-1.amazonaws.com"
-    dist_server="${MULTIRUST_DIST_SERVER-$default_dist_server}"
-    using_insecure_dist_server=false
-
-    # Disable https if we can gpg because cloudfront often gets our files out of sync
-    if [ "$dist_server" = "$default_dist_server" ]; then
-	if command -v gpg > /dev/null 2>&1; then
-	    dist_server="$insecure_dist_server"
-	    using_insecure_dist_server=true
-	fi
-    fi
-
     # The directory on the server containing the dist artifacts
     rust_dist_dir=dist
 
@@ -979,7 +965,7 @@ find_override() {
 	get_toolchain_dir "${MULTIRUST_TOOLCHAIN-}"
 	RETVAL_SYSROOT="$RETVAL"
 	if [ ! -e "$RETVAL_SYSROOT" ]; then
-	    err "toolchain '$_toolchain' not installed. run \`multirust update $_toolchain\` to install"
+	    err "toolchain '${MULTIRUST_TOOLCHAIN-}' not installed. run \`multirust update ${MULTIRUST_TOOLCHAIN-}\` to install"
 	fi
 	return
     fi
