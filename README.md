@@ -104,7 +104,7 @@ The `multirust run` command will run an arbitrary in an environment
 configured for a given toolchain, so e.g. `multirust run beta cargo
 build` will run the beta cargo, regardless of the current
 override. This can also be used to e.g. open a beta shell like
-`milturust run beta bash`.
+`multirust run beta bash`.
 
 # Toolchain specification
 
