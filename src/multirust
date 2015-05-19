@@ -18,6 +18,7 @@
 #     run              Run a command in an environment configured for a toolchain
 #     delete-data      Delete all user metadata, including installed toolchains
 #     upgrade-data     Upgrade the ~/.multirust directory from previous versions
+#     doc              Open the documentation for the currently active toolchain
 #     help             Show help for this command or subcommands
 #
 # Use `multirust help <command>` for detailed help.
@@ -218,6 +219,21 @@
 # Upgrades the ~/.multirust directory from previous versions.
 #
 # </help-upgrade-data>
+
+# <help-doc>
+#
+# Opens the documentation for the currently active toolchain with the default browser.
+#
+# Usage:
+#     multirust doc [--all]
+#
+# By default, it opens the API documentation for the standard library.
+#
+# Use --all to open the documentation overview page, which gives access to all
+# the installed documentation.
+#
+# </help-doc>
+
 
 # <help-help>
 #
@@ -489,6 +505,10 @@ handle_command_line_args() {
 		    ;;
 	    esac
 	    ;;
+
+	doc)
+	    open_documentation "$@"
+	;;
 
 	help)
 	    case "${2-}" in
@@ -1204,6 +1224,25 @@ list_toolchains() {
     fi
 }
 
+# Open documentation
+open_documentation() {
+    find_override_toolchain_or_default
+    local _toolchain="$RETVAL"
+    get_toolchain_dir "$_toolchain"
+    local _current_toolchain_path="$RETVAL"
+    local _doc_path="${_current_toolchain_path}/share/doc/rust/html/std/index.html"
+    case "${2-}" in
+	--all)
+	    _doc_path="${_current_toolchain_path}/share/doc/rust/html/index.html"
+	    ;;
+	"")
+	    ;;
+	*)
+	    err "unrecognized doc option \`$2\`. try \`multirust help doc\`"
+	    ;;
+    esac
+    xdg-open "$_doc_path" > /dev/null 2> /dev/null &
+}
 
 # Management of data in the MULTIRUST_HOME directory
 
