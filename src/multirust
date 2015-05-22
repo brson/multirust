@@ -1226,6 +1226,16 @@ list_toolchains() {
 
 # Open documentation
 open_documentation() {
+    local _cmd
+    if has_cmd "xdg-open"; then
+	_cmd="xdg-open"
+    elif has_cmd "firefox"; then
+	_cmd="firefox"
+    elif has_cmd "chromium"; then
+	_cmd="chromium"
+    else
+	err "Need xdg-open, firefox, or chromium"
+    fi
     find_override_toolchain_or_default
     local _toolchain="$RETVAL"
     get_toolchain_dir "$_toolchain"
@@ -1241,7 +1251,7 @@ open_documentation() {
 	    err "unrecognized doc option \`$2\`. try \`multirust help doc\`"
 	    ;;
     esac
-    xdg-open "$_doc_path" > /dev/null 2> /dev/null &
+    "$_cmd" "$_doc_path" > /dev/null 2> /dev/null &
 }
 
 # Management of data in the MULTIRUST_HOME directory
@@ -1459,8 +1469,12 @@ err() {
     exit 1
 }
 
+has_cmd() {
+    command -v $1 > /dev/null 2>&1
+}
+
 need_cmd() {
-    if ! command -v $1 > /dev/null 2>&1
+    if ! has_cmd $1
     then err "need $1"
     fi
 }
