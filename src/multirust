@@ -999,7 +999,7 @@ find_override() {
 	    fi
 	done < "$override_db"
 
-	local _dir="$(dirname $_dir)"
+	local _dir="$(dirname "$_dir")"
     done
 
     return 1
