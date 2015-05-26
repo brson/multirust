@@ -151,7 +151,7 @@ EOF
 	exit 0
     fi
 
-    if ! command -v $1 > /dev/null 2>&1; then
+    if ! command -v multirust > /dev/null 2>&1; then
 	err "unable to run `multirust` after install. this is odd. not finishing configuration"
     fi
 
