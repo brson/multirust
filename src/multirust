@@ -1229,12 +1229,14 @@ open_documentation() {
     local _cmd
     if has_cmd "xdg-open"; then
 	_cmd="xdg-open"
+    elif has_cmd "open"; then
+	_cmd="open"
     elif has_cmd "firefox"; then
 	_cmd="firefox"
     elif has_cmd "chromium"; then
 	_cmd="chromium"
     else
-	err "Need xdg-open, firefox, or chromium"
+	err "Need xdg-open, open, firefox, or chromium"
     fi
     find_override_toolchain_or_default
     local _toolchain="$RETVAL"
