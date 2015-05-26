@@ -151,13 +151,13 @@ EOF
 	exit 0
     fi
 
-    if ! command -v $1 > /dev/null 2>&1; then
-	err "unable to run `multirust` after install. this is odd. not finishing configuration"
+    if ! command -v multirust > /dev/null 2>&1; then
+	err 'unable to run `multirust` after install. this is odd. not finishing configuration'
     fi
 
     say "installing nightly toolchain"
     multirust default nightly
-    need_ok "failed to install nightly toolchain. if this appears to be a network problem retry with `multirust default nightly`"
+    need_ok 'failed to install nightly toolchain. if this appears to be a network problem retry with `multirust default nightly`'
 
     say "all systems go"
 }
