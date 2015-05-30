@@ -234,7 +234,7 @@ quite meager though so it's unlikely to help.
   the future.
 * The stable release channel doesn't actually exist yet.
 * The `rustc`, `cargo` and `rustdoc` commands should be symlinks to
-  `rustcmdproxy` but are actually copies, a limitation of the
+  `multirustproxy` but are actually copies, a limitation of the
   installer.
 * Definitely broken on windows.
 * Concurrent writing of `multirust`'s metadata can possibly cause
