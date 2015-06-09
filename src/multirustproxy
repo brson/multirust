@@ -122,7 +122,7 @@ LD_LIBRARY_PATH="$lib_path:${LD_LIBRARY_PATH-}"
 DYLD_LIBRARY_PATH="$lib_path:${DYLD_LIBRARY_PATH-}"
 
 # Isolate cargo
-CARGO_HOME="$sysroot/cargo"
+CARGO_HOME=${CARGO_HOME-"$sysroot/cargo"}
 
 # Tell recursive toolchain invocations which toolchain we're using
 # (Cargo will seemingly change directories into its own home dir)
