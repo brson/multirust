@@ -57,7 +57,7 @@ run() {
 		UNINSTALL=true
 		;;
 	    * )
-		err "unrecognized arguent '$arg'"
+		err "unrecognized argument '$arg'"
 		;;
 	esac
     done
