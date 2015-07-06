@@ -1047,6 +1047,24 @@ remove_toolchain_then_add_again() {
 }
 runtest remove_toolchain_then_add_again
 
+ctl_default_toolchain_no_default() {
+    expect_output_fail "no default toolchain configured" multirust ctl default-toolchain
+}
+runtest ctl_default_toolchain_no_default
+
+ctl_default_toolchain_with_default_no_override() {
+    try multirust default beta
+    expect_output_ok "beta" multirust ctl default-toolchain
+}
+runtest ctl_default_toolchain_with_default_no_override
+
+ctl_default_toolchain_with_default_and_override() {
+    try multirust default beta
+    try multirust override nightly
+    expect_output_ok "beta" multirust ctl default-toolchain
+}
+runtest ctl_default_toolchain_with_default_and_override
+
 echo
 echo "SUCCESS!"
 echo
