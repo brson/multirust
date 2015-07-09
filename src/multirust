@@ -489,6 +489,10 @@ handle_command_line_args() {
 		    ctl_print_override_toolchain_or_default
 		    ;;
 
+		default-toolchain)
+		    ctl_print_default_toolchain
+		    ;;
+
 		toolchain-sysroot)
 		    if [ -z "${3-}" ]; then
 			err "unspecified toolchain"
@@ -1342,6 +1346,15 @@ ctl_print_override_toolchain_or_default() {
 	exit 1
     fi
     echo "$RETVAL"
+}
+
+ctl_print_default_toolchain() {
+    find_default
+    if [ $? != 0 ]; then
+	say_err "no default toolchain configured"
+	exit 1
+    fi
+    echo "$RETVAL_TOOLCHAIN"
 }
 
 ctl_print_toolchain_sysroot() {
