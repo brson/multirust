@@ -50,11 +50,15 @@ run() {
 
     GIT_REPO=https://github.com/brson/multirust.git
     UNINSTALL=
+    YES=
 
     for arg in "$@"; do
 	case "$arg" in
 	    --uninstall )
 		UNINSTALL=true
+		;;
+	    --yes )
+		YES=true
 		;;
 	    * )
 		err "unrecognized argument '$arg'"
@@ -83,14 +87,16 @@ EOF
 
     echo
 
-    local _yn=""
+    if [ -z "$YES" ]; then
+	local _yn=""
 
-    read -p "Ready? (y/N) " _yn < /dev/tty
+	read -p "Ready? (y/N) " _yn < /dev/tty
 
-    echo
+	echo
 
-    if [ "$_yn" != "y" -a "$_yn" != "Y" ]; then
-	exit 0
+	if [ "$_yn" != "y" -a "$_yn" != "Y" ]; then
+	    exit 0
+	fi
     fi
 
     tmp_dir="$(mktemp -d 2>/dev/null \
