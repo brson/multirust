@@ -998,8 +998,10 @@ find_override() {
 	return 1
     fi
 
-    local _dir="$(pwd)"
+    local _dir="$(pwd -P)"
+    local _dir_unresolved="$(pwd)"
     assert_nz "$_dir" "empty starting dir"
+    assert_nz "$_dir_unresolved" "empty starting dir"
 
     # Go up the directory hierarchy looking for overrides
     while [ "$_dir" != "/" -a "$_dir" != "." ]; do
@@ -1011,8 +1013,16 @@ find_override() {
 	    need_ok "extracting record from db failed"
 	    assert_nz "$_toolchain" "empty toolchain in override db"
 
+	    # Issue #40: Resolve symlinks with `pwd -P` before comparing directories.
+	    # This conversion is *also* done when adding the override directory to
+	    # the override DB. It is only done here to be compatible with older
+	    # multirust installations from before this bug was fixed.
+	    local _ovrdir="$(cd "$_ovrdir" && pwd -P)"
+	    # NB: The above may fail, e.g. if _ovrdir no longer exists.
+	    # This is fine since it will just make the next comparision fail as well.
+
 	    if [ "$_dir" = "$_ovrdir" ]; then
-		RETVAL_REASON="directory override for '$_ovrdir'"
+		RETVAL_REASON="directory override for '$_dir_unresolved'"
 		RETVAL_TOOLCHAIN="$_toolchain"
 		get_toolchain_dir "$_toolchain"
 		RETVAL_SYSROOT="$RETVAL"
@@ -1054,7 +1064,8 @@ set_default() {
 set_override() {
     local _toolchain="$1"
 
-    local _override_dir="$(pwd)"
+    # Issue #40: Resolve symlinks in overrides with `pwd -P`
+    local _override_dir="$(pwd -P)"
     assert_nz "$_override_dir" "empty pwd?"
 
     # Escape forward-slashes
@@ -1089,7 +1100,7 @@ set_override() {
 }
 
 remove_override() {
-    local _override_dir="$(pwd)"
+    local _override_dir="$(pwd -P)"
     assert_nz "$_override_dir" "empty pwd?"
 
     # Escape forward-slashes
