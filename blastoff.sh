@@ -161,9 +161,9 @@ EOF
 	err 'unable to run `multirust` after install. this is odd. not finishing configuration'
     fi
 
-    say "installing nightly toolchain"
-    multirust default nightly
-    need_ok 'failed to install nightly toolchain. if this appears to be a network problem retry with `multirust default nightly`'
+    say "installing stable toolchain"
+    multirust default stable
+    need_ok 'failed to install stable toolchain. if this appears to be a network problem retry with `multirust default stable`'
 
     say "all systems go"
 }
