@@ -1285,11 +1285,7 @@ open_documentation() {
 }
 
 which_for_environment() {
-    if [ -z "${1-}" ]; then
-	err "command needed. see \`multirust help which\`"
-    fi
-
-    _cmd="$1"
+    local _cmd="$1"
 
     find_override_toolchain_or_default
     if [ $? != 0 ]; then
