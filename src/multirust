@@ -140,6 +140,14 @@
 #
 # </help-update>
 
+# <help-add-toolchain>
+#
+# Download and install the specified toolchain.
+#
+# Usage: multirust add-toolchain <toolchain>
+#
+# </help-add-toolchain>
+#
 # <help-show-default>
 #
 # Displays information about the default toolchain.
@@ -454,6 +462,10 @@ handle_command_line_args() {
 	    toolchain="${2-}"
 	    "set_$_cmd_arg" "$toolchain"
 	    ;;
+
+        add-toolchain)
+            handle_common_install_args install_toolchain_if_not_installed "$@"
+            ;;
 
 	show-default) show_default;;
 	show-override) show_override;;
