@@ -234,6 +234,14 @@
 #
 # </help-doc>
 
+# <help-which>
+#
+# Report location of the currently active Rust tool.
+#
+# Usage:
+#    multirust which binary
+#
+# </help-which>
 
 # <help-help>
 #
@@ -478,6 +486,11 @@ handle_command_line_args() {
 
 	upgrade-data) upgrade_data;;
 	delete-data) delete_data;;
+
+        which)
+            shift
+            which_for_environment "$@"
+            ;;
 
 	ctl)
 	    case "${2-}" in
@@ -1269,6 +1282,29 @@ open_documentation() {
 	    ;;
     esac
     "$_cmd" "$_doc_path" > /dev/null 2> /dev/null &
+}
+
+which_for_environment() {
+    local _cmd="$1"
+
+    find_override_toolchain_or_default
+    if [ $? != 0 ]; then
+	say_err "no default toolchain configured"
+	exit 1
+    fi
+
+    local _toolchain="$RETVAL"
+    get_toolchain_dir "$_toolchain"
+
+    local _bin_dir="$RETVAL/bin"
+    local _cmd_fullpath="$_bin_dir/$_cmd"
+
+    if [ -f "$_cmd_fullpath" ]; then
+        echo "$_cmd_fullpath"
+    else
+        say_err "command \"$_cmd\" does not exist"
+        exit 1
+    fi
 }
 
 # Management of data in the MULTIRUST_HOME directory
