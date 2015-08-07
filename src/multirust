@@ -488,6 +488,9 @@ handle_command_line_args() {
         delete-data) delete_data;;
 
         which)
+            if [ -z "${2-}" ]; then
+                err 'unspecified tool. try `multirust which rustc`'
+            fi
             shift
             which_for_environment "$@"
         ;;
