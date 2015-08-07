@@ -5,8 +5,8 @@ sudo: false
 
 script:
   - ./test.sh
-  # Ensure no lines are indented using spaces.
-  - test $(git grep '	' -- src/multirust | wc -l) -eq 0
+  # Ensure no files are indented using tabs.
+  - test $(git grep -l '	' | wc -l) -eq 4
 
 branches:
   only:

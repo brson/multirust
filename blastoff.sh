@@ -6,7 +6,7 @@ say() {
 
 verbose_say() {
     if [ "$flag_verbose" = true ]; then
-	say "$1"
+      say "$1"
     fi
 }
 
@@ -22,11 +22,15 @@ need_cmd() {
 }
 
 need_ok() {
-    if [ $? != 0 ]; then err "$1"; fi
+    if [ $? != 0 ]; then
+        err "$1"
+    fi
 }
 
 assert_nz() {
-    if [ -z "$1" ]; then err "assert_nz $2"; fi
+    if [ -z "$1" ]; then
+        err "assert_nz $2"
+    fi
 }
 
 create_tmp_dir() {
@@ -53,25 +57,25 @@ run() {
     YES=
 
     for arg in "$@"; do
-	case "$arg" in
-	    --uninstall )
-		UNINSTALL=true
-		;;
-	    --yes )
-		YES=true
-		;;
-	    * )
-		err "unrecognized argument '$arg'"
-		;;
-	esac
+        case "$arg" in
+            --uninstall)
+            UNINSTALL=true
+        ;;
+            --yes)
+            YES=true
+        ;;
+            *)
+            err "unrecognized argument '$arg'"
+        ;;
+    esac
     done
 
     if [ ! -e "/dev/tty" ]; then
-	err "/dev/tty does not exist"
+        err "/dev/tty does not exist"
     fi
 
     if [ -z "$UNINSTALL" ]; then
-	cat <<EOF
+    cat <<EOF
 
 Welcome to Rust.
 
@@ -82,28 +86,28 @@ your password for installation via 'sudo'.
 You may run /usr/local/lib/rustlib/uninstall.sh to uninstall multirust.
 EOF
     else
-	echo "This script will uninstall multirust. It may prompt for your password via 'sudo'."
+        echo "This script will uninstall multirust. It may prompt for your password via 'sudo'."
     fi
 
     echo
 
     if [ -z "$YES" ]; then
-	local _yn=""
+        local _yn=""
 
-	read -p "Ready? (y/N) " _yn < /dev/tty
+        read -p "Ready? (y/N) " _yn < /dev/tty
 
-	echo
+        echo
 
-	if [ "$_yn" != "y" -a "$_yn" != "Y" ]; then
-	    exit 0
-	fi
+        if [ "$_yn" != "y" -a "$_yn" != "Y" ]; then
+            exit 0
+        fi
     fi
 
     tmp_dir="$(mktemp -d 2>/dev/null \
-	|| mktemp -d -t 'rustup-tmp-install' 2>/dev/null \
-	|| create_tmp_dir)"
+    || mktemp -d -t 'rustup-tmp-install' 2>/dev/null \
+    || create_tmp_dir)"
     if [ -z "$tmp_dir" ]; then
-	err "empty temp dir"
+        err "empty temp dir"
     fi
 
     original_dir=`pwd`
@@ -118,47 +122,47 @@ EOF
     say "cloning multirust git repo"
     git clone "$GIT_REPO" -b "$_branch" --depth 1
     if [ $? != 0 ]; then
-	cd "$original_dir" && rm -Rf "$tmp_dir"
-	err "failed to clone git repo $GIT_REPO"
+        cd "$original_dir" && rm -Rf "$tmp_dir"
+        err "failed to clone git repo $GIT_REPO"
     fi
     cd multirust
     if [ $? != 0 ]; then
-	cd "$original_dir" && rm -Rf "$tmp_dir"
-	err "failed to cd to git repo"
+        cd "$original_dir" && rm -Rf "$tmp_dir"
+        err "failed to cd to git repo"
     fi
 
     say "building"
     sh ./build.sh
     if [ $? != 0 ]; then
-	cd "$original_dir" && rm -Rf "$tmp_dir"
-	err "failed to build multirust"
+        cd "$original_dir" && rm -Rf "$tmp_dir"
+        err "failed to build multirust"
     fi
 
     if [ -z "$UNINSTALL" ]; then
-	say "installing"
-	sudo ./install.sh
-	if [ $? != 0 ]; then
-	    cd "$original_dir" && rm -Rf "$tmp_dir"
-	    err "failed to install multirust"
-	fi
+    say "installing"
+    sudo ./install.sh
+    if [ $? != 0 ]; then
+        cd "$original_dir" && rm -Rf "$tmp_dir"
+        err "failed to install multirust"
+    fi
     else
-	say "uninstalling"
-	sudo ./install.sh --uninstall
-	if [ $? != 0 ]; then
-	    cd "$original_dir" && rm -Rf "$tmp_dir"
-	    err "failed to uninstall multirust"
-	fi
+    say "uninstalling"
+    sudo ./install.sh --uninstall
+    if [ $? != 0 ]; then
+        cd "$original_dir" && rm -Rf "$tmp_dir"
+        err "failed to uninstall multirust"
+    fi
     fi
 
     cd "$original_dir" && rm -Rf "$tmp_dir"
     need_ok "failed to remove temporary install directory"
 
     if [ -n "$UNINSTALL" ]; then
-	exit 0
+        exit 0
     fi
 
     if ! command -v multirust > /dev/null 2>&1; then
-	err 'unable to run `multirust` after install. this is odd. not finishing configuration'
+        err 'unable to run `multirust` after install. this is odd. not finishing configuration'
     fi
 
     say "installing stable toolchain"

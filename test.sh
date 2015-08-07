@@ -57,12 +57,11 @@ pre() {
 }
 
 need_ok() {
-    if [ $? -ne 0 ]
-    then
-	echo
-	echo "TEST FAILED!"
-	echo
-	exit 1
+    if [ $? -ne 0 ]; then
+        echo
+        echo "TEST FAILED!"
+        echo
+        exit 1
     fi
 }
 
@@ -80,20 +79,20 @@ try() {
     _cmd="$@"
     _output=`$@ 2>&1`
     if [ $? -ne 0 ]; then
-	echo \$ "$_cmd"
-	# Using /bin/echo to avoid escaping
-	/bin/echo "$_output"
-	echo
-	echo "TEST FAILED!"
-	echo
-	exit 1
+        echo \$ "$_cmd"
+        # Using /bin/echo to avoid escaping
+        /bin/echo "$_output"
+        echo
+        echo "TEST FAILED!"
+        echo
+        exit 1
     else
-	if [ -n "${VERBOSE-}" -o -n "${VERBOSE_CMD-}" ]; then
-	    echo \$ "$_cmd"
-	fi
-	if [ -n "${VERBOSE-}" -o -n "${VERBOSE_OUTPUT-}" ]; then
-	    /bin/echo "$_output"
-	fi
+        if [ -n "${VERBOSE-}" -o -n "${VERBOSE_CMD-}" ]; then
+            echo \$ "$_cmd"
+        fi
+        if [ -n "${VERBOSE-}" -o -n "${VERBOSE_OUTPUT-}" ]; then
+            /bin/echo "$_output"
+        fi
     fi
     set -e
 }
@@ -103,20 +102,20 @@ expect_fail() {
     _cmd="$@"
     _output=`$@ 2>&1`
     if [ $? -eq 0 ]; then
-	echo \$ "$_cmd"
-	# Using /bin/echo to avoid escaping
-	/bin/echo "$_output"
-	echo
-	echo "TEST FAILED!"
-	echo
-	exit 1
+        echo \$ "$_cmd"
+        # Using /bin/echo to avoid escaping
+        /bin/echo "$_output"
+        echo
+        echo "TEST FAILED!"
+        echo
+        exit 1
     else
-	if [ -n "${VERBOSE-}" -o -n "${VERBOSE_CMD-}" ]; then
-	    echo \$ "$_cmd"
-	fi
-	if [ -n "${VERBOSE-}" -o -n "${VERBOSE_OUTPUT-}" ]; then
-	    /bin/echo "$_output"
-	fi
+        if [ -n "${VERBOSE-}" -o -n "${VERBOSE_CMD-}" ]; then
+            echo \$ "$_cmd"
+        fi
+        if [ -n "${VERBOSE-}" -o -n "${VERBOSE_OUTPUT-}" ]; then
+            /bin/echo "$_output"
+        fi
     fi
     set -e
 }
@@ -128,30 +127,30 @@ expect_output_ok() {
     _cmd="$@"
     _output=`$@ 2>&1`
     if [ $? -ne 0 ]; then
-	echo \$ "$_cmd"
-	# Using /bin/echo to avoid escaping
-	/bin/echo "$_output"
-	echo
-	echo "TEST FAILED!"
-	echo
-	exit 1
+        echo \$ "$_cmd"
+        # Using /bin/echo to avoid escaping
+        /bin/echo "$_output"
+        echo
+        echo "TEST FAILED!"
+        echo
+        exit 1
     elif ! echo "$_output" | grep -q "$_expected"; then
-	echo \$ "$_cmd"
-	/bin/echo "$_output"
-	echo
-	echo "missing expected output '$_expected'"
-	echo
-	echo
-	echo "TEST FAILED!"
-	echo
-	exit 1
+        echo \$ "$_cmd"
+        /bin/echo "$_output"
+        echo
+        echo "missing expected output '$_expected'"
+        echo
+        echo
+        echo "TEST FAILED!"
+        echo
+        exit 1
     else
-	if [ -n "${VERBOSE-}" -o -n "${VERBOSE_CMD-}" ]; then
-	    echo \$ "$_cmd"
-	fi
-	if [ -n "${VERBOSE-}" -o -n "${VERBOSE_OUTPUT-}" ]; then
-	    /bin/echo "$_output"
-	fi
+        if [ -n "${VERBOSE-}" -o -n "${VERBOSE_CMD-}" ]; then
+            echo \$ "$_cmd"
+        fi
+        if [ -n "${VERBOSE-}" -o -n "${VERBOSE_OUTPUT-}" ]; then
+            /bin/echo "$_output"
+        fi
     fi
     set -e
 }
@@ -163,30 +162,30 @@ expect_output_fail() {
     _cmd="$@"
     _output=`$@ 2>&1`
     if [ $? -eq 0 ]; then
-	echo \$ "$_cmd"
-	# Using /bin/echo to avoid escaping
-	/bin/echo "$_output"
-	echo
-	echo "TEST FAILED!"
-	echo
-	exit 1
+        echo \$ "$_cmd"
+        # Using /bin/echo to avoid escaping
+        /bin/echo "$_output"
+        echo
+        echo "TEST FAILED!"
+        echo
+        exit 1
     elif ! echo "$_output" | grep -q "$_expected"; then
-	echo \$ "$_cmd"
-	/bin/echo "$_output"
-	echo
-	echo "missing expected output '$_expected'"
-	echo
-	echo
-	echo "TEST FAILED!"
-	echo
-	exit 1
+        echo \$ "$_cmd"
+        /bin/echo "$_output"
+        echo
+        echo "missing expected output '$_expected'"
+        echo
+        echo
+        echo "TEST FAILED!"
+        echo
+        exit 1
     else
-	if [ -n "${VERBOSE-}" -o -n "${VERBOSE_CMD-}" ]; then
-	    echo \$ "$_cmd"
-	fi
-	if [ -n "${VERBOSE-}" -o -n "${VERBOSE_OUTPUT-}" ]; then
-	    /bin/echo "$_output"
-	fi
+        if [ -n "${VERBOSE-}" -o -n "${VERBOSE_CMD-}" ]; then
+            echo \$ "$_cmd"
+        fi
+        if [ -n "${VERBOSE-}" -o -n "${VERBOSE_OUTPUT-}" ]; then
+            /bin/echo "$_output"
+        fi
     fi
     set -e
 }
@@ -198,30 +197,30 @@ expect_not_output_ok() {
     _cmd="$@"
     _output=`$@ 2>&1`
     if [ $? -ne 0 ]; then
-	echo \$ "$_cmd"
-	# Using /bin/echo to avoid escaping
-	/bin/echo "$_output"
-	echo
-	echo "TEST FAILED!"
-	echo
-	exit 1
+        echo \$ "$_cmd"
+        # Using /bin/echo to avoid escaping
+        /bin/echo "$_output"
+        echo
+        echo "TEST FAILED!"
+        echo
+        exit 1
     elif echo "$_output" | grep -q "$_expected"; then
-	echo \$ "$_cmd"
-	/bin/echo "$_output"
-	echo
-	echo "unexpected output '$_expected'"
-	echo
-	echo
-	echo "TEST FAILED!"
-	echo
-	exit 1
+        echo \$ "$_cmd"
+        /bin/echo "$_output"
+        echo
+        echo "unexpected output '$_expected'"
+        echo
+        echo
+        echo "TEST FAILED!"
+        echo
+        exit 1
     else
-	if [ -n "${VERBOSE-}" -o -n "${VERBOSE_CMD-}" ]; then
-	    echo \$ "$_cmd"
-	fi
-	if [ -n "${VERBOSE-}" -o -n "${VERBOSE_OUTPUT-}" ]; then
-	    /bin/echo "$_output"
-	fi
+        if [ -n "${VERBOSE-}" -o -n "${VERBOSE_CMD-}" ]; then
+            echo \$ "$_cmd"
+        fi
+        if [ -n "${VERBOSE-}" -o -n "${VERBOSE_OUTPUT-}" ]; then
+            /bin/echo "$_output"
+        fi
     fi
     set -e
 }
@@ -244,73 +243,72 @@ get_architecture() {
     local _cputype="$(uname -m)"
 
     if [ "$_ostype" = Darwin -a "$_cputype" = i386 ]; then
-	# Darwin `uname -s` lies
-	if sysctl hw.optional.x86_64 | grep -q ': 1'; then
-	    local _cputype=x86_64
-	fi
+        # Darwin `uname -s` lies
+        if sysctl hw.optional.x86_64 | grep -q ': 1'; then
+            local _cputype=x86_64
+        fi
     fi
 
     case "$_ostype" in
 
-	Linux)
-	    local _ostype=unknown-linux-gnu
-	    ;;
+    Linux)
+        local _ostype=unknown-linux-gnu
+    ;;
 
-	FreeBSD)
-	    local _ostype=unknown-freebsd
-	    ;;
+    FreeBSD)
+        local _ostype=unknown-freebsd
+    ;;
 
-	DragonFly)
-	    local _ostype=unknown-dragonfly
-	    ;;
+    DragonFly)
+        local _ostype=unknown-dragonfly
+    ;;
 
-	Darwin)
-	    local _ostype=apple-darwin
-	    ;;
+    Darwin)
+        local _ostype=apple-darwin
+    ;;
 
-	MINGW* | MSYS*)
-	    err "unimplemented windows arch detection"
-	    ;;
+    MINGW* | MSYS*)
+        err "unimplemented windows arch detection"
+    ;;
 
-	*)
-	    err "unrecognized OS type: $_ostype"
-	    ;;
+    *)
+        err "unrecognized OS type: $_ostype"
+    ;;
 
     esac
 
     case "$_cputype" in
-
-	i386 | i486 | i686 | i786 | x86)
+        i386 | i486 | i686 | i786 | x86)
             local _cputype=i686
-            ;;
+        ;;
 
-	xscale | arm)
-	    local _cputype=arm
-            ;;
+        xscale | arm)
+            local _cputype=arm
+        ;;
 
-	armv7l)
+        armv7l)
             local _cputype=arm
             local _ostype="${_ostype}eabihf"
-            ;;
+        ;;
 
-	x86_64 | x86-64 | x64 | amd64)
+        x86_64 | x86-64 | x64 | amd64)
             local _cputype=x86_64
-            ;;
+        ;;
 
-	*)
+        *)
             err "unknown CPU type: $CFG_CPUTYPE"
-
+        ;;
     esac
 
     # Detect 64-bit linux with 32-bit userland
     if [ $_ostype = unknown-linux-gnu -a $_cputype = x86_64 ]; then
-	file -L "$SHELL" | grep -q "x86[_-]64"
-	if [ $? != 0 ]; then
-	    local _cputype=i686
-	fi
+        file -L "$SHELL" | grep -q "x86[_-]64"
+        if [ $? != 0 ]; then
+            local _cputype=i686
+        fi
     fi
 
-    local _arch="$_cputype-$_ostype" 
+    local _arch="$_cputype-$_ostype"
 
     RETVAL="$_arch"
 }
@@ -322,9 +320,9 @@ build_mock_bin() {
     local _dir="$4"
 
     cat "$TEST_DIR/mock.sh" | \
-	sed s/@@TEMPLATE_BIN_NAME@@/"$_name"/ | \
-	sed s/@@TEMPLATE_VERSION@@/"$_version"/ | \
-	sed s/@@TEMPLATE_HASH@@/"$_version_hash"/ > "$_dir/$_name"
+    sed s/@@TEMPLATE_BIN_NAME@@/"$_name"/ | \
+    sed s/@@TEMPLATE_VERSION@@/"$_version"/ | \
+    sed s/@@TEMPLATE_HASH@@/"$_version_hash"/ > "$_dir/$_name"
 
     chmod a+x "$_dir/$_name"
 }
@@ -344,13 +342,13 @@ build_mock_rustc_installer() {
 
     mkdir -p "$MOCK_BUILD_DIR/pkg"
     try sh "$S/src/rust-installer/gen-installer.sh" \
-	--product-name=Rust \
-	--rel-manifest-dir=rustlib \
-	--image-dir="$_image" \
-	--work-dir="$MOCK_BUILD_DIR/work" \
-	--output-dir="$MOCK_BUILD_DIR/pkg" \
-        --package-name="rustc-$_package-$_arch" \
-	--component-name=rustc
+        --product-name=Rust \
+        --rel-manifest-dir=rustlib \
+        --image-dir="$_image" \
+        --work-dir="$MOCK_BUILD_DIR/work" \
+        --output-dir="$MOCK_BUILD_DIR/pkg" \
+            --package-name="rustc-$_package-$_arch" \
+        --component-name=rustc
 }
 
 build_mock_cargo_installer() {
@@ -367,13 +365,13 @@ build_mock_cargo_installer() {
 
     mkdir -p "$MOCK_BUILD_DIR/pkg"
     try sh "$S/src/rust-installer/gen-installer.sh" \
-	--product-name=Cargo \
-	--rel-manifest-dir=rustlib \
-	--image-dir="$_image" \
-	--work-dir="$MOCK_BUILD_DIR/work" \
-	--output-dir="$MOCK_BUILD_DIR/pkg" \
+    --product-name=Cargo \
+    --rel-manifest-dir=rustlib \
+    --image-dir="$_image" \
+    --work-dir="$MOCK_BUILD_DIR/work" \
+    --output-dir="$MOCK_BUILD_DIR/pkg" \
         --package-name="cargo-$_package-$_arch" \
-	--component-name=cargo
+    --component-name=cargo
 }
 
 build_mock_rust_docs_installer() {
@@ -388,13 +386,13 @@ build_mock_rust_docs_installer() {
 
     mkdir -p "$MOCK_BUILD_DIR/pkg"
     try sh "$S/src/rust-installer/gen-installer.sh" \
-	--product-name=Rust-documentation \
-	--rel-manifest-dir=rustlib \
-	--image-dir="$_image" \
-	--work-dir="$MOCK_BUILD_DIR/work" \
-	--output-dir="$MOCK_BUILD_DIR/pkg" \
-        --package-name="rust-docs-$_package-$_arch" \
-	--component-name=rust-docs
+        --product-name=Rust-documentation \
+        --rel-manifest-dir=rustlib \
+        --image-dir="$_image" \
+        --work-dir="$MOCK_BUILD_DIR/work" \
+        --output-dir="$MOCK_BUILD_DIR/pkg" \
+            --package-name="rust-docs-$_package-$_arch" \
+        --component-name=rust-docs
 }
 
 build_mock_combined_installer() {
@@ -410,12 +408,12 @@ build_mock_combined_installer() {
 
     mkdir -p "$MOCK_BUILD_DIR/dist"
     try sh "$S/src/rust-installer/combine-installers.sh" \
-	--product-name=Rust \
-	--rel-manifest-dir=rustlib \
-	--work-dir="$MOCK_BUILD_DIR/work" \
-	--output-dir="$MOCK_BUILD_DIR/dist" \
-	--package-name="rust-$_package-$_arch" \
-	--input-tarballs="$_inputs"
+        --product-name=Rust \
+        --rel-manifest-dir=rustlib \
+        --work-dir="$MOCK_BUILD_DIR/work" \
+        --output-dir="$MOCK_BUILD_DIR/dist" \
+        --package-name="rust-$_package-$_arch" \
+        --input-tarballs="$_inputs"
 }
 
 build_mock_dist_channel() {
@@ -424,14 +422,14 @@ build_mock_dist_channel() {
 
     (cd "$MOCK_BUILD_DIR/dist" && ls * > channel-rust-"$_channel")
     if command -v gpg > /dev/null 2>&1; then
-	(cd "$MOCK_BUILD_DIR/dist" && for i in *; do
-		gpg --no-default-keyring --secret-keyring "$TEST_SECRET_KEY" \
-		    --keyring "$TEST_PUBLIC_KEY" \
-		    --no-tty --yes -a --detach-sign "$i"
-		done)
+        (cd "$MOCK_BUILD_DIR/dist" && for i in *; do
+            gpg --no-default-keyring --secret-keyring "$TEST_SECRET_KEY" \
+                --keyring "$TEST_PUBLIC_KEY" \
+                --no-tty --yes -a --detach-sign "$i"
+        done)
     else
-	say "gpg not found. not testing signature verification"
-	(cd "$MOCK_BUILD_DIR/dist" && for i in *; do echo "nosig" > "$i.asc"; done)
+        say "gpg not found. not testing signature verification"
+        (cd "$MOCK_BUILD_DIR/dist" && for i in *; do echo "nosig" > "$i.asc"; done)
     fi
     (cd "$MOCK_BUILD_DIR/dist" && for i in *; do shasum -a256 $i > $i.sha256; done)
 }
@@ -462,21 +460,20 @@ build_mock_channel() {
 
     mkdir -p "$CUSTOM_TOOLCHAINS/$_date"
 
-    for t in "$MOCK_BUILD_DIR/work/"*;
-    do
-	sh "$t/install.sh" --prefix="$CUSTOM_TOOLCHAINS/$_date/" 2> /dev/null 1> /dev/null
+    for t in "$MOCK_BUILD_DIR/work/"*; do
+        sh "$t/install.sh" --prefix="$CUSTOM_TOOLCHAINS/$_date/" 2> /dev/null 1> /dev/null
     done
 }
 
 build_mocks() {
     if [ -z "${NO_REBUILD_MOCKS-}" ]; then
-	build_mock_channel 1.0.0-nightly hash-nightly-1 nightly nightly 2015-01-01
-	build_mock_channel 1.0.0-beta hash-beta-1 1.0.0-beta beta 2015-01-01
-	build_mock_channel 1.0.0 hash-stable-1 1.0.0 stable 2015-01-01
+        build_mock_channel 1.0.0-nightly hash-nightly-1 nightly nightly 2015-01-01
+        build_mock_channel 1.0.0-beta hash-beta-1 1.0.0-beta beta 2015-01-01
+        build_mock_channel 1.0.0 hash-stable-1 1.0.0 stable 2015-01-01
 
-	build_mock_channel 1.1.0-nightly hash-nightly-2 nightly nightly 2015-01-02
-	build_mock_channel 1.1.0-beta hash-beta-2 1.1.0-beta beta 2015-01-02
-	build_mock_channel 1.1.0 hash-stable-2 1.1.0 stable 2015-01-02
+        build_mock_channel 1.1.0-nightly hash-nightly-2 nightly nightly 2015-01-02
+        build_mock_channel 1.1.0-beta hash-beta-2 1.1.0-beta beta 2015-01-02
+        build_mock_channel 1.1.0 hash-stable-2 1.1.0 stable 2015-01-02
     fi
 }
 
@@ -682,8 +679,8 @@ runtest bad_sha_on_manifest
 
 bad_sha_on_installer() {
     for i in "$MOCK_DIST_DIR/dist"/*.sha256; do
-	sha=`cat "$i"`
-	echo "$sha" | sed s/^......../aaaaaaaa/ > "$i"
+        sha=`cat "$i"`
+        echo "$sha" | sed s/^......../aaaaaaaa/ > "$i"
     done
     expect_output_fail "checksum failed" multirust default 1.0.0
     set_current_dist_date 2015-01-02
@@ -693,11 +690,11 @@ runtest bad_sha_on_installer
 delete_data() {
     try multirust default nightly
     if [ ! -d "$MULTIRUST_HOME" ]; then
-	fail "no multirust dir"
+        fail "no multirust dir"
     fi
     try multirust delete-data -y
     if [ -d "$MULTIRUST_HOME" ]; then
-	fail "multirust dir not removed"
+        fail "multirust dir not removed"
     fi
 }
 runtest delete_data
@@ -872,21 +869,21 @@ runtest custom_no_installer_specified
 
 custom_invalid_names() {
     expect_output_fail "invalid custom toolchain name: 'nightly'" \
-	multirust update nightly --installer "$local_custom_rust"
+    multirust update nightly --installer "$local_custom_rust"
     expect_output_fail "invalid custom toolchain name: 'beta'" \
-	multirust update beta --installer "$local_custom_rust"
+    multirust update beta --installer "$local_custom_rust"
     expect_output_fail "invalid custom toolchain name: 'stable'" \
-	multirust update stable --installer "$local_custom_rust"
+    multirust update stable --installer "$local_custom_rust"
 }
 runtest custom_invalid_names
 
 custom_invalid_names_with_archive_dates() {
     expect_output_fail "invalid custom toolchain name: 'nightly-2015-01-01'" \
-	multirust update nightly-2015-01-01 --installer "$local_custom_rust"
+    multirust update nightly-2015-01-01 --installer "$local_custom_rust"
     expect_output_fail "invalid custom toolchain name: 'beta-2015-01-01'" \
-	multirust update beta-2015-01-01 --installer "$local_custom_rust"
+    multirust update beta-2015-01-01 --installer "$local_custom_rust"
     expect_output_fail "invalid custom toolchain name: 'stable-2015-01-01'" \
-	multirust update stable-2015-01-01 --installer "$local_custom_rust"
+    multirust update stable-2015-01-01 --installer "$local_custom_rust"
 }
 runtest custom_invalid_names_with_archive_dates
 
@@ -963,11 +960,11 @@ runtest update_toolchain_change_from_link_to_copy
 
 custom_dir_invalid_names() {
     expect_output_fail "invalid custom toolchain name: 'nightly'" \
-	multirust update nightly --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+    multirust update nightly --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
     expect_output_fail "invalid custom toolchain name: 'beta'" \
-	multirust update beta --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+    multirust update beta --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
     expect_output_fail "invalid custom toolchain name: 'stable'" \
-	multirust update stable --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
+    multirust update stable --copy-local "$CUSTOM_TOOLCHAINS/2015-01-01"
 }
 runtest custom_dir_invalid_names
 
@@ -976,7 +973,7 @@ custom_without_rustc() {
     cp -R "$CUSTOM_TOOLCHAINS/2015-01-01" "$CUSTOM_TOOLCHAINS/broken"
     rm "$CUSTOM_TOOLCHAINS/broken/bin/rustc"
     expect_output_fail "no rustc in custom toolchain at " \
-	multirust update custom --copy-local "$CUSTOM_TOOLCHAINS/broken"
+    multirust update custom --copy-local "$CUSTOM_TOOLCHAINS/broken"
     rm -Rf "$CUSTOM_TOOLCHAINS/broken"
 }
 runtest custom_without_rustc
