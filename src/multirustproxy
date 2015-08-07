@@ -12,17 +12,21 @@ err() {
 }
 
 need_cmd() {
-    if ! command -v $1 > /dev/null 2>&1
-    then err "need $1"
+    if ! command -v $1 > /dev/null 2>&1; then
+        err "need $1"
     fi
 }
 
 need_ok() {
-    if [ $? != 0 ]; then err "$1"; fi
+    if [ $? != 0 ]; then
+        err "$1"
+    fi
 }
 
 assert_nz() {
-    if [ -z "$1" ]; then err "assert_nz $2"; fi
+    if [ -z "$1" ]; then
+        err "assert_nz $2"
+    fi
 }
 
 call_multirust() {
@@ -69,23 +73,23 @@ fi
 
 # Figure out what mode we're in
 case "$cmd_basename" in
-    rustc | rustdoc | cargo | rust-lldb | rust-gdb )
-	rust_cmd="$cmd_basename"
-	;;
+    rustc | rustdoc | cargo | rust-lldb | rust-gdb)
+        rust_cmd="$cmd_basename"
+    ;;
     multirustproxy)
-	err "I should not be run manually"
-	;;
+        err "I should not be run manually"
+    ;;
     *)
-	err "unable to interpret command name"
-	;;
+        err "unable to interpret command name"
+    ;;
 esac
 
 extra_flags=
 case "$rust_cmd" in
-    rustc )
-	# Sneak rpaths into all compilation so dylibs work
-	extra_flags="-C rpath"
-	;;
+    rustc)
+        # Sneak rpaths into all compilation so dylibs work
+        extra_flags="-C rpath"
+    ;;
 esac
 
 # Verbose output would break the following ctl commands
