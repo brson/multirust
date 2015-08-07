@@ -19,6 +19,7 @@
 #     delete-data      Delete all user metadata, including installed toolchains
 #     upgrade-data     Upgrade the ~/.multirust directory from previous versions
 #     doc              Open the documentation for the currently active toolchain
+#     which            Report location of the currently active Rust tool.
 #     help             Show help for this command or subcommands
 #
 # Use `multirust help <command>` for detailed help.
