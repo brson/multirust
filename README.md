@@ -69,7 +69,7 @@ Run `./build.sh && ./install.sh --help` to see a list of available options.
 
 # Usage
 
-To install rust, run `multirust update <toolchain>`. See `multirust help update` for
+To install Rust, run `multirust update <toolchain>`. See `multirust help update` for
 details and to configure what this will install.
 
 Overriding the compiler in specific directories:
