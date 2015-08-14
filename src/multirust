@@ -1030,7 +1030,7 @@ find_override() {
             # This conversion is *also* done when adding the override directory to
             # the override DB. It is only done here to be compatible with older
             # multirust installations from before this bug was fixed.
-            local _ovrdir="$(cd "$_ovrdir" && pwd -P)"
+            local _ovrdir="$(cd "$_ovrdir" 2>/dev/null && pwd -P)"
             # NB: The above may fail, e.g. if _ovrdir no longer exists.
             # This is fine since it will just make the next comparision fail as well.
 
