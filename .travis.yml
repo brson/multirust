@@ -6,7 +6,9 @@ sudo: false
 script:
   - ./test.sh
   # Ensure no files are indented using tabs.
-  - test $(git grep -l '	' | wc -l) -eq 4
+  - test $(git grep -F '	' | grep -vE '(Binary file|\.travis\.yml|\.gitmodules)' | wc -l) -eq 0
+  # Ensure there is no trailing whitespace.
+  - test $(git grep -E '\s+$' | grep -vF 'Binary file' | wc -l) -eq 0
 
 branches:
   only:
