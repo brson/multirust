@@ -468,10 +468,10 @@ handle_command_line_args() {
         show-override) show_override;;
         list-overrides) list_overrides;;
         list-toolchains) list_toolchains;;
-        remove-override) 
-            if [ -z "${2-}" ]; then 
+        remove-override)
+            if [ -z "${2-}" ]; then
                 remove_override "$(pwd -P)"
-            else 
+            else
                 remove_override $2
             fi
         ;;
