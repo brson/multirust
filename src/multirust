@@ -409,7 +409,7 @@ Mve696B5tlHyc1KxjHR6w9GRsh4=
 
     for opt in "$@"; do
         case "$opt" in
-            --verbose)
+            -v | --verbose)
                 flag_verbose=true
             ;;
 
@@ -548,7 +548,7 @@ handle_command_line_args() {
             esac
         ;;
 
-        --version)
+        -V | --version)
             echo "multirust $version ($commit_version)"
             exit 0
         ;;
