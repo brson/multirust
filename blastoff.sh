@@ -180,7 +180,7 @@ run() {
     fi
 
     check_for_windows
-    if [ "$?" ]; then
+    if [ "$?" = 0 ]; then
         local _is_windows=true
     else
         local _is_windows=false
