@@ -268,7 +268,7 @@ get_architecture() {
     ;;
 
     MINGW* | MSYS*)
-        err "unimplemented windows arch detection"
+        local _ostype=pc-windows-gnu
     ;;
 
     *)
@@ -495,6 +495,9 @@ try sh "$S/build.sh"
 # Build old-multirusts
 cd "$S/test/multirust-v1" && try sh ./build.sh
 
+get_architecture
+arch="$RETVAL"
+
 # Tell multirust where to put .multirust
 export MULTIRUST_HOME
 # Tell multirust what key to use to verify sigs
@@ -503,6 +506,14 @@ export RUSTUP_GPG_KEY="$MULTIRUST_GPG_KEY"
 
 # Tell multirust where to download stuff from
 MULTIRUST_DIST_SERVER="file://$(cd "$MOCK_DIST_DIR" && pwd)"
+
+# HACK: Frob `/c/` prefix into `c:/` on windows to make curl happy
+case "$arch" in
+*pc-windows*)
+    MULTIRUST_DIST_SERVER=`printf '%s' "$MULTIRUST_DIST_SERVER" | sed s~file:///c/~file://c:/~`
+    ;;
+esac
+
 export MULTIRUST_DIST_SERVER
 export RUSTUP_DIST_SERVER="$MULTIRUST_DIST_SERVER"
 
@@ -512,8 +523,6 @@ export PATH
 try test -e "$MULTIRUST_BIN_DIR/multirust"
 
 # Names of custom installers
-get_architecture
-arch="$RETVAL"
 local_custom_rust="$MOCK_DIST_DIR/dist/rust-nightly-$arch.tar.gz"
 local_custom_rustc="$MOCK_DIST_DIR/dist/rustc-nightly-$arch.tar.gz"
 local_custom_cargo="$MOCK_DIST_DIR/dist/cargo-nightly-$arch.tar.gz"

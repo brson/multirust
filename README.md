@@ -20,7 +20,7 @@ Features:
 * Verify signatures (if GPG is available).
 * Resume partial downloads.
 * Requires only Bourne shell, curl and common unix utilities.
-* For Linux and OS X (Windows MSYS support pending).
+* For Linux, OS X, and Windows (via MSYS2).
 
 # Quick installation
 
@@ -238,7 +238,6 @@ quite meager though so it's unlikely to help.
 * The `rustc`, `cargo` and `rustdoc` commands should be symlinks to
   `multirustproxy` but are actually copies, a limitation of the
   installer.
-* Definitely broken on windows.
 * Concurrent writing of `multirust`'s metadata can possibly cause
   minor data loss in limited circumstances.
 * Paths with semicolons in their names will cause breakage when configured
