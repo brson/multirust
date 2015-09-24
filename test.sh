@@ -510,7 +510,11 @@ MULTIRUST_DIST_SERVER="file://$(cd "$MOCK_DIST_DIR" && pwd)"
 # HACK: Frob `/c/` prefix into `c:/` on windows to make curl happy
 case "$arch" in
 *pc-windows*)
+    is_windows=true
     MULTIRUST_DIST_SERVER=`printf '%s' "$MULTIRUST_DIST_SERVER" | sed s~file:///c/~file://c:/~`
+    ;;
+*)
+    is_windows=false
     ;;
 esac
 
@@ -1004,15 +1008,20 @@ update_on_channel_when_data_has_changed() {
 runtest update_on_channel_when_data_has_changed
 
 with_multirust_from_v1_error() {
-    try "$MULTIRUST_BIN_DIR_V1/multirust" default nightly
-    expect_output_fail "metadata version is 1, need 2" multirust default nightly
+    # No windows support in v1
+    if [ "$is_windows" != true ]; then
+        try "$MULTIRUST_BIN_DIR_V1/multirust" default nightly
+        expect_output_fail "metadata version is 1, need 2" multirust default nightly
+    fi
 }
 runtest with_multirust_from_v1_error
 
 upgrade_from_v1_to_v2() {
-    try "$MULTIRUST_BIN_DIR_V1/multirust" default nightly
-    try multirust upgrade-data
-    try multirust default nightly
+    if [ "$is_windows" != true ]; then
+        try "$MULTIRUST_BIN_DIR_V1/multirust" default nightly
+        try multirust upgrade-data
+        try multirust default nightly
+    fi
 }
 runtest upgrade_from_v1_to_v2
 
