@@ -186,7 +186,7 @@ run() {
         local _is_windows=false
     fi
 
-    if [ _is_windows = "false" ]; then
+    if [ "$_is_windows" = "false" ]; then
         if [ -z "$UNINSTALL" ]; then
             cat <<EOF
 
@@ -268,7 +268,7 @@ EOF
 
     if [ -z "$UNINSTALL" ]; then
         say "installing"
-        if [ _is_windows = "false" ]; then
+        if [ "$_is_windows" = "false" ]; then
             sudo sh ./install.sh
         else
             sh ./install.sh
@@ -279,7 +279,7 @@ EOF
         fi
     else
         say "uninstalling"
-        if [ _is_windows = "false" ]; then
+        if [ "$_is_windows" = "false" ]; then
             sudo sh ./install.sh --uninstall
         else
             sh ./install.sh --uninstall
