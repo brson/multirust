@@ -120,4 +120,9 @@ export CARGO_HOME
 export MULTIRUST_TOOLCHAIN
 export MULTIRUST_HOME
 
+# FIXME: This is only to support build scripts on Rust 1.3,
+# which dynamically link to something, but do not on 1.4.
+PATH="${PATH-}:$sysroot/bin"
+export PATH
+
 exec "$sysroot/bin/$rust_cmd" $extra_flags "$@"
