@@ -109,6 +109,11 @@ build` will run the beta cargo, regardless of the current
 override. This can also be used to e.g. open a beta shell like
 `multirust run beta bash`.
 
+Commands can be abbreviated by using a prefix of the intended command,
+for example `multirust ru` (`run`) or `multirust s-o` (`show-override`).
+In the case of an ambiguous prefix, it picks the first match using the
+order of commands shown in `multirust help`.
+
 # Toolchain specification
 
 `multirust` supports several ways to indicate the toolchain: 'stable',

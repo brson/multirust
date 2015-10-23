@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 # <help>
 #
@@ -409,7 +409,7 @@ Mve696B5tlHyc1KxjHR6w9GRsh4=
 
     for opt in "$@"; do
         case "$opt" in
-            --verbose)
+            -v | --verbose)
                 flag_verbose=true
             ;;
 
@@ -431,6 +431,62 @@ Mve696B5tlHyc1KxjHR6w9GRsh4=
 
 handle_command_line_args() {
     local _cmd_arg="${1-}"
+
+    # begin fuzzy matching
+
+    # list of all commands
+    local _cmds=(
+        update
+        default
+        override
+        show-default
+        show-override
+        list-overrides
+        list-toolchains
+        remove-override
+        remove-toolchain
+        run
+        upgrade-data
+        delete-data
+        which
+        ctl
+        doc
+        help
+    )
+
+    for _cmd in "${_cmds[@]}"; do
+        if [[ $_cmd =~ - && $_cmd_arg =~ - ]]; then
+            # split on - then check each part for a prefix match
+            local _cmd_parts=(${_cmd//-/ })
+            local _arg_parts=(${_cmd_arg//-/ })
+            local i
+            if [[ ${#_cmd_parts[@]} == ${#_arg_parts[@]} ]]; then
+                local sofar=0
+                for i in ${!_cmd_parts[@]}; do
+                    if [[ ${_cmd_parts[$i]} == ${_arg_parts[$i]} ]]; then
+                        sofar=$(( $sofar + 1 ))
+                        continue
+                    fi
+                    if [[ $(expr ${_cmd_parts[$i]} : ${_arg_parts[$i]}) > 0 ]]; then
+                        sofar=$(( $sofar + 1 ))
+                        continue
+                    fi
+                    break
+                done
+                if [[ $sofar == ${#_cmd_parts[@]} ]]; then
+                    _cmd_arg=$_cmd
+                    break
+                fi
+            fi
+        else
+            # just check for a prefix match
+            if [[ $(expr $_cmd : $_cmd_arg) > 0 ]]; then
+                _cmd_arg=$_cmd
+                break
+            fi
+        fi
+    done
+    # end fuzzy matching (if there was a match, $_cmd_arg has been replaced)
 
     # Make sure we're working with an up-to-date metadata format
     case "$_cmd_arg" in
@@ -548,7 +604,7 @@ handle_command_line_args() {
             esac
         ;;
 
-        --version)
+        -V | --version)
             echo "multirust $version ($commit_version)"
             exit 0
         ;;
