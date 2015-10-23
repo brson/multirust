@@ -19,7 +19,7 @@ Features:
 * Verify hashes of downloads.
 * Verify signatures (if GPG is available).
 * Resume partial downloads.
-* Requires only Bourne shell, curl and common unix utilities.
+* Requires only bash, curl and common unix utilities.
 * For Linux, OS X, and Windows (via MSYS2).
 
 # Quick installation
