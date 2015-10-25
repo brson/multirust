@@ -480,7 +480,7 @@ handle_command_line_args() {
             fi
         else
             # just check for a prefix match
-            if [[ $(expr $_cmd : $_cmd_arg) > 0 ]]; then
+            if [[ $_cmd_arg != '' && $(expr $_cmd : $_cmd_arg) > 0 ]]; then
                 _cmd_arg=$_cmd
                 break
             fi
