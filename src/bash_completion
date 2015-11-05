@@ -10,29 +10,6 @@ __multirust_generate_completion()
   return 0
 }
 
-__multirust_commands ()
-{
-  declare current_word
-  declare command
-
-  current_word="${COMP_WORDS[COMP_CWORD]}"
-  COMMANDS='\override remove-override show-override run update help default'
-
-    if [ ${#COMP_WORDS[@]} == 3 -o ${#COMP_WORDS[@]} == 4 ]; then
-
-      command="${COMP_WORDS[COMP_CWORD-2]}"
-      case "${command}" in
-      run|update|override|default)  __multirust_toolchains;;
-      esac
-
-    else
-      case "${current_word}" in
-      *|help)      __multirust_generate_completion "$COMMANDS" ;;
-      esac
-
-    fi
-}
-
 __multirust_toolchains ()
 {
   TOOLCHAINS='stable beta nightly'
@@ -42,7 +19,7 @@ __multirust_toolchains ()
 
 __multirust_toolchains_installed ()
 {
-
+  echo "Checking local override"
   multirust show-override
 }
 
@@ -52,10 +29,13 @@ __multirust ()
   declare previous_word
   previous_word="${COMP_WORDS[COMP_CWORD-1]}"
 
+  COMMANDS='\override remove-override show-override run update help defaultu \n
+            \o-v      r-o             s-o           ru  up     he   de '
+
   case "$previous_word" in
-  run|update|override|default)      __multirust_toolchains ;;
-  remove-override)                  __multirust_toolchains_installed;;
-  *|help)                           __multirust_commands ;;
+  run|ru|update|up|override|ov|default|de)    __multirust_toolchains ;;
+  remove-override|r-o)                        __multirust_toolchains_installed;;
+  *|help|he)                                  __multirust_generate_completion "$COMMANDS" ;;
   esac
 
   return 0
