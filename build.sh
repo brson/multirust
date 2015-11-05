@@ -27,8 +27,7 @@ if [ "$(uname -s)" = Darwin ]; then
 fi
 
 if [ "$(uname -s)" = Linux ]; then
-    echo "Instalation of bash autocompletion for multirust"
-    sudo cp -f src/bash_completion /etc/bash_completion.d/multirust
+    cp -f src/bash_completion build/image/bin/bash_completion
 fi
 
 sh src/rust-installer/gen-installer.sh \
