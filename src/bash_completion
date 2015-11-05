@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+
+# bash completion for multirust
+
+__multirust_generate_completion()
+{
+  declare current_word
+  current_word="${COMP_WORDS[COMP_CWORD]}"
+  COMPREPLY=($(compgen -W "$1" -- "$current_word"))
+  return 0
+}
+
+__multirust_commands ()
+{
+  declare current_word
+  declare command
+
+  current_word="${COMP_WORDS[COMP_CWORD]}"
+  COMMANDS='\override remove-override show-override run update help default'
+
+    if [ ${#COMP_WORDS[@]} == 3 -o ${#COMP_WORDS[@]} == 4 ]; then
+
+      command="${COMP_WORDS[COMP_CWORD-2]}"
+      case "${command}" in
+      run|update|override|default)  __multirust_toolchains;;
+      esac
+
+    else
+      case "${current_word}" in
+      *|help)      __multirust_generate_completion "$COMMANDS" ;;
+      esac
+
+    fi
+}
+
+__multirust_toolchains ()
+{
+  TOOLCHAINS='stable beta nightly'
+
+  __multirust_generate_completion "$TOOLCHAINS"
+}
+
+__multirust_toolchains_installed ()
+{
+
+  multirust show-override
+}
+
+
+__multirust ()
+{
+  declare previous_word
+  previous_word="${COMP_WORDS[COMP_CWORD-1]}"
+
+  case "$previous_word" in
+  run|update|override|default)      __multirust_toolchains ;;
+  remove-override)                  __multirust_toolchains_installed;;
+  *|help)                           __multirust_commands ;;
+  esac
+
+  return 0
+}
+
+# ZHS shell use bashcompinit instead
+if [[ -n ${ZSH_VERSION-} ]]; then
+	autoload -U +X bashcompinit && bashcompinit
+fi
+
+complete -o default -o nospace -F __multirust multirust
