@@ -26,6 +26,11 @@ if [ "$(uname -s)" = Darwin ]; then
     cp src/multirustproxy build/image/bin/rust-lldb
 fi
 
+if [ "$(uname -s)" = Linux ]; then
+    echo "To install bash autocomplete for multirust"
+    sudo cp -f src/bash_completion /etc/bash_completion.d/multirust
+fi
+
 sh src/rust-installer/gen-installer.sh \
     --product-name=multirust \
     --package-name=multirust-0.7.0 \
