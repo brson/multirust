@@ -45,6 +45,9 @@ VERSION=0.7.0
 MULTIRUST_BIN_DIR="$S/build/work/multirust-$VERSION/multirust/bin"
 MULTIRUST_BIN_DIR_V1="$S/test/multirust-v1/build/work/multirust-0.0.2/multirust/bin"
 
+CROSS_ARCH1="x86_64-unknown-linux-musl"
+CROSS_ARCH2="arm-linux-androideabi"
+
 say() {
     echo "test: $1"
 }
@@ -398,12 +401,14 @@ build_mock_std_installer() {
 
 build_mock_cross_std_installer() {
     local _package="$1"
-    
-    local _arch="x86_64-unknown-linux-musl"
+    local _arch="$2"
+    local _date="$3"
 
     local _image="$MOCK_BUILD_DIR/image/std"
     mkdir -p "$_image/lib/rustlib/$_arch/lib/"
+    # Just some files to test for
     echo "test" > "$_image/lib/rustlib/$_arch/lib/libstd.rlib"
+    echo "test" > "$_image/lib/rustlib/$_arch/lib/$_date"
 
     mkdir -p "$MOCK_BUILD_DIR/dist"
     try sh "$S/src/rust-installer/gen-installer.sh" \
@@ -485,7 +490,8 @@ build_mock_channel_manifest() {
     local _rustc_tarball=`frob_win_path "file://$MOCK_DIST_DIR/dist/$_date/rustc-$_package-$_arch.tar.gz"`
     local _cargo_tarball=`frob_win_path "file://$MOCK_DIST_DIR/dist/$_date/cargo-$_package-$_arch.tar.gz"`
     local _std_tarball=`frob_win_path "file://$MOCK_DIST_DIR/dist/$_date/rust-std-$_package-$_arch.tar.gz"`
-    local _cross_std_tarball=`frob_win_path "file://$MOCK_DIST_DIR/dist/$_date/rust-std-$_package-x86_64-unknown-linux-musl.tar.gz"`
+    local _cross_std_tarball1=`frob_win_path "file://$MOCK_DIST_DIR/dist/$_date/rust-std-$_package-$CROSS_ARCH1.tar.gz"`
+    local _cross_std_tarball2=`frob_win_path "file://$MOCK_DIST_DIR/dist/$_date/rust-std-$_package-$CROSS_ARCH2.tar.gz"`
     local _docs_tarball=`frob_win_path "file://$MOCK_DIST_DIR/dist/$_date/rust-docs-$_package-$_arch.tar.gz"`
 
     local _manifest="$MOCK_BUILD_DIR/dist/channel-rust-$_channel.toml"
@@ -531,8 +537,10 @@ build_mock_channel_manifest() {
     printf "%s\n" "version = \"$_version\"" >> "$_manifest"
     printf "%s\n" "[rust-std.$_arch]" >> "$_manifest"
     printf "%s\n" "url = \"$_std_tarball\"" >> "$_manifest"
-    printf "%s\n" "[rust-std.x86_64-unknown-linux-musl]" >> "$_manifest"
-    printf "%s\n" "url = \"$_cross_std_tarball\"" >> "$_manifest"
+    printf "%s\n" "[rust-std.$CROSS_ARCH1]" >> "$_manifest"
+    printf "%s\n" "url = \"$_cross_std_tarball1\"" >> "$_manifest"
+    printf "%s\n" "[rust-std.$CROSS_ARCH2]" >> "$_manifest"
+    printf "%s\n" "url = \"$_cross_std_tarball2\"" >> "$_manifest"
 }
 
 build_mock_channel() {
@@ -547,12 +555,14 @@ build_mock_channel() {
 
     say "building mock channel $_version $_version_hash $_package $_channel $_date"    
     build_mock_std_installer "$_package"
-    build_mock_cross_std_installer "$_package"
+    build_mock_cross_std_installer "$_package" "$CROSS_ARCH1" "$_date"
+    build_mock_cross_std_installer "$_package" "$CROSS_ARCH2" "$_date"
     build_mock_rustc_installer "$_version" "$_version_hash" "$_package"
     build_mock_cargo_installer "$_version" "$_version_hash" "$_package"
     build_mock_rust_docs_installer "$_package"
     build_mock_combined_installer "$_package"
     build_mock_channel_manifest "$_channel" "$_date" "$_version"
+    build_mock_channel_manifest "$_version" "$_date" "$_version"
     build_mock_sums_and_sigs
 
     mkdir -p "$MOCK_DIST_DIR/dist/$_date"
@@ -1194,6 +1204,31 @@ ctl_default_toolchain_with_default_and_override() {
     expect_output_ok "beta" multirust ctl default-toolchain
 }
 runtest ctl_default_toolchain_with_default_and_override
+
+list_available_targets_no_toolchain() {
+    expect_output_fail "toolchain 'bogus' is not installed" multirust list-available-targets bogus 
+}
+runtest list_available_targets_no_toolchain
+
+list_available_targets() {
+    try multirust default nightly
+    expect_output_ok "$CROSS_ARCH1" multirust list-available-targets nightly
+    expect_output_ok "$CROSS_ARCH2" multirust list-available-targets nightly
+}
+runtest list_available_targets
+
+add_target() {
+    try multirust default nightly
+    try multirust add-target nightly "$CROSS_ARCH1"
+    try test -e "$MULTIRUST_HOME/toolchains/nightly/lib/rustlib/$CROSS_ARCH1/lib/libstd.rlib"
+}
+runtest add_target
+
+add_target_bogus() {
+    try multirust default nightly
+    expect_output_fail "unable to find package url" multirust add-target nightly bogus
+}
+runtest add_target_bogus
 
 echo
 echo "SUCCESS!"

@@ -15,6 +15,9 @@
 #     list-toolchains  List all installed toolchains
 #     remove-override  Remove an override, for current directory unless specified
 #     remove-toolchain Uninstall a toolchain
+#     list-available-targets
+#                      List targets available to install
+#     add-target       Add additional compilation targets to an existing toolchain
 #     run              Run a command in an environment configured for a toolchain
 #     delete-data      Delete all user metadata, including installed toolchains
 #     upgrade-data     Upgrade the ~/.multirust directory from previous versions
@@ -189,6 +192,25 @@
 # Usage: multirust remove-toolchain <toolchain>
 #
 # </help-remove-toolchain>
+
+# <help-list-available-targets>
+#
+# List the targets available to an installed toolchain
+#
+# Usage:
+#     multirust add-target <toolchain>
+#
+# </help-list-available-targets>
+
+# <help-add-target>
+#
+# Adds the standard library for a given platform to an existing
+# installation.
+#
+# Usage:
+#     multirust add-target <toolchain> <triple>
+#
+# </help-add-target>
 
 # <help-run>
 #
@@ -445,6 +467,7 @@ handle_command_line_args() {
         list-toolchains
         remove-override
         remove-toolchain
+	list-available-toolchains
         run
         upgrade-data
         delete-data
@@ -538,6 +561,13 @@ handle_command_line_args() {
             fi
             remove_toolchain "$2"
         ;;
+
+	list-available-targets)
+	    if [ -z "${2-}" ]; then
+		err 'unspecified toolchain. try `multirust help list-available-targets`'
+	    fi
+	    list_available_targets "$2"
+	;;
 
         run)
             if [ -z "${2-}" ]; then
@@ -899,6 +929,23 @@ get_toolchain_dir() {
     fi
 
     RETVAL="$toolchains_dir/$_toolchain"
+}
+
+list_available_targets() {
+    local _toolchain="$1"
+
+    get_toolchain_dir "$_toolchain"
+    local _dir="$RETVAL"
+
+    if [ ! -e "$_dir" ]; then
+	err "toolchain '$_toolchain' is not installed"
+	exit 1
+    fi
+
+    call_rustup --prefix="$_dir" --list-available-targets
+    if [ $? != 0 ]; then
+	exit 1
+    fi
 }
 
 
