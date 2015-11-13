@@ -2,7 +2,7 @@
 
 set -e
 
-installer=build/work/multirust-0.7.0/install.sh
+installer=build/work/multirust-0.8.0/install.sh
 
 if [ ! -e "$installer" ]; then
     echo 'run ./build.sh first'

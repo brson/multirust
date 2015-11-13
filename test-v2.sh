@@ -41,7 +41,7 @@ MULTIRUST_GPG_KEY="$TEST_DIR/public-key.asc"
 WORK_DIR="$TMP_DIR/work"
 MOCK_BUILD_DIR="$TMP_DIR/mock-build"
 MULTIRUST_HOME="$(cd "$TMP_DIR" && pwd)/multirust"
-VERSION=0.7.0
+VERSION=0.8.0
 MULTIRUST_BIN_DIR="$S/build/work/multirust-$VERSION/multirust/bin"
 MULTIRUST_BIN_DIR_V1="$S/test/multirust-v1/build/work/multirust-0.0.2/multirust/bin"
 
