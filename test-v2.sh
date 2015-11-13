@@ -1230,6 +1230,11 @@ add_target_bogus() {
 }
 runtest add_target_bogus
 
+add_target_no_toolchain() {
+    expect_output_fail "toolchain 'bogus' is not installed" multirust add-target bogus "$CROSS_ARCH1"
+}
+runtest add_target_no_toolchain
+
 echo
 echo "SUCCESS!"
 echo
