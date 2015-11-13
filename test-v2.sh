@@ -486,13 +486,13 @@ build_mock_channel_manifest() {
     get_architecture
     local _arch="$RETVAL"
 
-    local _rust_tarball=`frob_win_path "file://$MOCK_DIST_DIR/dist/$_date/rust-$_package-$_arch.tar.gz"`
-    local _rustc_tarball=`frob_win_path "file://$MOCK_DIST_DIR/dist/$_date/rustc-$_package-$_arch.tar.gz"`
-    local _cargo_tarball=`frob_win_path "file://$MOCK_DIST_DIR/dist/$_date/cargo-$_package-$_arch.tar.gz"`
-    local _std_tarball=`frob_win_path "file://$MOCK_DIST_DIR/dist/$_date/rust-std-$_package-$_arch.tar.gz"`
-    local _cross_std_tarball1=`frob_win_path "file://$MOCK_DIST_DIR/dist/$_date/rust-std-$_package-$CROSS_ARCH1.tar.gz"`
-    local _cross_std_tarball2=`frob_win_path "file://$MOCK_DIST_DIR/dist/$_date/rust-std-$_package-$CROSS_ARCH2.tar.gz"`
-    local _docs_tarball=`frob_win_path "file://$MOCK_DIST_DIR/dist/$_date/rust-docs-$_package-$_arch.tar.gz"`
+    local _rust_tarball="$(frob_win_path "file://$MOCK_DIST_DIR/dist/$_date/rust-$_package-$_arch.tar.gz")"
+    local _rustc_tarball="$(frob_win_path "file://$MOCK_DIST_DIR/dist/$_date/rustc-$_package-$_arch.tar.gz")"
+    local _cargo_tarball="$(frob_win_path "file://$MOCK_DIST_DIR/dist/$_date/cargo-$_package-$_arch.tar.gz")"
+    local _std_tarball="$(frob_win_path "file://$MOCK_DIST_DIR/dist/$_date/rust-std-$_package-$_arch.tar.gz")"
+    local _cross_std_tarball1="$(frob_win_path "file://$MOCK_DIST_DIR/dist/$_date/rust-std-$_package-$CROSS_ARCH1.tar.gz")"
+    local _cross_std_tarball2="$(frob_win_path "file://$MOCK_DIST_DIR/dist/$_date/rust-std-$_package-$CROSS_ARCH2.tar.gz")"
+    local _docs_tarball="$(frob_win_path "file://$MOCK_DIST_DIR/dist/$_date/rust-docs-$_package-$_arch.tar.gz")"
 
     local _manifest="$MOCK_BUILD_DIR/dist/channel-rust-$_channel.toml"
 
@@ -500,46 +500,49 @@ build_mock_channel_manifest() {
     printf "%s\n" "date = \"$_date\"" >> "$_manifest"
 
     # the 'rust' package
-    printf "%s\n" "[rust]" >> "$_manifest"
+    printf "%s\n" "[pkg.rust]" >> "$_manifest"
     printf "%s\n" "version = \"$_version\"" >> "$_manifest"
-    printf "%s\n" "[rust.$_arch]" >> "$_manifest"
+    printf "%s\n" "[pkg.rust.target.$_arch]" >> "$_manifest"
     printf "%s\n" "url = \"$_rust_tarball\"" >> "$_manifest"
-    printf "%s\n" "[[rust.$_arch.components]]" >> "$_manifest"
+    printf "%s\n" "[[pkg.rust.target.$_arch.components]]" >> "$_manifest"
     printf "%s\n" "pkg = \"rustc\"" >> "$_manifest"
     printf "%s\n" "target = \"$_arch\"" >> "$_manifest"
-    printf "%s\n" "[[rust.$_arch.components]]" >> "$_manifest"
+    printf "%s\n" "[pkg.rust.target.$_arch.components]]" >> "$_manifest"
     printf "%s\n" "pkg = \"rust-docs\"" >> "$_manifest"
     printf "%s\n" "target = \"$_arch\"" >> "$_manifest"
-    printf "%s\n" "[[rust.$_arch.components]]" >> "$_manifest"
+    printf "%s\n" "[pkg.rust.target.$_arch.components]]" >> "$_manifest"
     printf "%s\n" "pkg = \"cargo\"" >> "$_manifest"
     printf "%s\n" "target = \"$_arch\"" >> "$_manifest"
-    printf "%s\n" "[[rust.$_arch.components]]" >> "$_manifest"
+    printf "%s\n" "[pkg.rust.target.$_arch.components]]" >> "$_manifest"
     printf "%s\n" "pkg = \"rust-std\"" >> "$_manifest"
     printf "%s\n" "target = \"$_arch\"" >> "$_manifest"
-    printf "%s\n" "[[rust.$_arch.extensions]]" >> "$_manifest"
+    printf "%s\n" "[pkg.rust.target.$_arch.extensions]]" >> "$_manifest"
     printf "%s\n" "pkg = \"rust-std\"" >> "$_manifest"
-    printf "%s\n" "target = \"x86_64-unknown-linux-musl\"" >> "$_manifest"
+    printf "%s\n" "target = \"$CROSS_ARCH1\"" >> "$_manifest"
+    printf "%s\n" "[pkg.rust.target.$_arch.extensions]]" >> "$_manifest"
+    printf "%s\n" "pkg = \"rust-std\"" >> "$_manifest"
+    printf "%s\n" "target = \"$CROSS_ARCH2\"" >> "$_manifest"
  
     # the other packages
-    printf "%s\n" "[rustc]" >> "$_manifest"
+    printf "%s\n" "[pkg.rustc]" >> "$_manifest"
     printf "%s\n" "version = \"$_version\"" >> "$_manifest"
-    printf "%s\n" "[rustc.$_arch]" >> "$_manifest"
+    printf "%s\n" "[pkg.rustc.target.$_arch]" >> "$_manifest"
     printf "%s\n" "url = \"$_rustc_tarball\"" >> "$_manifest"
-    printf "%s\n" "[rust-docs]" >> "$_manifest"
+    printf "%s\n" "[pkg.rust-docs]" >> "$_manifest"
     printf "%s\n" "version = \"$_version\"" >> "$_manifest"
-    printf "%s\n" "[rust-docs.$_arch]" >> "$_manifest"
+    printf "%s\n" "[pkg.rust-docs.target.$_arch]" >> "$_manifest"
     printf "%s\n" "url = \"$_docs_tarball\"" >> "$_manifest"
-    printf "%s\n" "[cargo]" >> "$_manifest"
+    printf "%s\n" "[pkg.cargo]" >> "$_manifest"
     printf "%s\n" "version = \"$_version\"" >> "$_manifest"
-    printf "%s\n" "[cargo.$_arch]" >> "$_manifest"
+    printf "%s\n" "[pkg.cargo.target.$_arch]" >> "$_manifest"
     printf "%s\n" "url = \"$_cargo_tarball\"" >> "$_manifest"
-    printf "%s\n" "[rust-std]" >> "$_manifest"
+    printf "%s\n" "[pkg.rust-std]" >> "$_manifest"
     printf "%s\n" "version = \"$_version\"" >> "$_manifest"
-    printf "%s\n" "[rust-std.$_arch]" >> "$_manifest"
+    printf "%s\n" "[pkg.rust-std.target.$_arch]" >> "$_manifest"
     printf "%s\n" "url = \"$_std_tarball\"" >> "$_manifest"
-    printf "%s\n" "[rust-std.$CROSS_ARCH1]" >> "$_manifest"
+    printf "%s\n" "[pkg.rust-std.target.$CROSS_ARCH1]" >> "$_manifest"
     printf "%s\n" "url = \"$_cross_std_tarball1\"" >> "$_manifest"
-    printf "%s\n" "[rust-std.$CROSS_ARCH2]" >> "$_manifest"
+    printf "%s\n" "[pkg.rust-std.target.$CROSS_ARCH2]" >> "$_manifest"
     printf "%s\n" "url = \"$_cross_std_tarball2\"" >> "$_manifest"
 }
 
@@ -605,6 +608,7 @@ frob_win_path() {
         printf '%s' "$_path" | sed s~file:///c/~file://c:/~
         ;;
     *)
+	printf '%s' "$_path"
         ;;
     esac
 }
@@ -641,7 +645,7 @@ export MULTIRUST_GPG_KEY
 export RUSTUP_GPG_KEY="$MULTIRUST_GPG_KEY"
 
 # Tell multirust where to download stuff from
-MULTIRUST_DIST_SERVER=`frob_win_path "file://$(cd "$MOCK_DIST_DIR" && pwd)"`
+MULTIRUST_DIST_SERVER="$(frob_win_path "file://$(cd "$MOCK_DIST_DIR" && pwd)")"
 
 export MULTIRUST_DIST_SERVER
 export RUSTUP_DIST_SERVER="$MULTIRUST_DIST_SERVER"
