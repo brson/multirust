@@ -483,6 +483,9 @@ build_mock_channel_manifest() {
     local _date="$2"
     local _version="$3"
 
+    # Build the v1 manifest for upgrade tests
+    (cd "$MOCK_BUILD_DIR/dist" && ls * > channel-rust-"$_channel")
+
     get_architecture
     local _arch="$RETVAL"
 
@@ -811,6 +814,10 @@ remove_active_toolchain_error_handling() {
 runtest remove_active_toolchain_error_handling
 
 bad_sha_on_manifest() {
+    # Have to break both v1 and v2 manifest hashes to trigger the failure
+    manifest_hash="$MOCK_DIST_DIR/dist/channel-rust-nightly.sha256"
+    sha=`cat "$manifest_hash"`
+    echo "$sha" | sed s/^......../aaaaaaaa/ >  "$manifest_hash"
     manifest_hash="$MOCK_DIST_DIR/dist/channel-rust-nightly.toml.sha256"
     sha=`cat "$manifest_hash"`
     echo "$sha" | sed s/^......../aaaaaaaa/ >  "$manifest_hash"
