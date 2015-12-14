@@ -62,14 +62,6 @@ case "$cmd_basename" in
     ;;
 esac
 
-extra_flags=
-case "$rust_cmd" in
-    rustc)
-        # Sneak rpaths into all compilation so dylibs work
-        extra_flags="-C rpath"
-    ;;
-esac
-
 # Verbose output would break the following ctl commands
 unset MULTIRUST_VERBOSE
 
@@ -125,4 +117,4 @@ export MULTIRUST_HOME
 PATH="${PATH-}:$sysroot/bin"
 export PATH
 
-exec "$sysroot/bin/$rust_cmd" $extra_flags "$@"
+exec "$sysroot/bin/$rust_cmd" "$@"
