@@ -56,7 +56,7 @@ Run `sudo ./install.sh --uninstall` to uninstall.
 Run `multirust default nightly` to download and install the nightly
 compiler and package manager and configure it as the default.
 
-As an example customization, to install with underneath your home
+As an example customization, to install underneath your home
 directory in e.g. `~/my_stuff/bin/multirust`, you could use:
 
 ```
