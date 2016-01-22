@@ -183,6 +183,8 @@ environment variable.
 `multirust` saves settings and toolchains per user in `~/.multirust`.
 The directory is initialized when using the `multirust` command to
 set the default channel, or when setting an override or updating for first time.
+The name of this directory can be controlled with the `MULTIRUST_HOME`
+environment variable.
 
 # Can you trust Rust binaries?
 
