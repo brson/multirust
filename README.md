@@ -103,7 +103,7 @@ created.
 Check for updates with `multirust update nightly`. All three release
 channels can be updated at once with `multirust update`.
 
-The `multirust run` command will run an arbitrary in an environment
+`multirust run` will run an arbitrary command in an environment
 configured for a given toolchain, so e.g. `multirust run beta cargo
 build` will run the beta cargo, regardless of the current
 override. This can also be used to e.g. open a beta shell like
