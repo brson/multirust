@@ -123,7 +123,7 @@ will periodically notify you of available updates. All three channels
 can be optionally appended with an archive date, as in
 'nightly-2014-12-18', in which case the toolchain is downloaded from
 the archive for that date (if available). Any other specifier is
-considered an explict Rust version number, as in '0.12.0', or a custom
+considered an explicit Rust version number, as in '0.12.0', or a custom
 toolchain identifier, depending on context.
 
 # Custom toolchains
