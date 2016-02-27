@@ -552,10 +552,22 @@ handle_command_line_args() {
 
         which)
             if [ -z "${2-}" ]; then
-                err 'unspecified tool. try `multirust which rustc`'
+                say_err 'USAGE: multirust which <tool-name>'
+                find_override_toolchain_or_default
+                if [ $? != 0 ]; then
+                    err "failed to find possible suggestions for <tool-name> because no default toolchain was configured"
+                fi
+
+                local _toolchain="$RETVAL"
+                get_toolchain_dir "$_toolchain"
+
+                say_err "  where <tool-name> can be one of: `ls -C \"$RETVAL/bin\"`"
+                say_err "  defaulting to 'which rustc'"
+
+                which_for_environment rustc
+            else
+                which_for_environment "$2"
             fi
-            shift
-            which_for_environment "$@"
         ;;
 
         ctl)
@@ -1346,8 +1358,7 @@ which_for_environment() {
 
     find_override_toolchain_or_default
     if [ $? != 0 ]; then
-        say_err "no default toolchain configured"
-        exit 1
+        err "no default toolchain configured"
     fi
 
     local _toolchain="$RETVAL"
@@ -1359,8 +1370,7 @@ which_for_environment() {
     if [ -f "$_cmd_fullpath" ]; then
         echo "$_cmd_fullpath"
     else
-        say_err "command \"$_cmd\" does not exist"
-        exit 1
+        err "command \"$_cmd\" does not exist"
     fi
 }
 
@@ -1445,8 +1455,7 @@ delete_data() {
 ctl_print_override_toolchain_or_default() {
     find_override_toolchain_or_default
     if [ $? != 0 ]; then
-        say_err "no default toolchain configured"
-        exit 1
+        err "no default toolchain configured"
     fi
     echo "$RETVAL"
 }
@@ -1454,8 +1463,7 @@ ctl_print_override_toolchain_or_default() {
 ctl_print_default_toolchain() {
     find_default
     if [ $? != 0 ]; then
-        say_err "no default toolchain configured"
-        exit 1
+        err "no default toolchain configured"
     fi
     echo "$RETVAL_TOOLCHAIN"
 }
