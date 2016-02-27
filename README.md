@@ -25,7 +25,7 @@ Features:
 # Quick installation
 
 ```
-curl -sf https://raw.githubusercontent.com/brson/multirust/master/blastoff.sh | sh
+curl -sf https://raw.githubusercontent.com/brson/multirust/master/quick-install.sh | sh
 ```
 
 This will build and install multirust, possibly prompting you for your
@@ -36,7 +36,7 @@ toolchain, configuring it as the default when executing `rustc`,
 Uninstallation:
 
 ```
-curl -sf https://raw.githubusercontent.com/brson/multirust/master/blastoff.sh | sh -s -- --uninstall
+curl -sf https://raw.githubusercontent.com/brson/multirust/master/quick-install.sh | sh -s -- --uninstall
 ```
 
 # Manual build, install and configure
@@ -272,7 +272,7 @@ quite meager though so it's unlikely to help.
 * Figure out what to do about command line completions for cargo,
   etc.
 * Tests for various paths with spaces in them.
-* Make blastoff script interactive: require confirmation to start and
+* Make quick-install script interactive: require confirmation to start and
   display a notice if gpg is not installed.
 * Add a way to disable signature verification.
 * There are probably ways to cause damage by trusting the user about
