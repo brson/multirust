@@ -600,6 +600,10 @@ handle_command_line_args() {
                 ;;
                 *)
                     display_topic help-"${2-}"
+                    if [ $? != 0 ]; then
+                        display_topic help
+                        exit 1
+                    fi
                 ;;
             esac
         ;;
@@ -1539,10 +1543,13 @@ display_topic() {
     local _multirust_src="$cmd_dirname/multirust"
 
     extract_topic_from_source "$_multirust_src" "$_topic"
+    ret=$?
 
-    if [ $? != 0 ]; then
-        err "unrecognized topic '$_topic'"
+    if [ $ret != 0 ]; then
+        say_err "unrecognized topic '$_topic'"
+        return $ret
     fi
+    return 0
 }
 
 extract_topic_from_source() {
