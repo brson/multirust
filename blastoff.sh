@@ -1,7 +1,7 @@
 #!/bin/sh
 
 say() {
-    echo "quick-install: $1"
+    echo "blastoff: $1"
 }
 
 verbose_say() {
@@ -244,7 +244,7 @@ EOF
     cd "$tmp_dir"
     need_ok "failed to cd to temporary install directory"
 
-    local _branch="${MULTIRUST_QUICKINSTALL_BRANCH-master}"
+    local _branch="${MULTIRUST_BLASTOFF_BRANCH-master}"
 
     # Clone git repo
     say "cloning multirust git repo"
