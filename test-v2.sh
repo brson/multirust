@@ -380,7 +380,7 @@ build_mock_cargo_installer() {
 
 build_mock_std_installer() {
     local _package="$1"
-    
+
     get_architecture
     local _arch="$RETVAL"
 
@@ -525,7 +525,7 @@ build_mock_channel_manifest() {
     printf "%s\n" "[pkg.rust.target.$_arch.extensions]]" >> "$_manifest"
     printf "%s\n" "pkg = \"rust-std\"" >> "$_manifest"
     printf "%s\n" "target = \"$CROSS_ARCH2\"" >> "$_manifest"
- 
+
     # the other packages
     printf "%s\n" "[pkg.rustc]" >> "$_manifest"
     printf "%s\n" "version = \"$_version\"" >> "$_manifest"
@@ -559,7 +559,7 @@ build_mock_channel() {
     rm -Rf "$MOCK_BUILD_DIR"
     mkdir -p "$MOCK_BUILD_DIR"
 
-    say "building mock channel $_version $_version_hash $_package $_channel $_date"    
+    say "building mock channel $_version $_version_hash $_package $_channel $_date"
     build_mock_std_installer "$_package"
     build_mock_cross_std_installer "$_package" "$CROSS_ARCH1" "$_date"
     build_mock_cross_std_installer "$_package" "$CROSS_ARCH2" "$_date"
@@ -611,7 +611,7 @@ frob_win_path() {
         printf '%s' "$_path" | sed s~file:///c/~file://c:/~
         ;;
     *)
-	printf '%s' "$_path"
+        printf '%s' "$_path"
         ;;
     esac
 }
@@ -1217,7 +1217,7 @@ ctl_default_toolchain_with_default_and_override() {
 runtest ctl_default_toolchain_with_default_and_override
 
 list_available_targets_no_toolchain() {
-    expect_output_fail "toolchain 'bogus' is not installed" multirust list-available-targets bogus 
+    expect_output_fail "toolchain 'bogus' is not installed" multirust list-available-targets bogus
 }
 runtest list_available_targets_no_toolchain
 

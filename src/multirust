@@ -467,7 +467,7 @@ handle_command_line_args() {
         list-toolchains
         remove-override
         remove-toolchain
-	list-available-toolchains
+        list-available-toolchains
         run
         upgrade-data
         delete-data
@@ -562,22 +562,22 @@ handle_command_line_args() {
             remove_toolchain "$2"
         ;;
 
-	list-available-targets)
-	    if [ -z "${2-}" ]; then
-		err 'unspecified toolchain. try `multirust help list-available-targets`'
-	    fi
-	    list_available_targets "$2"
-	;;
+        list-available-targets)
+            if [ -z "${2-}" ]; then
+                err 'unspecified toolchain. try `multirust help list-available-targets`'
+            fi
+            list_available_targets "$2"
+        ;;
 
-	add-target)
-	    if [ -z "${2-}" ]; then
-		err 'unspecified toolchain. try `multirust help add-target`'
-	    fi
-	    if [ -z "${3-}" ]; then
-		err 'unspecified target. try `multirust help add-target`'
-	    fi
-	    add_target "$2" "$3"
-	;;
+        add-target)
+            if [ -z "${2-}" ]; then
+                err 'unspecified toolchain. try `multirust help add-target`'
+            fi
+            if [ -z "${3-}" ]; then
+                err 'unspecified target. try `multirust help add-target`'
+            fi
+            add_target "$2" "$3"
+        ;;
 
         run)
             if [ -z "${2-}" ]; then
@@ -948,13 +948,13 @@ list_available_targets() {
     local _dir="$RETVAL"
 
     if [ ! -e "$_dir" ]; then
-	err "toolchain '$_toolchain' is not installed"
-	exit 1
+        err "toolchain '$_toolchain' is not installed"
+        exit 1
     fi
 
     call_rustup --prefix="$_dir" --list-available-targets
     if [ $? != 0 ]; then
-	exit 1
+        exit 1
     fi
 }
 
@@ -966,13 +966,13 @@ add_target() {
     local _dir="$RETVAL"
 
     if [ ! -e "$_dir" ]; then
-	err "toolchain '$_toolchain' is not installed"
-	exit 1
+        err "toolchain '$_toolchain' is not installed"
+        exit 1
     fi
 
     call_rustup --prefix="$_dir" --add-target="$_target"
     if [ $? != 0 ]; then
-	exit 1
+        exit 1
     fi
 }
 
