@@ -1246,6 +1246,17 @@ add_target_no_toolchain() {
 }
 runtest add_target_no_toolchain
 
+add_target_then_upgrade() {
+    set_current_dist_date 2015-01-01
+    try multirust default nightly
+    try multirust add-target nightly "$CROSS_ARCH1"
+    try test -e "$MULTIRUST_HOME/toolchains/nightly/lib/rustlib/$CROSS_ARCH1/lib/libstd.rlib"
+    set_current_dist_date 2015-01-02
+    try multirust update nightly
+    try test -e "$MULTIRUST_HOME/toolchains/nightly/lib/rustlib/$CROSS_ARCH1/lib/libstd.rlib"
+}
+runtest add_target_then_upgrade
+
 echo
 echo "SUCCESS!"
 echo
