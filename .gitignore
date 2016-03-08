@@ -1,4 +1,5 @@
 *~
 dist/
 build/
-tmp/
+tmp-v1/
+tmp-v2/
