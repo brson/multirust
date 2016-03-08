@@ -1,5 +1,5 @@
 #!/bin/sh
-# NB: If you change this script you must also change quick-install.sh
+# NB: If you change this script you must also change blastoff.sh
 
 say() {
     echo "blastoff: $1"
