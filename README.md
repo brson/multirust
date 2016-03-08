@@ -14,6 +14,7 @@ Features:
 * Receive notifications of updates to release channels.
 * Install historical nightly toolchains from the official archives.
 * Install by specific stable version number.
+* Install additional `std`s for cross-compilation.
 * Install custom toolchains.
 * Isolate Cargo metadata per-installation.
 * Verify hashes of downloads.
@@ -125,6 +126,13 @@ can be optionally appended with an archive date, as in
 the archive for that date (if available). Any other specifier is
 considered an explicit Rust version number, as in '0.12.0', or a custom
 toolchain identifier, depending on context.
+
+# Cross-compilation
+
+`multirust` can install additional standard libraries for
+cross-compilation targets. Once you have installed a toolchain, use
+the `multirust list-available-targets` command to show which targets
+can be added, and `multirust add-target` to add a target.
 
 # Custom toolchains
 
