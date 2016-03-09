@@ -198,7 +198,7 @@
 # List the targets available to an installed toolchain
 #
 # Usage:
-#     multirust add-target <toolchain>
+#     multirust list-available-targets <toolchain>
 #
 # </help-list-available-targets>
 
