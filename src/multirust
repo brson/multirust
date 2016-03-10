@@ -8,7 +8,7 @@
 #
 #     default          Set the default toolchain
 #     override         Set the toolchain override for the current directory tree
-#     update           Install or update a given toolchain
+#     update           Install or update a given toolchain (for example, "stable", "beta", "nightly")
 #     show-override    Show information about the current override
 #     show-default     Show information about the current default
 #     list-overrides   List all overrides
