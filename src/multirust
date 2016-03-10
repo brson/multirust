@@ -467,13 +467,14 @@ handle_command_line_args() {
         list-toolchains
         remove-override
         remove-toolchain
-        list-available-toolchains
+        list-available-targets
+        add-target
         run
-        upgrade-data
         delete-data
+        upgrade-data
+        doc
         which
         ctl
-        doc
         help
     )
 
