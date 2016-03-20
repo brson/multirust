@@ -11,6 +11,7 @@
 #     update           Install or update a given toolchain (for example, "stable", "beta", "nightly")
 #     show-override    Show information about the current override
 #     show-default     Show information about the current default
+#     show-toolchain      Show the name of the current toolcain
 #     list-overrides   List all overrides
 #     list-toolchains  List all installed toolchains
 #     remove-override  Remove an override, for current directory unless specified
@@ -159,6 +160,14 @@
 # Usage: multirust show-override
 #
 # </help-show-override>
+
+# <help-show-toolchain>
+#
+# Displays the name of the toolchain that would be used.
+#
+# Usage: multirust show-toolchain
+#
+# </help-show-toolchain>
 
 # <help-list-overrides>
 #
@@ -463,6 +472,7 @@ handle_command_line_args() {
         override
         show-default
         show-override
+        show-toolchain
         list-overrides
         list-toolchains
         remove-override
@@ -546,6 +556,7 @@ handle_command_line_args() {
 
         show-default) show_default;;
         show-override) show_override;;
+        show-toolchain) show_toolchain;;
         list-overrides) list_overrides;;
         list-toolchains) list_toolchains;;
         remove-override)
@@ -1339,6 +1350,18 @@ show_override() {
         say "no override"
         show_default
     fi
+}
+
+show_toolchain() {
+    local _toolchain=
+    if find_override; then
+        _toolchain="$RETVAL_TOOLCHAIN"
+    elif find_default; then
+        _toolchain="$RETVAL_TOOLCHAIN"
+    else
+        _toolchain="No default"
+    fi
+    echo "$_toolchain"
 }
 
 show_tool_versions() {
