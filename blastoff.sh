@@ -162,6 +162,7 @@ run() {
     need_cmd sed
     need_cmd sh
     need_cmd sleep
+    need_cmd file
 
     GIT_REPO=https://github.com/brson/multirust.git
     UNINSTALL=
