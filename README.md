@@ -5,6 +5,8 @@ toolchain. It replaces the standard Rust toolchain with components
 that dynamically choose between alternate implementations based on
 context.
 
+*Note: multirust is not actively maintained. Migrate to [rustup.rs](https://github.com/rust-lang-nursery/rustup.rs).*
+
 Features:
 
 * Manage multiple installations of the official Rust binaries.
