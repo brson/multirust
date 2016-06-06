@@ -1,4 +1,4 @@
-**Note: multirust is not actively maintained. Migrate to [rustup.rs](https://github.com/rust-lang-nursery/rustup.rs) ([help](#migrating-to-rustup]).**
+**Note: multirust is not actively maintained. Migrate to [rustup.rs](https://github.com/rust-lang-nursery/rustup.rs) ([help](#migrating-to-rustup)).**
 
 [![Build Status](https://travis-ci.org/brson/multirust.svg?branch=master)](https://travis-ci.org/brson/multirust)
 
