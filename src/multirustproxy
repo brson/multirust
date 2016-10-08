@@ -94,6 +94,7 @@ lib_path="$sysroot/lib"
 # Find the libraries we need
 LD_LIBRARY_PATH="$lib_path:${LD_LIBRARY_PATH-}"
 DYLD_LIBRARY_PATH="$lib_path:${DYLD_LIBRARY_PATH-}"
+PATH="${PATH-}:$sysroot/bin"
 
 # Isolate cargo
 CARGO_HOME=${CARGO_HOME-"$sysroot/cargo"}
@@ -111,6 +112,7 @@ export DYLD_LIBRARY_PATH
 export CARGO_HOME
 export MULTIRUST_TOOLCHAIN
 export MULTIRUST_HOME
+export PATH
 
 # FIXME: This is only to support build scripts on Rust 1.3,
 # which dynamically link to something, but do not on 1.4.
