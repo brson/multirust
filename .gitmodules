@@ -1,9 +1,9 @@
 [submodule "src/rust-installer"]
 	path = src/rust-installer
-	url = https://github.com/rust-lang/rust-installer
+	url = https://github.com/rust-lang/rust-installer.git
 [submodule "src/rustup"]
 	path = src/rustup
-	url = https://github.com/rust-lang/rustup
+	url = https://github.com/rust-lang/rustup.git
 [submodule "test/multirust-v1"]
 	path = test/multirust-v1
-	url = https://github.com/brson/multirust
+	url = https://github.com/brson/multirust.git
