@@ -25,6 +25,20 @@ Features:
 * Requires only bash, curl and common unix utilities.
 * For Linux, OS X, and Windows (via MSYS2).
 
+# Migrating to rustup
+
+If you have multirust installed and you would like to migrate to rustup.rs,
+follow these steps (for Linux/Mac):
+
+1. First, uninstall Multirust using this command:
+```
+curl -sf https://raw.githubusercontent.com/brson/multirust/master/blastoff.sh | sh -s -- --uninstall
+```
+2. Delete the folder `~/.multirust`.
+3. If the file `/usr/local/lib/rustlib/uninstall.sh` still exists, the uninstallation was not successful. Run `sudo /usr/local/lib/rustlib/uninstall.sh` to complete it.
+4. Install rustup using the instructions at [rustup.rs](https://www.rustup.rs/).
+
+
 # Quick installation
 
 ```
@@ -36,11 +50,6 @@ password via `sudo`. It will then download and install the stable
 toolchain, configuring it as the default when executing `rustc`,
 `rustdoc`, and `cargo`.
 
-Uninstallation:
-
-```
-curl -sf https://raw.githubusercontent.com/brson/multirust/master/blastoff.sh | sh -s -- --uninstall
-```
 
 # Manual build, install and configure
 
@@ -293,13 +302,3 @@ quite meager though so it's unlikely to help.
 
 multirust is licensed under the same terms as the Rust compiler, now and
 forevermore.
-
-# Migrating to rustup
-
-If you have multirust installed and you would like to migrate to rustup.rs,
-follow these steps (for Linux/Mac):
-
-1. First, uninstall Multirust using the instructions given [above](#quick-installation).
-2. Delete the folder `~/.multirust`.
-3. If the file `/usr/local/lib/rustlib/uninstall.sh` still exists, the uninstallation was not successful. Run `sudo /usr/local/lib/rustlib/uninstall.sh` to complete it.
-4. Install rustup using the instructions at [rustup.rs](https://www.rustup.rs/).
